@@ -4732,7 +4732,13 @@ initSync();
   function canSwipe(t) {
     if (busy || !TABS.includes(view)) return false;
     if (document.querySelector(".gs.open, dialog[open], .gl-pop:not([hidden])")) return false;
-    return !t.closest("input, textarea, select, .table-wrap, .picker, .tabs, .seg, .pf-seg, .no-swipe, [contenteditable]");
+    const f = t.closest("input, textarea, select, [contenteditable]");
+    if (f && (f === document.activeElement || f.type === "range")) return false;
+    if (t.closest(".no-swipe")) return false;
+    for (let e = t; e && e !== document.body; e = e.parentElement) {
+      if (e.scrollWidth > e.clientWidth + 2) { const o = getComputedStyle(e).overflowX; if (o === "auto" || o === "scroll") return false; }
+    }
+    return true;
   }
   function setX(x, ease) {
     const v = view$(); v.style.transition = ease ? "transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s" : "none";
