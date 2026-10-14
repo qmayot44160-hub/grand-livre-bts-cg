@@ -3626,8 +3626,8 @@ function isDark() { const t = document.documentElement.getAttribute("data-theme"
 function shelfHint() { try { return matchMedia("(pointer: coarse)").matches ? "Glisse sur les classeurs, lâche pour ouvrir" : "Clique sur un classeur pour l'ouvrir"; } catch (e) { return "Clique sur un classeur pour l'ouvrir"; } }
 function noiseFill(g, w, hh, a, n) { for (let k = 0; k < n; k++) { g.fillStyle = `rgba(${Math.random() < .5 ? "0,0,0" : "255,255,255"},${Math.random() * a})`; g.fillRect(Math.random() * w, Math.random() * hh, 1 + Math.random() * 2, 1 + Math.random() * 2); } }
 function spineTexture(cat, dark) {
-  const T = window.THREE, cv = document.createElement("canvas"); cv.width = 256; cv.height = 1024;
-  const g = cv.getContext("2d"), hs = HUE[cat] || [228, 40], col = `hsl(${hs[0]}, ${hs[1]}%, ${dark ? 50 : 44}%)`;
+  const T = window.THREE, cv = document.createElement("canvas"); cv.width = 512; cv.height = 2048;
+  const g = cv.getContext("2d"), hs = HUE[cat] || [228, 40], col = `hsl(${hs[0]}, ${hs[1]}%, ${dark ? 50 : 44}%)`; g.scale(2, 2);
   g.fillStyle = col; g.fillRect(0, 0, 256, 1024);
   noiseFill(g, 256, 1024, .06, 5000);
   /* tranche arrondie : ombre sur les bords, reflet vers la gauche */
@@ -3642,12 +3642,26 @@ function spineTexture(cat, dark) {
   g.fillStyle = "#1c2142"; g.font = "800 84px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(CAT[cat].code, 128, 148);
   const gl = g.createLinearGradient(34, 68, 222, 224); gl.addColorStop(0, "rgba(255,255,255,.55)"); gl.addColorStop(.35, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(0,0,0,.06)");
   g.fillStyle = gl; roundRect(g, 34, 68, 188, 156, 14); g.fill();
-  /* titre vertical */
-  g.save(); g.translate(128, 560); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.textBaseline = "middle";
-  let name = CAT[cat].name, fs = 56; const fnt = () => g.font = `700 ${fs}px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif`; fnt();
-  while (g.measureText(name).width > 560 && fs > 38) { fs -= 2; fnt(); }
-  if (g.measureText(name).width > 560) { while (g.measureText(name + "…").width > 560 && name.length > 4) name = name.slice(0, -1); name = name.trim() + "…"; }
-  g.fillStyle = "rgba(0,0,0,.25)"; g.fillText(name, 2, 3); g.fillStyle = "rgba(255,255,255,.96)"; g.fillText(name, 0, 0); g.restore();
+  /* titre vertical : gros caractères, sur deux lignes si besoin */
+  {
+    const name = CAT[cat].name, words = name.split(" "), LEN = 530, THICK = 196;
+    const fontAt = f => `800 ${f}px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif`;
+    let best = null;
+    for (let f = 104; f >= 44 && !best; f -= 2) {
+      g.font = fontAt(f);
+      if (g.measureText(name).width <= LEN && f * 1.0 <= THICK) { best = { f, lines: [name] }; break; }
+      if (words.length > 1 && f * 2.1 <= THICK) {
+        let cut = 1, bestW = Infinity;
+        for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(" "), b = words.slice(i).join(" "), w = Math.max(g.measureText(a).width, g.measureText(b).width); if (w < bestW) { bestW = w; cut = i; } }
+        if (bestW <= LEN) best = { f, lines: [words.slice(0, cut).join(" "), words.slice(cut).join(" ")] };
+      }
+    }
+    if (!best) best = { f: 44, lines: [name] };
+    g.save(); g.translate(128, 540); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.textBaseline = "middle"; g.font = fontAt(best.f);
+    const lh = best.f * 1.02, y0 = -(best.lines.length - 1) * lh / 2;
+    best.lines.forEach((t, i) => { g.lineWidth = best.f * .14; g.strokeStyle = "rgba(0,0,0,.35)"; g.lineJoin = "round"; g.strokeText(t, 0, y0 + i * lh); g.fillStyle = "#ffffff"; g.fillText(t, 0, y0 + i * lh); });
+    g.restore();
+  }
   /* trou de préhension avec anneau métallique */
   const rg = g.createRadialGradient(118, 895, 6, 128, 905, 48); rg.addColorStop(0, "#f4f6fa"); rg.addColorStop(.55, "#a9b0bd"); rg.addColorStop(.8, "#e8ebf1"); rg.addColorStop(1, "#6d7480");
   g.beginPath(); g.arc(128, 905, 46, 0, Math.PI * 2); g.fillStyle = rg; g.fill();
@@ -3657,7 +3671,7 @@ function spineTexture(cat, dark) {
   const ls = lessonStats(cat), pr = ls.n ? ls.r / ls.n : 0;
   g.fillStyle = "rgba(0,0,0,.3)"; roundRect(g, 40, 972, 176, 14, 7); g.fill();
   if (pr > 0) { g.fillStyle = "#ffd66b"; roundRect(g, 40, 972, Math.max(14, 176 * pr), 14, 7); g.fill(); }
-  const tex = new T.CanvasTexture(cv); tex.anisotropy = 8; if (T.sRGBEncoding) tex.encoding = T.sRGBEncoding; return { tex, col };
+  const tex = new T.CanvasTexture(cv); tex.anisotropy = 16; if (T.sRGBEncoding) tex.encoding = T.sRGBEncoding; return { tex, col };
 }
 function pagesTexture(col) {
   const T = window.THREE, cv = document.createElement("canvas"); cv.width = 128; cv.height = 256; const g = cv.getContext("2d");
