@@ -1043,6 +1043,32 @@ body { overflow-x: hidden; }
 .face-back.bristol { position: relative; }
 .swipe-hint { display: none; margin: 0 0 4px; text-align: center; font-size: .82rem; color: var(--muted); }
 @media (pointer: coarse) { .card-runner.flipped .swipe-hint { display: block; } .runner-top .kbd { display: none; } }
+
+.pf-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+.hm-wrap { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.hm-days { display: grid; grid-template-rows: repeat(7, 1fr); gap: 4px; font-size: .66rem; color: var(--muted); padding-top: 1px; }
+.hm-days span { height: 14px; line-height: 14px; }
+.hm { display: grid; grid-auto-flow: column; gap: 4px; flex: 1; justify-content: start; }
+.hm-col { display: grid; grid-template-rows: repeat(7, 14px); gap: 4px; }
+.hm i, .hm-leg i { width: 14px; height: 14px; border-radius: 4px; display: block; background: var(--rule); }
+.hm-1 { background: color-mix(in srgb, var(--accent) 30%, var(--rule)) !important; }
+.hm-2 { background: color-mix(in srgb, var(--accent) 55%, var(--rule)) !important; }
+.hm-3 { background: color-mix(in srgb, var(--accent) 78%, var(--rule)) !important; }
+.hm-4 { background: var(--accent) !important; }
+.hm i.hm-x { background: transparent; }
+.hm i.hm-today { outline: 2px solid #e0a31f; outline-offset: 1px; }
+.hm-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: .84rem; color: var(--muted); }
+.hm-foot b { color: var(--ink); }
+.hm-leg { display: inline-flex; align-items: center; gap: 4px; } .hm-leg i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.wk-list { display: grid; gap: 8px; }
+.wk { display: flex; align-items: center; gap: 12px; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 12px; padding: 10px 12px; }
+.wk-t { flex: 1; min-width: 0; display: grid; gap: 4px; } .wk-t b { font-size: .93rem; } .wk-t small { color: var(--muted); font-size: .78rem; }
+.wk-bar { height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; } .wk-bar i { display: block; height: 100%; background: #d9534f; }
+.wk-cta { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: linear-gradient(135deg, color-mix(in srgb, #e0a31f 16%, var(--sheet)), var(--sheet)); border: 1px solid color-mix(in srgb, #e0a31f 45%, var(--rule)); border-radius: 14px; padding: 12px 14px; }
+.wk-cta:hover { border-color: #e0a31f; }
+.wk-ic { font-size: 1.5rem; } .wk-cta > span:nth-child(2) { flex: 1; min-width: 0; display: grid; } .wk-cta small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-go { font-weight: 700; color: var(--accent); white-space: nowrap; }
+@media (max-width: 760px) { .wk { flex-wrap: wrap; } .wk .btn { margin-left: auto; } .hm i, .hm-col { } }
 </style>
 
 <header class="top">
@@ -2360,6 +2386,8 @@ function levelOf(xp) {
 }
 function bumpStreak() {
   const d = dayNum();
+  S.h = S.h || {}; S.h[d] = (S.h[d] || 0) + 1;
+  for (const k in S.h) if (+k < d - 400) delete S.h[k];
   if (S.st.d === d) return;
   S.st.n = S.st.d === d - 1 ? S.st.n + 1 : 1; S.st.d = d;
 }
@@ -2740,6 +2768,25 @@ function vResult() {
 }
 
 /* Cartes */
+function weakChaps(limit) {
+  const by = {};
+  QS.forEach(x => { const r = S.q[x.id]; if (!r || !r[0]) return; const k = chKey(x), o = by[k] || (by[k] = { k, c: x.c, n: 0, ok: 0, last0: 0 }); o.n++; if (r[2] === 1) o.ok++; else o.last0++; });
+  return Object.values(by).filter(o => o.n >= 3 && o.ok / o.n < .8).sort((a, b) => a.ok / a.n - b.ok / b.n || b.n - a.n).slice(0, limit || 5);
+}
+function chLabel(k) { return CHID[k] ? CHID[k].title : CAT[chCat(k)].name + " : questions transversales"; }
+function weakList(limit) {
+  const w = weakChaps(limit);
+  if (!w.length) return `<div class="empty">Pas encore de point faible repéré : réponds à quelques quiz (au moins 3 questions par chapitre) et ils apparaîtront ici.</div>`;
+  return `<div class="wk-list">${w.map(o => { const pc = Math.round(o.ok / o.n * 100); return `<div class="wk" style="${hueStyle(o.c)}"><span class="tabcode">${h(CAT[o.c].code)}</span><div class="wk-t"><b>${h(chLabel(o.k))}</b><span class="wk-bar"><i style="width:${pc}%"></i></span><small>${pc} % de réussite sur ${o.n} question${o.n > 1 ? "s" : ""}</small></div><button class="btn small primary" data-act="weakQuiz" data-k="${h(o.k)}">Retravailler</button></div>`; }).join("")}</div>`;
+}
+function heatmap() {
+  const H = S.h || {}, d0 = dayNum(), weeks = 16, today = new Date(), dow = (today.getDay() + 6) % 7;
+  const start = d0 - dow - (weeks - 1) * 7, cells = [], max = Math.max(5, ...Object.values(H));
+  let active = 0, total = 0;
+  for (let w = 0; w < weeks; w++) { let col = ""; for (let j = 0; j < 7; j++) { const d = start + w * 7 + j; if (d > d0) { col += `<i class="hm-x"></i>`; continue; } const n = H[d] || 0; if (n) { active++; total += n; } const lv = n ? Math.min(4, Math.ceil(n / max * 4)) : 0; const dt = new Date(today.getTime() - (d0 - d) * 86400000); col += `<i class="hm-${lv}${d === d0 ? " hm-today" : ""}" title="${dt.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} : ${n} activité${n > 1 ? "s" : ""}"></i>`; } cells.push(`<span class="hm-col">${col}</span>`); }
+  return `<div class="hm-wrap no-swipe"><div class="hm-days" aria-hidden="true"><span>L</span><span></span><span>M</span><span></span><span>V</span><span></span><span>D</span></div><div class="hm">${cells.join("")}</div></div>
+    <div class="hm-foot"><span><b>${active}</b> jour${active > 1 ? "s" : ""} de révision sur les 16 dernières semaines · <b>${total}</b> réponses et leçons</span><span class="hm-leg">Moins <i class="hm-0"></i><i class="hm-1"></i><i class="hm-2"></i><i class="hm-3"></i><i class="hm-4"></i> Plus</span></div>`;
+}
 function seg(k, opts) {
   const v = P()[k];
   return `<div class="pf-seg" role="group">${opts.map(([val, lab]) => `<button type="button" data-act="pref" data-k="${k}" data-v="${val}" aria-pressed="${String(v) === String(val)}">${lab}</button>`).join("")}</div>`;
@@ -2776,6 +2823,12 @@ function vProfil() {
     </section>
     <section class="stack"><h2>Mes chiffres</h2>
       <div class="pf-tiles">${tiles.map(([v, l, sub]) => `<div class="pf-tile"><b>${v}</b><span>${l}</span><small>${sub}</small></div>`).join("")}</div>
+    </section>
+    <section class="stack"><div class="sec-head"><h2>Mon activité</h2><p>Chaque case est un jour. Plus elle est foncée, plus tu as révisé.</p></div>
+      <div class="pf-card">${heatmap()}</div>
+    </section>
+    <section class="stack"><div class="sec-head"><h2>Mes points faibles</h2><p>Les chapitres où tu te trompes le plus aux quiz.</p></div>
+      ${weakList(5)}
     </section>
     <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt"><i></i>quiz et cartes maîtrisés</span></p></div>
       <div class="pf-mats">${mats}</div>
@@ -4062,6 +4115,7 @@ function vExHome() {
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
+      ${weakChaps(1).length ? `<button class="wk-cta" data-act="weakMix"><span class="wk-ic" aria-hidden="true">🎯</span><span><b>Travailler mes points faibles</b><small>${weakChaps(5).map(o => h(chLabel(o.k))).slice(0, 2).join(" · ")}${weakChaps(5).length > 2 ? "…" : ""}</small></span><span class="wk-go">Quiz ›</span></button>` : ""}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>
@@ -4694,6 +4748,8 @@ document.addEventListener("click", e => {
     case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
+    case "weakQuiz": { const k = b.dataset.k; startRun(shuffle(QS.filter(x => chKey(x) === k)).slice(0, quizLen), "quiz"); break; }
+    case "weakMix": { const ks = weakChaps(5).map(o => o.k), wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
     case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); S.chap = chapSel.slice(); touch(); render(); break;
     case "pickChap": cibleCat = cat; go("cible"); break;
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
