@@ -30,6 +30,16 @@ assert leftover == 0, "mention personnelle restante : MAMI x%d" % leftover
 s = s.replace("Elle fonctionne quand l'appli est ouverte depuis Claude, connecté à ton compte.",
               "La correction automatique n'est pas activée sur ce site.")
 
+# Sans correction automatique sur le site : on renvoie vers les corrigés officiels
+for a, b in [
+    ("puis envoie ta copie à Claude : il te dit ce qui est juste et ce que tu dois revoir.",
+     "puis compare ta copie au corrigé officiel (lien sur chaque sujet)."),
+    ("Envoie ta copie à Claude pour savoir quoi revoir.", "Compare ta copie au corrigé pour savoir quoi revoir."),
+    ("sujets de 2021 à 2026, corrigés par Claude.", "sujets de 2021 à 2026, avec leurs corrigés."),
+]:
+    assert a in s, a
+    s = s.replace(a, b)
+
 # 2. Tête de page : manifeste et icônes pour l'installation
 head_add = ('<meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest">'
             '<link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">'

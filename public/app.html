@@ -1,4 +1,23 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+.ann-more { margin-top: 2px; }
+.ann-more > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .9rem; color: var(--accent); padding: 8px 0 2px; }
+.ann-more > summary::-webkit-details-marker { display: none; }
+.ann-more > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+.ann-more[open] > summary::before { transform: rotate(45deg); }
+.ann-more[open] > summary { margin-bottom: 6px; }
+.gc-more > summary { color: var(--ink); padding: 6px 0; }
+.gc-more > summary h3 { margin: 0; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gc-more > summary h3 .muted { font-size: .85rem; font-weight: 500; }
+@media (max-width: 760px) {
+  .ep-table, .ep-table tbody { display: block; }
+  .ep-table thead { display: none; }
+  .ep-table tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+  .ep-table td { display: block; padding: 0 !important; border: 0 !important; background: none !important; }
+  .ann-rest > summary { display: flex; justify-content: center; width: 100%; padding: 12px; border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--sheet); }
+  .ep-table td:nth-child(4), .ep-table td:nth-child(5) { grid-column: 1 / -1; }
+  .ep-table td:nth-child(4) { color: var(--muted); font-size: .88rem; }
+}
+</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__;
@@ -2427,7 +2446,7 @@ function vHome() {
     <div class="shortcuts">
       <button class="shortcut" data-act="defi"><span class="ic">${ICON.clock}</span><span><b>Défi 60 secondes</b><span>Un maximum de bonnes réponses en une minute.</span></span></button>
       <button class="shortcut" data-nav="fiches"><span class="ic">${ICON.cards}</span><span><b>Toutes les fiches</b><span>${CHAP.length} fiches-chapitres et le mémo express, avec une recherche.</span></span></button>
-      <button class="shortcut" data-nav="ex"><span class="ic">${ICON.pen}</span><span><b>Annales officielles</b><span>${ANN.length} sujets de 2021 à 2026, corrigés par Claude.</span></span></button>
+      <button class="shortcut" data-nav="ex"><span class="ic">${ICON.pen}</span><span><b>Annales officielles</b><span>${ANN.length} sujets de 2021 à 2026, avec leurs corrigés.</span></span></button>
       <button class="shortcut" data-act="lesson" data-cid="or" data-k="1"><span class="ic">${ICON.talk}</span><span><b>Préparer les oraux</b><span>E6, E7 et E8 : quoi préparer, et quand.</span></span></button>
     </div>
   </section>
@@ -2875,7 +2894,7 @@ function matTrain(c) {
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
     ${(GCBY[c.id] || []).length ? `<div class="ex-group"><h2>Exercices guidés</h2><p class="muted">Un exercice type examen découpé en étapes : tu rédiges, puis tu débloques le corrigé de chaque étape.</p><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></div>` : ""}
-    ${anns.length ? `<div class="ex-group"><h2>Annales officielles</h2><p class="muted">Les exercices des vrais sujets qui portent sur ${h(c.name.toLowerCase())}. Envoie ta copie à Claude pour savoir quoi revoir.</p><div class="ann-flat">${anns.map(x => annRow(x, true)).join("")}</div></div>` : ""}`;
+    ${anns.length ? `<div class="ex-group"><h2>Annales officielles</h2><p class="muted">Les exercices des vrais sujets qui portent sur ${h(c.name.toLowerCase())}. Compare ta copie au corrigé pour savoir quoi revoir.</p><div class="ann-flat">${anns.map(x => annRow(x, true)).join("")}</div></div>` : ""}`;
 }
 
 /* Onglet Fiches */
@@ -3794,6 +3813,8 @@ function annRow(x, withAnn) {
   </button>`;
 }
 const fmtNote = n => (Math.round(n * 2) / 2).toLocaleString("fr-FR");
+const ANN_OPEN = new Set();
+document.addEventListener("toggle", e => { const d = e.target; if (d.classList && d.classList.contains("ann-more")) d.open ? ANN_OPEN.add(d.dataset.ann) : ANN_OPEN.delete(d.dataset.ann); }, true);
 function annCard(a) {
   const nd = a.ex.filter(x => annDone(x.id)).length;
   return `<article class="ann-card" style="${hueStyle(EPREUVE_INFO[a.ep].cat)}">
@@ -3802,7 +3823,7 @@ function annCard(a) {
       <h3>${h(a.cas)}</h3><p class="muted">${h(a.desc)}</p>
       <div class="ann-links">${a.links.map(([l, u]) => `<a class="btn small" href="${h(u)}" target="_blank" rel="noopener noreferrer">${h(l)}${ICON_EXT}</a>`).join("")}<span class="muted small">${nd ? `${nd} sur ${a.ex.length} fait${nd > 1 ? "s" : ""}` : ""}</span></div>
     </header>
-    <div class="ann-list">${a.ex.map(x => annRow(x)).join("")}</div>
+    <details class="ann-more" data-ann="${h(a.ep + a.year + a.place)}"${ANN_OPEN.has(a.ep + a.year + a.place) ? " open" : ""}><summary>Voir les ${a.ex.length} exercice${a.ex.length > 1 ? "s" : ""}</summary><div class="ann-list">${a.ex.map(x => annRow(x)).join("")}</div></details>
   </article>`;
 }
 const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`;
@@ -3814,20 +3835,15 @@ function vExHome() {
   const done = ANNEX.filter(x => annDone(x.id)).length;
   const body = ANF.tag
     ? `<div class="ann-flat">${exPool.filter(x => x.tags.includes(ANF.tag)).sort((a, b) => b.a.year - a.a.year).map(x => annRow(x, true)).join("")}</div>`
-    : `<div class="ann-grid">${pool.slice().sort((a, b) => b.year - a.year || eps.indexOf(a.ep) - eps.indexOf(b.ep)).map(annCard).join("")}</div>`;
+    : (() => {
+        const all = pool.slice().sort((a, b) => b.year - a.year || eps.indexOf(a.ep) - eps.indexOf(b.ep)), first = ANF.ep ? all : all.slice(0, 6), rest = ANF.ep ? [] : all.slice(6);
+        return `<div class="ann-grid">${first.map(annCard).join("")}</div>` + (rest.length ? `<details class="ann-more ann-rest" data-ann="rest"${ANN_OPEN.has("rest") ? " open" : ""}><summary>Voir les ${rest.length} autres sujets (${rest[rest.length - 1].year} à ${rest[0].year})</summary><div class="ann-grid">${rest.map(annCard).join("")}</div></details>` : "");
+      })();
   return `<section class="page-head">
-      <h1>S'entraîner sur les annales</h1>
-      <p class="muted">Les vrais sujets du BTS CG, de 2021 à 2026, découpés en exercices. Ouvre le sujet, fais l'exercice sur papier ou ici, puis envoie ta copie à Claude : il te dit ce qui est juste et ce que tu dois revoir.</p>
+      <h1>S'entraîner</h1>
+      <p class="muted">Les vrais sujets du BTS CG, de 2021 à 2026, découpés en exercices. Ouvre le sujet, fais l'exercice sur papier ou ici, puis compare ta copie au corrigé officiel (lien sur chaque sujet).</p>
     </section>
     <div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div>
-    <section class="stack">
-      <div class="picker" role="tablist" aria-label="Épreuve">
-        <button class="chip" data-act="annEp" data-ep="" aria-pressed="${!ANF.ep}">Toutes</button>
-        ${eps.map(e => `<button class="chip" data-act="annEp" data-ep="${e}" aria-pressed="${ANF.ep === e}">${h(epLabel(e))} <span class="muted">${ANN.filter(a => a.ep === e).reduce((s, a) => s + a.ex.length, 0)}</span></button>`).join("")}
-      </div>
-      <details class="ann-tagbox"${ANF.tag ? " open" : ""}><summary>${ANF.tag ? `Notion : ${h(NOTIONS[ANF.tag][0].split(/[:,(]/)[0].trim())}` : "Filtrer par notion"}</summary><div class="ann-tagbar">${Object.keys(NOTIONS).filter(t => tagCount[t]).map(t => `<button class="chip small" style="${hueStyle(NOTIONS[t][1])}" data-act="annTag" data-tag="${t}" aria-pressed="${ANF.tag === t}">${h(NOTIONS[t][0].split(/[:,(]/)[0].trim())} <span class="muted">${tagCount[t]}</span></button>`).join("")}</div></details>
-      ${body}
-    </section>
     <section class="stack">
       <div class="sec-head"><h2>Révisions rapides</h2><p>Entre deux annales, pour entretenir ce que tu sais.</p></div>
       <div class="modes">
@@ -3839,8 +3855,17 @@ function vExHome() {
       <div class="row"><button class="btn" data-act="goCards">Cartes au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
     </section>
     <section class="stack">
+      <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
+      <div class="picker" role="tablist" aria-label="Épreuve">
+        <button class="chip" data-act="annEp" data-ep="" aria-pressed="${!ANF.ep}">Toutes</button>
+        ${eps.map(e => `<button class="chip" data-act="annEp" data-ep="${e}" aria-pressed="${ANF.ep === e}">${h(epLabel(e))} <span class="muted">${ANN.filter(a => a.ep === e).reduce((s, a) => s + a.ex.length, 0)}</span></button>`).join("")}
+      </div>
+      <details class="ann-tagbox"${ANF.tag ? " open" : ""}><summary>${ANF.tag ? `Notion : ${h(NOTIONS[ANF.tag][0].split(/[:,(]/)[0].trim())}` : "Filtrer par notion"}</summary><div class="ann-tagbar">${Object.keys(NOTIONS).filter(t => tagCount[t]).map(t => `<button class="chip small" style="${hueStyle(NOTIONS[t][1])}" data-act="annTag" data-tag="${t}" aria-pressed="${ANF.tag === t}">${h(NOTIONS[t][0].split(/[:,(]/)[0].trim())} <span class="muted">${tagCount[t]}</span></button>`).join("")}</div></details>
+      ${body}
+    </section>
+    <section class="stack">
       <div class="sec-head"><h2>Exercices guidés</h2><p>${GCASES.length} exercices type examen, découpés en étapes avec un corrigé pour chacune.</p></div>
-      ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<div class="ex-group" style="${hueStyle(c.id)}"><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)}</h3><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></div>`).join("")}
+      ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
     </section>
     <p class="muted small">Sujets officiels de l'Éducation nationale, liens vers les sites qui les publient (Comprendre la compta gestion, Compta Online, académie de Lille, Réviser BTS CG). Les corrigés marqués « non officiel » sont rédigés par ces sites.</p>`;
 }
