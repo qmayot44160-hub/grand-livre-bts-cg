@@ -19,6 +19,8 @@ const AI_DAILY = parseInt(process.env.AI_DAILY_LIMIT || "10", 10);
 const REGISTRATION = (process.env.REGISTRATION || "open").toLowerCase(); // "open" ou "code"
 const SIGNUP_CODE = process.env.SIGNUP_CODE || "";
 const COOKIE = "gl_s";
+const VERIFY = (process.env.GOOGLE_SITE_VERIFICATION || "").replace(/[^A-Za-z0-9_\-]/g, "");
+const VERIFY_TAG = VERIFY ? `<meta name="google-site-verification" content="${VERIFY}">` : "";
 const MAX_AGE = 180 * 24 * 3600; // 180 jours
 
 const store = makeStore();
@@ -71,7 +73,7 @@ app.get("/", async (req, res, next) => {
   try {
     const u = await currentUser(req);
     res.setHeader("Cache-Control", "no-store");
-    if (!u) return res.type("html").send(LOGIN_HTML.replace("__SIGNUP_CODE__", REGISTRATION === "code" ? "1" : "0"));
+    if (!u) return res.type("html").send(LOGIN_HTML.replace("__SIGNUP_CODE__", REGISTRATION === "code" ? "1" : "0").replace("<!--VERIFY-->", VERIFY_TAG));
     const me = { id: u.id, name: u.name, ai: !!AI_KEY };
     const html = APP_HTML
       .replace("__GL_ME__", JSON.stringify(me).replace(/</g, "\\u003c"))
