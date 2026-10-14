@@ -1114,6 +1114,20 @@ html, body { overflow-x: hidden; }
 .ctl-ban.mid { border-color: #e0a31f; background: color-mix(in srgb, #e0a31f 10%, var(--sheet)); }
 .ctl-ban.ko { border-color: #c23a46; background: color-mix(in srgb, #c23a46 8%, var(--sheet)); }
 .ctl-tag { margin-right: 8px; }
+
+/* Dossiers E5 */
+.dos-steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.dos-step { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.dos-step.done { background: var(--sheet); border-color: var(--accent, var(--ink)); }
+.dos-step.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.dos-ctx { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 4px 14px; line-height: 1.6; }
+.dos-ctx summary { cursor: pointer; padding: 8px 0; }
+.dos-ctx[open] { padding-bottom: 12px; }
+.dos-card .mini { font-size: .75rem; font-weight: 700; letter-spacing: .02em; opacity: .8; }
+.dos-group > .ex-grid + .ex-grid { margin-top: 10px; }
+.dos-mine { background: var(--sheet); border-radius: 10px; padding: 10px 14px; }
+.acc-n { display: block; font-size: .72rem; color: var(--muted); margin-top: 2px; line-height: 1.2; }
+.acc-hint { display: block; font-style: normal; color: var(--ink); opacity: .85; font-size: .85rem; margin: 2px 0 4px 18px; }
 </style>
 
 <header class="top">
@@ -3252,6 +3266,7 @@ function matTrain(c) {
       <button class="mode" data-act="quizCat" data-cat="${c.id}"><b>Quiz plus long</b><span>Choisis 20 ou 40 questions, ou mélange avec d'autres matières.</span></button>
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
+    ${dosSection(c.id)}
     ${(GCBY[c.id] || []).length ? `<div class="ex-group"><h2>Exercices guidés</h2><p class="muted">Un exercice type examen découpé en étapes : tu rédiges, puis tu débloques le corrigé de chaque étape.</p><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></div>` : ""}
     ${anns.length ? `<div class="ex-group"><h2>Annales officielles</h2><p class="muted">Les exercices des vrais sujets qui portent sur ${h(c.name.toLowerCase())}. Compare ta copie au corrigé pour savoir quoi revoir.</p><div class="ann-flat">${anns.map(x => annRow(x, true)).join("")}</div></div>` : ""}`;
 }
@@ -4305,6 +4320,7 @@ function vExHome() {
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>
+    <section class="stack">${dosSection()}</section>
     <section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
       <div class="picker" role="tablist" aria-label="Épreuve">
@@ -4667,6 +4683,228 @@ const GENS = [
 ];
 const GEN = Object.fromEntries(GENS.map(g => [g.id, g]));
 
+/* ---------- Dossiers type E5 : une entreprise, des missions qui s'enchaînent, un barème sur 20 ---------- */
+const pc = x => String(x).replace(".", ",") + " %";
+const DOSS = [
+ { id: "d-courant", cats: ["p1", "p3"], title: "Opérations courantes et TVA du mois", ent: "Azur Bureau SAS", minutes: 50, make() {
+    const m = ri(1, 10), mo = MOIS[m], nx = MOIS[m + 1];
+    // Mission 1 : facture d'achat
+    const B = ri(40, 160) * 100, r = pk([2, 5, 8, 10]), e = pk([1, 2]), P = pk([60, 90, 120, 150]);
+    const nc = r2(B * (1 - r / 100)), ea = r2(nc * e / 100), nf = r2(nc - ea), base = r2(nf + P), tvaA = r2(base * 0.2), ttcA = r2(base + tvaA);
+    const l1 = [L("607", "Achats de marchandises", nc), L("6241", "Transports sur achats", P), L("44566", "TVA sur autres biens et services", tvaA), L("765", "Escomptes obtenus", 0, ea), L("401", "Fournisseurs", 0, ttcA)];
+    // Mission 2 : facture de vente
+    const V = ri(60, 220) * 100, rv = pk([0, 3, 5]), Pv = pk([40, 80, 100]);
+    const nc2 = r2(V * (1 - rv / 100)), ht2 = r2(nc2 + Pv), tva2 = r2(ht2 * 0.2), ttc2 = r2(ht2 + tva2);
+    const l2 = [L("411", "Clients", ttc2), L("707", "Ventes de marchandises", 0, nc2), L("7085", "Ports et frais accessoires facturés", 0, Pv), L("44571", "TVA collectée", 0, tva2)];
+    // Mission 3 : avoir pour rabais
+    const R = Math.min(ri(4, 15) * 50, Math.floor(nc2 / 200) * 50), tvaR = r2(R * 0.2), ttcR = r2(R + tvaR);
+    const l3 = [L("709", "Rabais, remises et ristournes accordés", R), L("44571", "TVA collectée", tvaR), L("411", "Clients", 0, ttcR)];
+    // Mission 4 : déclaration de TVA (reprend les missions 1 à 3)
+    const Vo = ri(350, 700) * 100, Do = ri(10, 40) * 50, Di = pk([0, 240, 480, 600]), Cr = pk([0, 0, 350, 820]);
+    const coll = r2(tva2 - tvaR + Vo * 0.2), dabs = r2(tvaA + Do), ded = r2(dabs + Di), due = r2(coll - ded - Cr);
+    const l4 = [L("44571", "TVA collectée", coll), L("44566", "TVA sur autres biens et services", 0, dabs)];
+    if (Di) l4.push(L("44562", "TVA sur immobilisations", 0, Di));
+    if (Cr) l4.push(L("44567", "Crédit de TVA à reporter", 0, Cr));
+    l4.push(L("44551", "TVA à décaisser", 0, due));
+    const ctx = `<p><b>Azur Bureau SAS</b>, à Toulon, vend des fournitures et du mobilier de bureau aux entreprises. Elle relève du régime réel normal de TVA (déclaration CA3 mensuelle) et clôture ses comptes au 31 décembre. Taux de TVA : 20 %. Tu travailles au service comptable ; nous sommes au début du mois de ${nx}.</p>`;
+    return { ctx, missions: [
+      { title: "Facture d'achat", pts: 5, enonce: `<p><b>Annexe 1 : facture n° PV-${ri(1000, 9999)} des Papeteries du Var</b>, datée du ${ri(2, 12)} ${mo}.</p>${tb(["Élément", "Montant"], [["Marchandises, prix brut HT", fmt(B) + " €"], [`Remise ${r} %`, "à calculer"], [`Escompte ${e} % pour règlement à 10 jours (accepté)`, "à calculer"], ["Port facturé HT", fmt(P) + " €"], ["TVA 20 %", "à calculer"]])}<p>Calcule les montants de la facture, puis enregistre-la dans les comptes d'Azur Bureau.</p>`,
+        fields: [{ label: "Net commercial", ans: nc }, { label: "Montant de l'escompte", ans: ea }, { label: "Base HT soumise à la TVA", ans: base }, { label: "TVA déductible", ans: tvaA }, { label: "Net à payer TTC", ans: ttcA }], lines: l1,
+        corr: tb(["Élément", "Calcul", "Montant"], [["Prix brut", "", fmt(B)], [`Remise ${r} %`, `${fmt(B)} × ${r} %`, "− " + fmt(r2(B - nc))], ["Net commercial", "", fmt(nc)], [`Escompte ${e} %`, `${fmt(nc)} × ${e} %`, "− " + fmt(ea)], ["Net financier", "", fmt(nf)], ["Port", "", "+ " + fmt(P)], ["Base HT", "", fmt(base)], ["TVA 20 %", "", fmt(tvaA)], ["Net à payer", "", fmt(ttcA)]]) + jr(l1) + `<p>La remise est déduite directement des achats (607). L'escompte, réduction financière, est toujours comptabilisé : chez l'acheteur, c'est un produit financier (765). Le port payé est une charge (6241) qui entre dans la base de TVA.</p>` },
+      { title: "Facture de vente", pts: 4, enonce: `<p><b>Annexe 2 : facture de vente n° F-${ri(200, 900)}</b> au Cabinet Lenoir, datée du ${ri(13, 20)} ${mo} : marchandises ${fmt(V)} € HT${rv ? `, remise de ${rv} %` : ""}, port facturé ${fmt(Pv)} € HT, TVA 20 %, paiement à 30 jours.</p><p>Calcule les montants puis enregistre la facture.</p>`,
+        fields: [{ label: "Net commercial", ans: nc2 }, { label: "TVA collectée", ans: tva2 }, { label: "Total TTC", ans: ttc2 }], lines: l2,
+        corr: `<p>Net commercial = ${fmt(V)}${rv ? ` × (1 − ${rv} %)` : ""} = ${fmt(nc2)} €. Base HT = ${fmt(nc2)} + ${fmt(Pv)} = ${fmt(ht2)} €. TVA = ${fmt(tva2)} €. TTC = ${fmt(ttc2)} €.</p>` + jr(l2) + `<p>Le port refacturé au client est un produit (7085), soumis à la TVA comme la vente.</p>` },
+      { title: "Avoir au client", pts: 3, enonce: `<p><b>Annexe 3</b> : le ${ri(22, 28)} ${mo}, le Cabinet Lenoir signale un défaut de qualité sur une partie des marchandises. Azur Bureau lui accorde un rabais de ${fmt(R)} € HT par avoir.</p><p>Calcule l'avoir et enregistre-le chez Azur Bureau.</p>`,
+        fields: [{ label: "TVA de l'avoir", ans: tvaR }, { label: "Montant TTC de l'avoir", ans: ttcR }], lines: l3,
+        corr: `<p>TVA = ${fmt(R)} × 20 % = ${fmt(tvaR)} € ; TTC = ${fmt(ttcR)} €.</p>` + jr(l3) + `<p>Une réduction accordée après la facture passe par un avoir : 709 chez le vendeur (609 chez l'acheteur). La TVA collectée est diminuée d'autant.</p>` },
+      { title: "Déclaration de TVA du mois", pts: 5, enonce: `<p><b>Annexe 4 : autres opérations du mois de ${mo}</b> (hors annexes 1 à 3).</p>${tb(["Élément", "Montant"], [["Autres ventes de marchandises HT", fmt(Vo) + " €"], ["TVA déductible sur autres achats de biens et services", fmt(Do) + " €"], ["TVA déductible sur immobilisations", Di ? fmt(Di) + " €" : "néant"], ["Crédit de TVA de la déclaration précédente", Cr ? fmt(Cr) + " €" : "néant"]])}<p>À partir des annexes 1 à 4, calcule la TVA due pour ${mo}, puis passe l'écriture de liquidation.</p>`,
+        fields: [{ label: "TVA collectée nette du mois", ans: coll }, { label: "TVA déductible totale (hors crédit)", ans: ded }, { label: "TVA à décaisser", ans: due }], lines: l4,
+        corr: tb(["Élément", "Calcul", "Montant"], [["TVA collectée", `${fmt(tva2)} (annexe 2) − ${fmt(tvaR)} (avoir) + ${fmt(Vo)} × 20 %`, fmt(coll)], ["TVA déductible sur biens et services", `${fmt(tvaA)} (annexe 1) + ${fmt(Do)}`, fmt(dabs)], ["TVA déductible sur immobilisations", "", fmt(Di)], ["Crédit antérieur", "", fmt(Cr)], ["TVA à décaisser", `${fmt(coll)} − ${fmt(ded)} − ${fmt(Cr)}`, fmt(due)]]) + jr(l4) + `<p>Pense à reprendre les montants des missions précédentes : à l'examen, les dossiers sont liés. Le paiement se fera ensuite par 44551 / 512.</p>` },
+      { title: "Analyse : accepter l'escompte ?", pts: 3, kind: "txt", enonce: `<p>Le fournisseur propose désormais un escompte de 2 % si Azur Bureau paie à la commande au lieu de 60 jours. Le compte bancaire de l'entreprise est souvent à découvert, au taux de 9 % par an.</p><p>Le dirigeant doit-il accepter ? Justifie par un calcul et conclus.</p>`,
+        model: "**Gain de l'escompte** : 2 % du montant de la facture, obtenu en payant 60 jours plus tôt.\n\n**Coût du financement** : si le paiement anticipé est financé par le découvert, il coûte 9 % × 60 / 360 = 1,5 % du montant.\n\n**Comparaison** : 2 % > 1,5 %. Payer comptant fait gagner environ 0,5 % de la facture, même en payant par découvert. Ramené à l'année, l'escompte équivaut à un taux d'environ 2 / 98 × 360 / 60 ≈ 12,2 %, supérieur au taux du découvert (9 %).\n\n**Conclusion** : accepter l'escompte est rentable, à condition de rester dans l'autorisation de découvert et de ne pas mettre la trésorerie en difficulté. L'escompte obtenu sera enregistré en produit financier (765).",
+        crit: ["Je calcule le coût du découvert sur 60 jours (environ 1,5 %)", "Je compare ce coût au gain de 2 %", "Je conclus clairement (accepter) avec une justification", "Je mentionne la limite : trésorerie ou autorisation de découvert"] }
+    ] };
+ } },
+ { id: "d-invest", cats: ["p2"], title: "Investissement, amortissements et cession", ent: "Atelier Brun SARL", minutes: 50, make() {
+    const m = ri(2, 9), mo = MOIS[m - 1], mois = 13 - m;
+    // Mission 1 : acquisition
+    const Pc = ri(20, 60) * 1000, r = pk([5, 10]), T = pk([300, 450, 600]), I = pk([800, 1200, 1500]), F = pk([600, 900]);
+    const net = r2(Pc * (1 - r / 100)), cout = r2(net + T + I), tvaI = r2(cout * 0.2), ttcI = r2(cout + tvaI);
+    const l1 = [L("215", "Installations techniques, matériel et outillage", cout), L("44562", "TVA sur immobilisations", tvaI), L("404", "Fournisseurs d'immobilisations", 0, ttcI)];
+    // Mission 2 : linéaire 5 ans
+    const an = r2(cout * 0.2), dot = r2(an * mois / 12), vnc = r2(cout - dot);
+    const l2 = [L("6811", "Dotations aux amortissements des immobilisations", dot), L("2815", "Amortissements du matériel", 0, dot)];
+    // Mission 3 : dégressif fiscal et dérogatoire
+    const dfisc = r2(cout * 0.35 * mois / 12), der = r2(dfisc - dot);
+    const l3 = [L("6872", "Dotations aux provisions réglementées (amortissements dérogatoires)", der), L("145", "Amortissements dérogatoires", 0, der)];
+    // Mission 4 : cession d'un utilitaire
+    const VO = ri(18, 40) * 1000, k = pk([2, 3]), c = ri(4, 10), aa = r2(VO * 0.2), comp = r2(aa * (c - 1) / 12), cum = r2(aa * k + comp), vncC = r2(VO - cum);
+    const prix = Math.max(500, Math.round(vncC * pk([0.7, 0.9, 1.15, 1.3]) / 100) * 100), tvaC = r2(prix * 0.2), resC = r2(prix - vncC);
+    const l4 = [L("2818", "Amortissements des autres immobilisations corporelles", cum), L("657", "Valeurs comptables des immobilisations cédées", vncC), L("218", "Matériel de transport", 0, VO), L(["462", "512"], "Créances sur cessions d'immobilisations", prix + tvaC), L("757", "Produits des cessions d'immobilisations", 0, prix), L("44571", "TVA collectée", 0, tvaC)];
+    const ctx = `<p><b>Atelier Brun SARL</b> fabrique des meubles sur mesure à La Seyne-sur-Mer. L'exercice coïncide avec l'année civile 2026 (clôture au 31 décembre 2026). Les immobilisations sont amorties en linéaire en comptabilité ; quand c'est possible, l'entreprise pratique fiscalement l'amortissement dégressif. Tu prépares les travaux d'inventaire avec l'expert-comptable.</p>`;
+    return { ctx, missions: [
+      { title: "Acquisition d'une machine", pts: 4, enonce: `<p><b>Annexe 1</b> : le 1er ${mo} 2026, l'atelier achète une scie à commande numérique, mise en service le jour même.</p>${tb(["Élément de la facture du fournisseur", "Montant HT"], [["Prix catalogue", fmt(Pc) + " €"], [`Remise ${r} %`, "à calculer"], ["Transport jusqu'à l'atelier", fmt(T) + " €"], ["Installation et réglages", fmt(I) + " €"]])}<p>Un organisme facture à part ${fmt(F)} € HT pour former les deux menuisiers à la machine. TVA 20 % sur la facture du fournisseur, payable dans 30 jours.</p><p>Calcule le coût d'acquisition, puis enregistre la facture du fournisseur de la machine.</p>`,
+        fields: [{ label: "Coût d'acquisition", ans: cout }, { label: "TVA récupérable sur la facture", ans: tvaI }], lines: l1,
+        corr: `<p>Coût d'acquisition = prix net ${fmt(net)} + transport ${fmt(T)} + installation ${fmt(I)} = <b>${fmt(cout)} €</b>. La formation (${fmt(F)} €) n'en fait pas partie : c'est une charge de l'exercice.</p>` + jr(l1) + `<p>Une immobilisation se paie au 404 (fournisseurs d'immobilisations) et sa TVA va en 44562.</p>` },
+      { title: "Amortissement linéaire", pts: 4, enonce: `<p>La machine est amortie en linéaire sur 5 ans, à partir de sa mise en service.</p><p>Calcule l'annuité pleine, la dotation 2026 et la valeur nette comptable au 31/12/2026, puis passe l'écriture de dotation.</p>`,
+        fields: [{ label: "Annuité pleine", ans: an }, { label: "Dotation 2026", ans: dot }, { label: "VNC au 31/12/2026", ans: vnc }], lines: l2,
+        corr: `<p>Taux 100 / 5 = 20 %. Annuité pleine = ${fmt(cout)} × 20 % = ${fmt(an)} €. Du 1er ${mo} au 31 décembre : ${mois} mois. Dotation 2026 = ${fmt(an)} × ${mois} / 12 = <b>${fmt(dot)} €</b>. VNC = ${fmt(cout)} − ${fmt(dot)} = ${fmt(vnc)} €.</p>` + jr(l2) },
+      { title: "Amortissement dérogatoire", pts: 4, enonce: `<p>Fiscalement, la machine (5 ans) peut être amortie en dégressif. Coefficient : 1,75. Le prorata se calcule en mois, à partir du 1er jour du mois d'acquisition.</p><p>Calcule le taux dégressif, la dotation fiscale 2026 et l'amortissement dérogatoire, puis passe l'écriture.</p>`,
+        fields: [{ label: "Taux dégressif (en %)", ans: 35, pct: true }, { label: "Dotation fiscale 2026", ans: dfisc }, { label: "Dotation dérogatoire 2026", ans: der }], lines: l3,
+        corr: `<p>Taux = 20 % × 1,75 = 35 %. Dotation fiscale = ${fmt(cout)} × 35 % × ${mois} / 12 = ${fmt(dfisc)} €. Dérogatoire = fiscal − comptable = ${fmt(dfisc)} − ${fmt(dot)} = <b>${fmt(der)} €</b>.</p>` + jr(l3) + `<p>L'écart est une provision réglementée (145), en charge exceptionnelle (6872). Il sera repris (145 / 7872) les années où l'amortissement fiscal deviendra inférieur au comptable.</p>` },
+      { title: "Cession d'un utilitaire", pts: 5, enonce: `<p><b>Annexe 2</b> : une camionnette achetée ${fmt(VO)} € HT le 1er janvier ${2026 - k}, amortie en linéaire sur 5 ans, est vendue le 1er ${MOIS[c - 1]} 2026 pour ${fmt(prix)} € HT (TVA 20 %), payable dans 15 jours.</p><p>Calcule la dotation complémentaire de 2026, la VNC et le résultat de cession. Passe ensuite les écritures de sortie du bien et de cession (la dotation complémentaire est déjà enregistrée).</p>`,
+        fields: [{ label: "Dotation complémentaire 2026", ans: comp }, { label: "VNC au jour de la cession", ans: vncC }, { label: "Résultat de cession (négatif si moins-value)", ans: resC }], lines: l4,
+        corr: `<p>Annuité = ${fmt(VO)} × 20 % = ${fmt(aa)} €. Dotation complémentaire = ${fmt(aa)} × ${c - 1} / 12 = ${fmt(comp)} €. Amortissements cumulés = ${fmt(aa)} × ${k} + ${fmt(comp)} = ${fmt(cum)} €. VNC = ${fmt(VO)} − ${fmt(cum)} = <b>${fmt(vncC)} €</b>. Résultat = ${fmt(prix)} − ${fmt(vncC)} = <b>${fmt(resC)} €</b> (${resC >= 0 ? "plus-value" : "moins-value"}).</p>` + jr(l4) + `<p>Depuis le PCG 2025, les cessions d'immobilisations corporelles passent en 657 et 757 (exploitation) et non plus en 675 et 775.</p>` },
+      { title: "Analyse : l'intérêt du dérogatoire", pts: 3, kind: "txt", enonce: `<p>Le gérant s'étonne : « Cet amortissement dérogatoire diminue mon résultat alors que la machine ne s'use pas plus vite. À quoi sert-il ? »</p><p>Réponds-lui en quelques lignes.</p>`,
+        model: "**Ce que c'est** : la différence entre l'amortissement fiscal (dégressif) et l'amortissement comptable (linéaire, qui reflète l'usure). Elle est enregistrée en provision réglementée (145), pas en amortissement du bien.\n\n**Intérêt** : la dotation est déductible fiscalement. Elle réduit le résultat imposable des premières années, donc l'impôt payé tout de suite, et améliore la trésorerie.\n\n**Limite** : ce n'est qu'un décalage. Les années suivantes, les reprises (7872) augmentent le résultat imposable ; sur toute la durée, le total des dotations égale le total des reprises. L'avantage est donc un report d'impôt, pas une économie définitive.",
+        crit: ["J'explique que c'est l'écart entre l'amortissement fiscal et le comptable", "Je dis qu'il réduit l'impôt des premières années (déductible)", "Je précise que c'est un décalage : les reprises viendront ensuite", "Je cite le compte 145 ou le caractère de provision réglementée"] }
+    ] };
+ } },
+ { id: "d-cloture", cats: ["p2", "p3"], title: "Travaux de clôture, IS et affectation", ent: "Méditerranée Distribution SAS", minutes: 55, make() {
+    // Mission 1 : créance douteuse
+    const T = ri(20, 80) * 120, HT = r2(T / 1.2), p = pk([30, 40, 50, 60]), dep = r2(HT * p / 100);
+    const l1 = [L("416", "Clients douteux ou litigieux", T), L("411", "Clients", 0, T), L("6817", "Dotations aux dépréciations des actifs circulants", dep), L("491", "Dépréciations des comptes clients", 0, dep)];
+    // Mission 2 : CCA
+    const Pa = ri(1, 6) * 1200, m = ri(2, 12), cca = r2(Pa * (m - 1) / 12);
+    const l2 = [L("486", "Charges constatées d'avance", cca), L("616", "Primes d'assurance", 0, cca)];
+    // Mission 3 : FNP
+    const E = ri(3, 12) * 100, tE = r2(E * 0.2);
+    const l3 = [L("6061", "Fournitures non stockables (eau, énergie)", E), L("44586", "TVA sur factures non parvenues", tE), L("408", "Fournisseurs, factures non parvenues", 0, r2(E + tE))];
+    // Mission 4 : résultat fiscal et IS
+    const Rc = ri(60, 250) * 1000, Am = pk([500, 1200, 2000]), Tx = pk([600, 1100, 1700]), Pv = ri(35, 50) * 1000, exc = r2((Pv - 18300) * 0.2);
+    const Rf = r2(Rc + Am + Tx + exc), IS = r2(Math.min(Rf, 42500) * 0.15 + Math.max(0, Rf - 42500) * 0.25);
+    const acpt = Math.round(IS * pk([0.8, 0.85, 0.9, 0.95]) / 4) * 4, solde = r2(IS - acpt);
+    const l4 = [L("695", "Impôts sur les bénéfices", IS), L("444", "État, impôts sur les bénéfices", 0, IS)];
+    // Mission 5 : affectation (reprend le bénéfice net)
+    const BN = r2(Rc - IS), Cap = ri(5, 20) * 10000, RLe = r2(Cap * pk([0.06, 0.08, 0.095])), RL = r2(Math.min(BN * 0.05, Cap * 0.1 - RLe)), nb = Cap / 10;
+    const dist = r2(BN - RL), dps = [2, 1.5, 1, 0.5, 0.2].find(d => nb * d <= dist * 0.8) || 0.1, D = r2(nb * dps), RAN = r2(dist - D);
+    const l5 = [L("120", "Résultat de l'exercice (bénéfice)", BN), L("1061", "Réserve légale", 0, RL), L("457", "Associés, dividendes à payer", 0, D), L("110", "Report à nouveau (créditeur)", 0, RAN)];
+    const ctx = `<p><b>Méditerranée Distribution SAS</b>, grossiste en produits d'entretien à Hyères, clôture son exercice au 31 décembre 2026. C'est une PME : chiffre d'affaires inférieur à 10 M€, capital entièrement libéré et détenu à plus de 75 % par des personnes physiques. TVA 20 %. Tu réalises les travaux d'inventaire puis le calcul de l'impôt.</p>`;
+    return { ctx, missions: [
+      { title: "Créance douteuse", pts: 4, enonce: `<p><b>Annexe 1</b> : le client Garcia doit ${fmt(T)} € TTC. Il vient d'être placé en redressement judiciaire. Le risque de perte est estimé à ${p} % de la créance.</p><p>Calcule la dépréciation, puis enregistre le reclassement de la créance et la dépréciation au 31/12/2026.</p>`,
+        fields: [{ label: "Créance hors taxes", ans: HT }, { label: "Dépréciation", ans: dep }], lines: l1,
+        corr: `<p>HT = ${fmt(T)} / 1,2 = ${fmt(HT)} €. Dépréciation = ${fmt(HT)} × ${p} % = <b>${fmt(dep)} €</b>. On déprécie le HT, car la TVA sera récupérée si la créance devient irrécouvrable.</p>` + jr(l1) },
+      { title: "Charge constatée d'avance", pts: 3, enonce: `<p><b>Annexe 2</b> : la prime annuelle d'assurance des locaux, ${fmt(Pa)} €, a été payée et enregistrée en 616 le 1er ${MOIS[m - 1]} 2026 ; elle couvre 12 mois à partir de cette date.</p><p>Calcule et enregistre la régularisation au 31/12/2026.</p>`,
+        fields: [{ label: "Charge constatée d'avance", ans: cca }], lines: l2,
+        corr: `<p>La prime couvre ${m - 1} mois de 2027 : ${fmt(Pa)} × ${m - 1} / 12 = <b>${fmt(cca)} €</b>, à retirer des charges de 2026.</p>` + jr(l2) + `<p>L'écriture sera contre-passée le 1er janvier 2027.</p>` },
+      { title: "Facture non parvenue", pts: 3, enonce: `<p><b>Annexe 3</b> : la facture d'électricité de décembre 2026, estimée à ${fmt(E)} € HT (TVA 20 %), n'est pas encore arrivée.</p><p>Enregistre la régularisation.</p>`,
+        fields: [{ label: "Montant à inscrire en 408", ans: r2(E + tE) }], lines: l3,
+        corr: jr(l3) + `<p>La charge appartient à 2026 : on l'enregistre maintenant, avec sa TVA en 44586, contre une dette « factures non parvenues ».</p>` },
+      { title: "Résultat fiscal et IS", pts: 6, enonce: `<p><b>Annexe 4</b> : après les écritures d'inventaire, le résultat comptable avant impôt est de ${fmt(Rc)} €. Il comprend :</p><ul><li>une amende pour excès de vitesse de ${fmt(Am)} € ;</li><li>les taxes annuelles sur les véhicules de tourisme, ${fmt(Tx)} € ;</li><li>l'amortissement linéaire sur 5 ans (année pleine) d'une voiture de tourisme achetée ${fmt(Pv)} € TTC, dont le plafond fiscal est de 18 300 €.</li></ul><p>Acomptes d'IS versés en 2026 : ${fmt(acpt)} €.</p><p>Calcule le résultat fiscal, l'IS de 2026 et le solde à verser le 15 mai 2027, puis enregistre l'IS de l'exercice.</p>`,
+        fields: [{ label: "Résultat fiscal", ans: Rf }, { label: "IS de 2026", ans: IS, tol: 1 }, { label: "Solde à verser", ans: solde, tol: 1 }], lines: l4, tol: 1,
+        corr: tb(["Élément", "Montant"], [["Résultat comptable", fmt(Rc)], ["+ Amende (non déductible)", fmt(Am)], ["+ Taxes annuelles sur les véhicules de tourisme", fmt(Tx)], [`+ Amortissement excédentaire : (${fmt(Pv)} − 18 300) × 20 %`, fmt(exc)], ["= Résultat fiscal", fmt(Rf)]]) + `<p>IS = 42 500 × 15 %${Rf > 42500 ? ` + ${fmt(r2(Rf - 42500))} × 25 %` : ""} = <b>${fmt(IS)} €</b>. Solde = ${fmt(IS)} − ${fmt(acpt)} = <b>${fmt(solde)} €</b>.</p>` + jr(l4) + `<p>Les acomptes ont été débités au 444 en cours d'année ; le solde se paiera par 444 / 512.</p>` },
+      { title: "Affectation du résultat", pts: 4, enonce: `<p><b>Annexe 5</b> : capital de ${fmt(Cap)} €, divisé en actions de 10 €. Réserve légale déjà constituée : ${fmt(RLe)} €. Pas de report à nouveau antérieur. L'assemblée décide de doter la réserve légale du minimum obligatoire, de verser un dividende de ${String(dps).replace(".", ",")} € par action et de mettre le reste en report à nouveau.</p><p>À partir du bénéfice net (résultat comptable − IS de la mission précédente), calcule l'affectation et passe l'écriture.</p>`,
+        fields: [{ label: "Bénéfice net", ans: BN, tol: 1 }, { label: "Dotation à la réserve légale", ans: RL, tol: 1 }, { label: "Dividendes", ans: D }, { label: "Report à nouveau", ans: RAN, tol: 1 }], lines: l5, tol: 1,
+        corr: `<p>Bénéfice net = ${fmt(Rc)} − ${fmt(IS)} = ${fmt(BN)} €. Réserve légale : 5 % × ${fmt(BN)} = ${fmt(r2(BN * 0.05))} €, plafonné à 10 % du capital − réserve existante = ${fmt(r2(Cap * 0.1 - RLe))} € → <b>${fmt(RL)} €</b>. Dividendes = ${fmt(nb)} actions × ${String(dps).replace(".", ",")} € = ${fmt(D)} €. Report à nouveau = ${fmt(BN)} − ${fmt(RL)} − ${fmt(D)} = ${fmt(RAN)} €.</p>` + jr(l5) }
+    ] };
+ } },
+ { id: "d-paie", cats: ["p4"], title: "Paie du mois", ent: "Bleu Horizon SARL", minutes: 45, make() {
+    const mo = MOIS[ri(0, 10)];
+    // Mission 1 : heures supplémentaires
+    const Sb = ri(20, 32) * 100, th = r2(Sb / 151.67), W = pk([39, 41, 43, 44, 45, 46, 47]), h25 = Math.min(W, 43) - 35, h50 = Math.max(0, W - 43);
+    const m25 = r2(h25 * th * 1.25), m50 = r2(h50 * th * 1.5);
+    // Mission 2 : du brut au net (taux de l'annexe)
+    const Br = ri(22, 40) * 100, t = pk([0, 2.1, 3.4, 4.6, 5.8]);
+    const vi = r2(Br * 0.073), rc = r2(Br * 0.0401), as = r2(Br * 0.9825), cd = r2(as * 0.068), cn = r2(as * 0.024), crds = r2(as * 0.005);
+    const tot = r2(vi + rc + cd + cn + crds), nai = r2(Br - tot), ni = r2(nai + cn + crds), pas = r2(ni * t / 100), nap = r2(nai - pas);
+    // Mission 3 : écriture de paie
+    const up = r2(Br * 0.27), rp = r2(Br * 0.0601), pat = r2(up + rp), cout = r2(Br + pat);
+    const l3 = [L("641", "Rémunérations du personnel", Br), L("645", "Charges de sécurité sociale et de prévoyance", pat), L("431", "Sécurité sociale (URSSAF)", 0, r2(vi + cd + cn + crds + up)), L("437", "Autres organismes sociaux (retraite complémentaire)", 0, r2(rc + rp)), L("4421", "Prélèvements à la source", 0, pas), L("421", "Personnel, rémunérations dues", 0, nap)].filter(l => l.d || l.c);
+    // Mission 4 : congés payés
+    const j = pk([6, 10, 12, 15]), jo = pk([24, 25, 26]), Rref = Sb * 12 + ri(2, 30) * 100, dix = r2(Rref / 10 * j / 30), mt = r2(Sb * j / jo), ind = Math.max(dix, mt);
+    const ctx = `<p><b>Bleu Horizon SARL</b>, agence de voyages à Toulon, emploie 9 salariés à 35 heures par semaine (151,67 heures par mois). Tu prépares la paie de ${mo} 2026. Les taux de cotisations sont simplifiés dans les annexes : utilise-les tels quels.</p>`;
+    return { ctx, missions: [
+      { title: "Heures supplémentaires", pts: 5, enonce: `<p><b>Annexe 1</b> : M. Rossi, employé au salaire de base de ${fmt(Sb)} € brut par mois, a travaillé ${W} heures pendant la deuxième semaine de ${mo}. Majorations légales : 25 % de la 36e à la 43e heure, 50 % au-delà.</p><p>Calcule le taux horaire (arrondi au centime) et le montant des heures supplémentaires de cette semaine.</p>`,
+        fields: [{ label: "Taux horaire brut", ans: th }, { label: `Heures majorées à 25 % (${h25} h)`, ans: m25, tol: 0.05 }, { label: `Heures majorées à 50 % (${h50} h)`, ans: m50, tol: 0.05 }],
+        corr: `<p>Taux horaire = ${fmt(Sb)} / 151,67 = <b>${fmt(th)} €</b>.</p><p>${W} heures = 35 h + ${h25} h à 25 %${h50 ? ` + ${h50} h à 50 %` : ""}.</p><p>${h25} × ${fmt(th)} × 1,25 = <b>${fmt(m25)} €</b>${h50 ? ` ; ${h50} × ${fmt(th)} × 1,5 = <b>${fmt(m50)} €</b>` : " ; aucune heure à 50 %"}.</p><p>Les heures supplémentaires se décomptent par semaine civile, pas sur le mois.</p>` },
+      { title: "Du brut au net à payer", pts: 6, enonce: `<p><b>Annexe 2</b> : Mme Martin, salaire brut de ${mo} : ${fmt(Br)} € (sous le plafond de la Sécurité sociale). Taux salariaux de l'annexe :</p>${tb(["Cotisation", "Base", "Taux salarial"], [["Assurance vieillesse (plafonnée + déplafonnée)", "brut", "7,30 %"], ["Retraite complémentaire AGIRC-ARRCO (T1 + CEG)", "brut", "4,01 %"], ["CSG déductible", "98,25 % du brut", "6,80 %"], ["CSG non déductible", "98,25 % du brut", "2,40 %"], ["CRDS", "98,25 % du brut", "0,50 %"]])}<p>Taux de prélèvement à la source : ${pc(t)}.</p><p>Calcule les éléments du bulletin.</p>`,
+        fields: [{ label: "Total des cotisations salariales", ans: tot, tol: 0.05 }, { label: "Net à payer avant impôt", ans: nai, tol: 0.05 }, { label: "Net imposable", ans: ni, tol: 0.05 }, { label: "Prélèvement à la source", ans: pas, tol: 0.05 }, { label: "Net à payer", ans: nap, tol: 0.1 }], tol: 0.1,
+        corr: tb(["Élément", "Calcul", "Montant"], [["Vieillesse", `${fmt(Br)} × 7,30 %`, fmt(vi)], ["Retraite complémentaire", `${fmt(Br)} × 4,01 %`, fmt(rc)], ["Assiette CSG-CRDS", `${fmt(Br)} × 98,25 %`, fmt(as)], ["CSG déductible", "6,80 %", fmt(cd)], ["CSG non déductible", "2,40 %", fmt(cn)], ["CRDS", "0,50 %", fmt(crds)], ["Total salarial", "", fmt(tot)], ["Net avant impôt", `${fmt(Br)} − ${fmt(tot)}`, fmt(nai)], ["Net imposable", `+ CSG non déductible + CRDS`, fmt(ni)], ["Prélèvement à la source", `${fmt(ni)} × ${pc(t)}`, fmt(pas)], ["Net à payer", "", fmt(nap)]]) + `<p>Le net imposable réintègre la CSG non déductible et la CRDS : elles sont payées par le salarié mais restent imposables.</p>` },
+      { title: "Comptabilisation de la paie", pts: 5, enonce: `<p><b>Annexe 3</b> : charges patronales de Mme Martin (taux simplifiés) : URSSAF 27 % du brut, retraite complémentaire 6,01 % du brut.</p><p>Calcule les charges patronales et le coût total pour l'employeur, puis passe l'écriture de paie de Mme Martin (salaire et charges patronales, avant paiement).</p>`,
+        fields: [{ label: "Charges patronales totales", ans: pat, tol: 0.05 }, { label: "Coût total employeur", ans: cout, tol: 0.05 }], lines: l3, tol: 0.1,
+        corr: `<p>URSSAF patronale = ${fmt(up)} € ; retraite complémentaire = ${fmt(rp)} € ; total = <b>${fmt(pat)} €</b>. Coût employeur = ${fmt(Br)} + ${fmt(pat)} = <b>${fmt(cout)} €</b>.</p>` + jr(l3) + `<p>431 regroupe les cotisations URSSAF salariales (dont CSG et CRDS) et patronales ; 437 la retraite complémentaire. Le prélèvement à la source est une dette envers l'État (4421).</p>` },
+      { title: "Indemnité de congés payés", pts: 4, enonce: `<p><b>Annexe 4</b> : M. Rossi (salaire de base ${fmt(Sb)} €) prend ${j} jours ouvrables de congés en ${mo}. Rémunération brute de la période de référence : ${fmt(Rref)} €. Le mois compte ${jo} jours ouvrables.</p><p>Calcule l'indemnité selon les deux méthodes et indique celle à verser.</p>`,
+        fields: [{ label: "Règle du dixième", ans: dix, tol: 0.05 }, { label: "Maintien de salaire", ans: mt, tol: 0.05 }, { label: "Indemnité à verser", ans: ind, tol: 0.05 }],
+        corr: `<p>Dixième : ${fmt(Rref)} / 10 = ${fmt(r2(Rref / 10))} € pour 30 jours, soit × ${j} / 30 = <b>${fmt(dix)} €</b>.</p><p>Maintien : ${fmt(Sb)} × ${j} / ${jo} = <b>${fmt(mt)} €</b>.</p><p>On verse la méthode la plus favorable au salarié : <b>${fmt(ind)} €</b> (${dix >= mt ? "dixième" : "maintien"}).</p>` }
+    ] };
+ } }
+];
+const DOSSID = Object.fromEntries(DOSS.map(d => [d.id, d]));
+
+/* Comptes souvent confondus : message affiché quand ce compte est en trop */
+const ACC_HINT = {
+  "666": "666 sert aux opérations financières ; une facture commerciale en devises va en 656 (PCG 2025).",
+  "766": "766 sert aux opérations financières ; une facture commerciale en devises va en 756 (PCG 2025).",
+  "675": "675 ne sert plus aux cessions depuis le PCG 2025 : valeur comptable des immobilisations cédées en 657.",
+  "775": "775 ne sert plus aux cessions depuis le PCG 2025 : prix de cession en 757.",
+  "777": "Depuis le PCG 2025, la quote-part de subvention virée au résultat va en 747.",
+  "665": "665 = escompte accordé (vendeur). Chez l'acheteur, l'escompte obtenu est un produit : 765.",
+  "765": "765 = escompte obtenu (acheteur). Chez le vendeur, l'escompte accordé est une charge : 665.",
+  "609": "609 = rabais obtenus (acheteur). Chez le vendeur : 709.",
+  "709": "709 = rabais accordés (vendeur). Chez l'acheteur : 609. Une remise sur la facture d'origine ne se comptabilise pas à part.",
+  "44566": "44566 = TVA sur achats courants ; pour une immobilisation : 44562.",
+  "44562": "44562 = TVA sur immobilisations ; pour des achats courants : 44566.",
+  "4456": "Précise le compte : 44562 (immobilisations) ou 44566 (autres biens et services).",
+  "4457": "Le compte de TVA collectée est 44571.",
+  "401": "401 = fournisseurs de biens et services ; pour une immobilisation : 404.",
+  "404": "404 = fournisseurs d'immobilisations ; pour des achats courants : 401.",
+  "6816": "6816 = dépréciation d'immobilisations ; une créance se déprécie par 6817 / 491.",
+  "6815": "6815 = provision pour risques ; une créance douteuse se déprécie par 6817 / 491.",
+  "151": "151 = provision pour risques (passif) ; dépréciation d'une créance : 491.",
+  "29": "29 = dépréciation d'immobilisations ; pour un amortissement : 28.",
+  "487": "487 = produit constaté d'avance ; une charge payée d'avance va en 486.",
+  "418": "418 = factures à établir (clients) ; une facture fournisseur non reçue va en 408.",
+  "44587": "44587 = TVA sur factures à établir (ventes) ; pour une facture d'achat non parvenue : 44586.",
+  "6811": "6811 = amortissement économique ; l'écart fiscal (dérogatoire) passe en 6872 / 145.",
+  "681": "Précise : 6811 (amortissements) ou 6817 (dépréciations d'actifs circulants).",
+  "687": "Le dérogatoire se dote en 6872.",
+  "2154": "",
+  "1068": "1068 = autres réserves ; la réserve légale va en 1061.",
+  "106": "Précise : 1061 pour la réserve légale.",
+  "6241": "6241 = transport payé sur achats ; le port facturé au client est un produit : 7085.",
+  "7085": "7085 = port facturé au client ; le port payé sur achats est une charge : 6241.",
+  "641": "641 = salaire brut ; les charges patronales vont en 645.",
+  "645": "645 = charges sociales patronales ; le salaire brut va en 641.",
+  "425": "425 = acomptes versés au personnel ; le net à payer va en 421.",
+  "444": "",
+  "445": "Précise le compte de TVA (44562, 44566, 44571, 44551…).",
+  "12": "Le bénéfice de l'exercice est au 120.",
+  "607": "", "707": ""
+};
+function accHint(dg) { for (let n = dg.length; n >= 2; n--) { const k = dg.slice(0, n); if (ACC_HINT[k]) return ACC_HINT[k]; } return ""; }
+
+/* Liste de comptes proposée pendant la saisie */
+const ACC_LIST = [["101", "Capital"], ["1061", "Réserve légale"], ["1068", "Autres réserves"], ["110", "Report à nouveau créditeur"], ["120", "Résultat (bénéfice)"], ["131", "Subventions d'investissement"], ["139", "Subventions inscrites au résultat"], ["145", "Amortissements dérogatoires"], ["151", "Provisions pour risques"], ["164", "Emprunts"], ["1688", "Intérêts courus"], ["205", "Logiciels"], ["2154", "Matériel industriel"], ["2182", "Matériel de transport"], ["2183", "Matériel de bureau et informatique"], ["2184", "Mobilier"], ["28154", "Amort. matériel industriel"], ["28182", "Amort. matériel de transport"], ["37", "Stocks de marchandises"], ["401", "Fournisseurs"], ["404", "Fournisseurs d'immobilisations"], ["408", "Fournisseurs, factures non parvenues"], ["4091", "Avances versées"], ["411", "Clients"], ["416", "Clients douteux"], ["418", "Clients, factures à établir"], ["4191", "Avances reçues"], ["421", "Personnel, rémunérations dues"], ["425", "Personnel, acomptes"], ["431", "Sécurité sociale (URSSAF)"], ["437", "Autres organismes sociaux"], ["4421", "Prélèvement à la source"], ["444", "État, impôt sur les bénéfices"], ["44551", "TVA à décaisser"], ["44562", "TVA sur immobilisations"], ["44566", "TVA sur autres biens et services"], ["44567", "Crédit de TVA à reporter"], ["44571", "TVA collectée"], ["44586", "TVA sur factures non parvenues"], ["44587", "TVA sur factures à établir"], ["457", "Associés, dividendes à payer"], ["462", "Créances sur cessions d'immobilisations"], ["486", "Charges constatées d'avance"], ["487", "Produits constatés d'avance"], ["491", "Dépréciation des comptes clients"], ["512", "Banque"], ["530", "Caisse"], ["601", "Achats de matières premières"], ["6037", "Variation des stocks de marchandises"], ["6061", "Fournitures non stockables"], ["607", "Achats de marchandises"], ["609", "Rabais, remises obtenus"], ["613", "Locations"], ["616", "Primes d'assurance"], ["6241", "Transports sur achats"], ["627", "Services bancaires"], ["641", "Rémunérations du personnel"], ["645", "Charges sociales"], ["654", "Pertes sur créances irrécouvrables"], ["656", "Pertes de change sur opérations commerciales"], ["657", "Valeurs comptables des immobilisations cédées"], ["661", "Charges d'intérêts"], ["665", "Escomptes accordés"], ["6811", "Dotations aux amortissements"], ["6815", "Dotations aux provisions pour risques"], ["6817", "Dotations aux dépréciations d'actifs circulants"], ["6872", "Dotations aux amort. dérogatoires"], ["695", "Impôt sur les bénéfices"], ["706", "Prestations de services"], ["707", "Ventes de marchandises"], ["7085", "Ports et frais facturés"], ["709", "Rabais, remises accordés"], ["747", "Quote-part des subventions d'investissement"], ["756", "Gains de change sur opérations commerciales"], ["757", "Produits des cessions d'immobilisations"], ["765", "Escomptes obtenus"], ["7817", "Reprises sur dépréciations d'actifs circulants"], ["7872", "Reprises sur amort. dérogatoires"]];
+const ACC_NAME = Object.fromEntries(ACC_LIST);
+function accDatalist() { return `<datalist id="pcgList">${ACC_LIST.map(([n, l]) => `<option value="${n}">${h(l)}</option>`).join("")}</datalist>`; }
+
+function startDos(id) {
+  const d = DOSSID[id]; if (!d) return;
+  if (exTick) { clearInterval(exTick); exTick = null; }
+  const o = d.make();
+  X = { mode: "dos", d: { id: d.id, title: d.title, ent: d.ent, ctx: o.ctx }, list: o.missions.map((m, k) => Object.assign({ gid: d.id + "-m" + (k + 1), cat: d.cats[0], user: null, res: null }, m)), i: 0, xp0: S.xp };
+  X.end = Date.now() + d.minutes * 60000;
+  exTick = setInterval(() => { const t = document.getElementById("exTimer"); const left = Math.max(0, X.end - Date.now()); if (t) { t.textContent = exLeft(); t.classList.toggle("low", left < 300000); } if (left <= 0) finishE5(); }, 1000);
+  go("exrun");
+}
+function dosNote() { return r2(X.list.reduce((s, it) => s + (it.pts || 0) * (it.res ? it.res.score : 0), 0)); }
+function dosCard(d) {
+  const r = (S.x || {})[d.id];
+  return `<button class="ex-card dos-card" style="${hueStyle(d.cats[0])}" data-act="dosStart" data-did="${d.id}"><span class="mini">${d.cats.map(c => h(CAT[c].code)).join(" · ")} · ${d.minutes} min</span><b>${h(d.title)}</b><span class="muted">${h(d.ent)} : ${r ? `meilleure note ${String(r[1] / 5).replace(".", ",")} / 20, dernière ${String(r[2] / 5).replace(".", ",")}` : "nouveaux chiffres à chaque essai"}</span></button>`;
+}
+function dosSection(cat) {
+  const list = cat ? DOSS.filter(d => d.cats.includes(cat)) : DOSS, gens = cat ? GENS.filter(g => g.cat === cat) : [];
+  if (!list.length && !gens.length) return "";
+  const groups = cat ? "" : ["p1", "p2", "p3", "p4", "p5", "p6", "ma"].map(c => `<details class="ex-group ann-more gc-more" data-ann="gen-${c}"${ANN_OPEN.has("gen-" + c) ? " open" : ""} style="${hueStyle(c)}"><summary><h3><span class="tabcode">${h(CAT[c].code)}</span>${h(CAT[c].name)} <span class="muted small">${GENS.filter(g => g.cat === c).length} exercices</span></h3></summary><div class="ex-grid">${GENS.filter(g => g.cat === c).map(exCard).join("")}</div></details>`).join("");
+  return `<div class="ex-group dos-group">
+      <h2>${cat ? "Cas pratiques à saisir" : "Épreuve E5 : dossiers à saisir"}</h2>
+      <p class="muted">${cat ? "Tu calcules et tu passes les écritures, l'appli corrige ligne par ligne. Nouveaux chiffres à chaque essai." : "Comme le jour J : une entreprise, des missions qui s'enchaînent (les montants d'une mission servent à la suivante), un chrono et une note sur 20. Tu calcules, tu passes les écritures, l'appli corrige ligne par ligne."}</p>
+      ${list.length ? `<div class="ex-grid">${list.map(dosCard).join("")}</div>` : ""}
+      ${gens.length ? `<div class="ex-grid">${gens.map(exCard).join("")}</div>` : ""}
+      ${cat ? "" : `<div class="row"><button class="btn" data-act="exE5">Épreuve rapide : 6 exercices de P1 à P4 en 45 min</button></div><h3 class="qf-title">Exercices courts, par matière</h3>${groups}`}
+    </div>`;
+}
+
 /* Rédactions : réponse libre, corrigé modèle et grille d'auto-évaluation */
 const REDAC = [
  { id: "rce1", cat: "ce", title: "Syllogisme : période d'essai trop longue", enonce: "Mme Benali est embauchée en CDI comme employée administrative. Son contrat prévoit une période d'essai de 4 mois. Au bout de 3 mois, l'employeur rompt la période d'essai. Mme Benali conteste. Qu'en pensez-vous ? (raisonnement juridique complet)",
@@ -4715,9 +4953,11 @@ function readUser() {
   const it = X.list[X.i];
   const f = [...document.querySelectorAll("[data-fi]")].map(e => e.value);
   const rows = [...document.querySelectorAll("tr[data-row]")].map(tr => ({ acc: tr.querySelector("[data-a]").value, d: tr.querySelector("[data-d]").value, c: tr.querySelector("[data-c]").value }));
-  it.user = { f, rows };
+  const tx = document.querySelector("[data-tx]");
+  it.user = { f, rows, t: tx ? tx.value : "" };
 }
 function grade(it) {
+  if (it.kind === "txt") { const ck = it.ck || []; it.res = { fr: [], lr: [], extra: [], score: it.crit.length ? ck.filter(Boolean).length / it.crit.length : 0, txt: true }; return it.res; }
   const tolOf = fd => fd.tol != null ? fd.tol : 0.02;
   const fr = (it.fields || []).map((fd, k) => { const v = parseNum(it.user.f[k]); const tol = tolOf(fd); const ok = !isNaN(v) && (Math.abs(v - fd.ans) <= tol || (fd.pct && Math.abs(v * 100 - fd.ans) <= tol)); return { ok, v }; });
   let lr = [], extra = [];
@@ -4747,6 +4987,15 @@ function recordEx(it) {
 }
 function exInputs(it, locked) {
   const res = it.res;
+  if (it.kind === "txt") {
+    const t = it.user && it.user.t || "";
+    if (!locked) return `<textarea class="ex-text" data-tx rows="8" placeholder="Rédige ta réponse comme sur ta copie : calcul, argument, conclusion.">${h(t)}</textarea>`;
+    const k = X.list.indexOf(it), ck = it.ck || [];
+    return `<div class="dos-mine"><div class="label">Ta réponse</div><p style="white-space:pre-line">${t ? h(t) : "<i>Pas de réponse.</i>"}</p></div>
+      <div class="feedback"><span class="verdict ok">Corrigé modèle</span><div class="md ex-corr">${mdBlocks(it.model.split("\n"), "dos" + k)}</div>
+      <div class="label">Coche ce que ta réponse contient vraiment : ta note se met à jour</div>
+      <div class="ex-crit">${it.crit.map((c, j) => `<label><input type="checkbox" data-act="dosCk" data-m="${k}" data-j="${j}" ${ck[j] ? "checked" : ""}> ${h(c)}</label>`).join("")}</div></div>`;
+  }
   const fields = (it.fields || []).map((fd, k) => {
     const st = res ? (res.fr[k].ok ? "ok" : "ko") : "";
     return `<label class="ex-field ${st}"><span>${h(fd.label)}</span><input inputmode="decimal" data-fi="${k}" value="${h(it.user ? it.user.f[k] || "" : "")}" ${locked ? "disabled" : ""} placeholder="0,00">${res ? `<em>${res.fr[k].ok ? "Juste" : "Attendu : " + fmt(fd.ans) + (fd.pct ? " %" : "")}</em>` : ""}</label>`;
@@ -4754,9 +5003,9 @@ function exInputs(it, locked) {
   let journal = "";
   if (it.lines && it.lines.length) {
     const n = Math.max((it.user && it.user.rows ? it.user.rows.length : 0), it.lines.length + 1);
-    const rows = Array.from({ length: n }, (_, k) => { const r = it.user && it.user.rows && it.user.rows[k] || {}; return `<tr data-row><td><input data-a value="${h(r.acc || "")}" placeholder="Compte" ${locked ? "disabled" : ""}></td><td><input data-d inputmode="decimal" value="${h(r.d || "")}" placeholder="Débit" ${locked ? "disabled" : ""}></td><td><input data-c inputmode="decimal" value="${h(r.c || "")}" placeholder="Crédit" ${locked ? "disabled" : ""}></td></tr>`; }).join("");
-    journal = `<div class="ex-journal"><div class="label">Écriture au journal (numéro de compte, montants)</div><div class="table-wrap"><table class="md-table jtab"><thead><tr><th>Compte</th><th>Débit</th><th>Crédit</th></tr></thead><tbody>${rows}</tbody></table></div>${locked ? "" : `<button class="btn small" data-act="exRow">Ajouter une ligne</button>`}</div>`;
-    if (res) journal += `<div class="ex-check">${res.lr.map(x => `<span class="${x.ok ? "ok" : "ko"}">${x.ok ? "✓" : "✗"} ${h(x.l.acc[0])} ${h(x.l.label)} : ${x.l.d ? "débit " + fmt(x.l.d) : "crédit " + fmt(x.l.c)}${x.ok ? "" : " (ta saisie : " + fmt(x.got) + ")"}</span>`).join("")}${res.extra.length ? `<span class="ko">✗ Compte(s) en trop : ${h(res.extra.join(", "))}</span>` : ""}${it.balance === false ? `<span class="ko">✗ Ton écriture n'est pas équilibrée</span>` : ""}</div>`;
+    const rows = Array.from({ length: n }, (_, k) => { const r = it.user && it.user.rows && it.user.rows[k] || {}; return `<tr data-row><td><input data-a list="pcgList" inputmode="numeric" value="${h(r.acc || "")}" placeholder="Compte" ${locked ? "disabled" : ""}>${locked && r.acc && ACC_NAME[String(r.acc).replace(/\D/g, "")] ? `<small class="acc-n">${h(ACC_NAME[String(r.acc).replace(/\D/g, "")])}</small>` : ""}</td><td><input data-d inputmode="decimal" value="${h(r.d || "")}" placeholder="Débit" ${locked ? "disabled" : ""}></td><td><input data-c inputmode="decimal" value="${h(r.c || "")}" placeholder="Crédit" ${locked ? "disabled" : ""}></td></tr>`; }).join("");
+    journal = `${locked ? "" : accDatalist()}<div class="ex-journal"><div class="label">Écriture au journal (numéro de compte, montants)</div><div class="table-wrap"><table class="md-table jtab"><thead><tr><th>Compte</th><th>Débit</th><th>Crédit</th></tr></thead><tbody>${rows}</tbody></table></div>${locked ? "" : `<button class="btn small" data-act="exRow">Ajouter une ligne</button>`}</div>`;
+    if (res) journal += `<div class="ex-check">${res.lr.map(x => `<span class="${x.ok ? "ok" : "ko"}">${x.ok ? "✓" : "✗"} ${h(x.l.acc[0])} ${h(x.l.label)} : ${x.l.d ? "débit " + fmt(x.l.d) : "crédit " + fmt(x.l.c)}${x.ok ? "" : " (ta saisie : " + fmt(x.got) + ")"}</span>`).join("")}${res.extra.map(a => `<span class="ko">✗ Compte en trop : ${h(a)}${accHint(a) ? ` <em class="acc-hint">${h(accHint(a))}</em>` : ""}</span>`).join("")}${it.balance === false ? `<span class="ko">✗ Ton écriture n'est pas équilibrée</span>` : ""}</div>`;
   }
   return `<div class="ex-fields">${fields}</div>${journal}`;
 }
@@ -4799,16 +5048,18 @@ function vExHomeOld() {
 
 function vExRun() {
   if (!X) return vExHome();
-  const it = X.list[X.i], c = CAT[it.cat], last = X.i === X.list.length - 1, e5 = X.mode === "e5";
+  const it = X.list[X.i], c = CAT[it.cat], last = X.i === X.list.length - 1, dos = X.mode === "dos", e5 = X.mode === "e5" || dos;
   const showCorr = it.res && !e5;
   const head = e5 ? `<span class="timer" id="exTimer">${exLeft()}</span>` : `<span class="ep">${h(c.code)} · ${h(c.name)}</span>`;
   const actions = e5
-    ? `<div class="row">${X.i ? `<button class="btn" data-act="exPrev">Précédent</button>` : ""}${last ? `<button class="btn primary" data-act="exFinishE5">Rendre la copie</button>` : `<button class="btn primary" data-act="exNextE5">Exercice suivant</button>`}</div>`
+    ? `<div class="row">${X.i ? `<button class="btn" data-act="exPrev">Précédent</button>` : ""}${last ? `<button class="btn primary" data-act="exFinishE5">Rendre la copie</button>` : `<button class="btn primary" data-act="exNextE5">${dos ? "Mission suivante" : "Exercice suivant"}</button>`}</div>`
     : (it.res ? `<div class="row"><button class="btn primary" data-act="exAgain">Nouvel exercice du même type</button><button class="btn" data-act="exHome">Tous les exercices</button></div>` : `<div class="row"><button class="btn primary" data-act="exCheck">Vérifier</button><button class="btn" data-act="exShow">Voir le corrigé sans répondre</button></div>`);
   return `<section class="runner ex-runner">
-    <div class="runner-top"><span class="progress-text">${e5 ? `Exercice ${X.i + 1} / ${X.list.length}` : "Exercice"}</span>${head}</div>
+    <div class="runner-top"><span class="progress-text">${dos ? `Mission ${X.i + 1} / ${X.list.length}` : e5 ? `Exercice ${X.i + 1} / ${X.list.length}` : "Exercice"}</span>${head}</div>
+    ${dos ? `<div class="dos-steps">${X.list.map((m, k) => `<button class="dos-step${k === X.i ? " on" : ""}${m.user ? " done" : ""}" data-act="dosGo" data-i="${k}" aria-label="Mission ${k + 1}">${k + 1}</button>`).join("")}</div>
+    <details class="dos-ctx"${X.i === 0 ? " open" : ""}><summary><b>${h(X.d.ent)}</b> : présentation du dossier</summary>${X.d.ctx}</details>` : ""}
     <div class="qcard">
-      <span class="eyebrow">${h(it.title)}</span>
+      <span class="eyebrow">${dos ? `Mission ${X.i + 1} · ${it.pts} point${it.pts > 1 ? "s" : ""} : ` : ""}${h(it.title)}</span>
       <div class="ex-enonce">${it.enonce}</div>
       ${exInputs(it, !!it.res && !e5)}
       ${showCorr ? `<div class="feedback"><span class="verdict ${it.res.score >= 0.999 ? "ok" : "ko"}">${Math.round(it.res.score * 100)} % juste</span><div class="ex-corr">${it.corr}</div></div>` : ""}
@@ -4817,14 +5068,37 @@ function vExRun() {
   </section>`;
 }
 function finishE5() {
-  if (!X || X.mode !== "e5" || X.done) return;
-  if (document.querySelector("[data-fi]") && view === "exrun") readUser();
+  if (!X || (X.mode !== "e5" && X.mode !== "dos") || X.done) return;
+  if (view === "exrun") readUser();
   X.done = true; if (exTick) { clearInterval(exTick); exTick = null; }
-  X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [] }; grade(it); recordEx(it); });
+  if (X.mode === "dos") {
+    X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [], t: "" }; grade(it); });
+    dosRecord(true); S.xp += Math.round(dosNote() * 2); dayLog().e++; bumpStreak();
+  } else X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [] }; grade(it); recordEx(it); });
   touch(); go("exres");
+}
+function dosRecord(first) {
+  S.x = S.x || {};
+  const sc = Math.round(dosNote() * 5), r = S.x[X.d.id] || [0, 0, 0];
+  S.x[X.d.id] = [r[0] + (first ? 1 : 0), Math.max(r[1], sc), sc];
+}
+const fmtN20 = n => (Math.round(n * 4) / 4).toLocaleString("fr-FR");
+function vDosRes() {
+  const note = dosNote();
+  const rows = X.list.map((it, k) => `<tr><td>${k + 1}. ${h(it.title)}</td><td class="num" id="dosPts${k}">${fmtN20(it.pts * it.res.score)} / ${it.pts}</td></tr>`).join("");
+  const det = X.list.map((it, k) => `<details class="lib-cat"${it.res.score < 0.999 ? " open" : ""}><summary><span class="code">${k + 1}</span><h3>${h(it.title)}</h3><span class="ep" id="dosEp${k}">${fmtN20(it.pts * it.res.score)} / ${it.pts}</span></summary><div class="ex-detail"><div class="ex-enonce">${it.enonce}</div>${exInputs(it, true)}${it.corr ? `<div class="ex-corr">${it.corr}</div>` : ""}</div></details>`).join("");
+  return `<section class="runner">
+    <div><span class="eyebrow">Dossier E5 corrigé : ${h(X.d.ent)}</span><h1>${h(X.d.title)}</h1></div>
+    <div class="score-line"><span class="score" id="dosNote">${fmtN20(note)}<small> /20</small></span><span class="muted">+${S.xp - X.xp0} XP</span></div>
+    <div class="table-wrap"><table class="ledger"><thead><tr><th>Mission</th><th class="num">Points</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted">Montants et lignes d'écriture sont corrigés automatiquement. Pour l'analyse rédigée, coche toi-même les critères remplis. À l'examen, la démarche et la présentation comptent aussi : pose toujours tes calculs.</p>
+    <div class="row"><button class="btn primary" data-act="dosStart" data-did="${X.d.id}">Refaire avec d'autres chiffres</button><button class="btn" data-act="exHome">Tous les exercices</button></div>
+    <h2>Corrections</h2><div class="setup">${det}</div>
+  </section>`;
 }
 function vExRes() {
   if (!X) return vExHome();
+  if (X.mode === "dos") return vDosRes();
   const tot = X.list.reduce((s, it) => s + (it.res ? it.res.score : 0), 0), note = Math.round(tot / X.list.length * 200) / 10;
   const rows = X.list.map((it, k) => `<tr><td>${k + 1}. ${h(it.title)}</td><td class="num">${Math.round(it.res.score * 100)} %</td></tr>`).join("");
   const det = X.list.map((it, k) => `<details class="lib-cat"><summary><span class="code">${k + 1}</span><h3>${h(it.title)}</h3><span class="ep">${Math.round(it.res.score * 100)} %</span></summary><div class="ex-detail"><div class="ex-enonce">${it.enonce}</div>${exInputs(it, true)}<div class="ex-corr">${it.corr}</div></div></details>`).join("");
@@ -4875,6 +5149,11 @@ document.addEventListener("click", e => {
     case "exNextE5": readUser(); X.i++; render(); window.scrollTo({ top: 0 }); break;
     case "exPrev": readUser(); X.i--; render(); window.scrollTo({ top: 0 }); break;
     case "exFinishE5": finishE5(); break;
+    case "dosStart": startDos(b.dataset.did); window.scrollTo({ top: 0 }); break;
+    case "dosGo": readUser(); X.i = +b.dataset.i; render(); window.scrollTo({ top: 0 }); break;
+    case "dosCk": { const it = X.list[+b.dataset.m]; if (!it) break; it.ck = it.ck || []; it.ck[+b.dataset.j] = b.checked; grade(it); dosRecord(false); touch();
+      const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
+      const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": RD = { id: b.dataset.rid }; go("redac"); break;
     case "rdShow": RD.text = document.getElementById("rdText").value; RD.shown = true; render(); break;
     case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++; bumpStreak(); touch(); go("ex"); break; }
