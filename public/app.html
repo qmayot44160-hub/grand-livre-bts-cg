@@ -958,6 +958,19 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .qf-cta > span { margin-right: 2px; }
 @media (max-width: 760px) { .qf-grid { grid-template-columns: minmax(0, 1fr); } .qf-cta > span { flex-basis: 100%; } }
 
+
+.chap-box { display: grid; gap: 8px; margin-bottom: 10px; }
+.chap-cat { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .92rem; }
+.chap-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.chap { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font: inherit; font-size: .9rem; cursor: pointer; background: var(--sheet); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px 12px; min-height: 44px; }
+.chap::before { content: ""; flex: none; width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--rule-strong); background: var(--paper); }
+.chap.on { border-color: var(--c, var(--accent)); box-shadow: inset 0 0 0 1px var(--c, var(--accent)); }
+.chap.on::before { border-color: var(--c, var(--accent)); background: var(--c, var(--accent)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.chap-t { flex: 1; font-weight: 600; }
+.chap-n { flex: none; color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.cible-go .btn { min-height: 46px; }
+.qf-ch { margin-left: auto; }
+@media (max-width: 760px) { .chap-list { grid-template-columns: minmax(0, 1fr); } .qf-ch { margin-left: 0; } }
 </style>
 
 <header class="top">
@@ -2286,9 +2299,9 @@ function mastery(cat) {
   fs.forEach(x => { const r = S.c[x.id]; if (r && r[0] >= 3) m++; });
   return { m, t: qs.length + fs.length };
 }
-function dueCards(cats) {
+function dueCards(cats, useChap) {
   const d = dayNum();
-  const pool = FS.filter(x => !cats || cats.includes(x.c));
+  const pool = FS.filter(x => (!cats || cats.includes(x.c)) && (!useChap || chapOk(x)));
   const reviews = pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d);
   const fresh = pool.filter(x => !S.c[x.id]);
   return { reviews, fresh };
@@ -2314,6 +2327,26 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
+let chapSel = [];   // chapitres choisis (quiz et flashcards) ; vide pour une matière = toute la matière
+let cibleCat = "p1";
+const chKey = x => (x.ch && CHID[x.ch] ? x.ch : x.c + ":g");
+const chCat = k => (CHID[k] ? CHID[k].cat : k.split(":")[0]);
+function chapOk(x) { return !chapSel.some(k => chCat(k) === x.c) || chapSel.includes(chKey(x)); }
+function chapCount(cat) { return chapSel.filter(k => chCat(k) === cat).length; }
+function chapPicker(cats, mode) {
+  if (!cats.length) return `<p class="muted small">Choisis d'abord une ou plusieurs matières : tu pourras ensuite cocher leurs chapitres.</p>`;
+  return cats.map(cat => {
+    const c = CAT[cat], items = mode === "q" ? QS : mode === "f" ? FS : QS.concat(FS);
+    const cnt = k => mode ? items.filter(x => x.c === cat && chKey(x) === k).length : null;
+    const nq = k => QS.filter(x => x.c === cat && chKey(x) === k).length, nf = k => FS.filter(x => x.c === cat && chKey(x) === k).length;
+    const keys = (CHBY[cat] || []).map(x => x.id).concat(cat + ":g").filter(k => nq(k) + nf(k));
+    const lab = k => CHID[k] ? CHID[k].title : "Questions transversales (plusieurs chapitres)";
+    const meta = k => mode === "q" ? `${nq(k)} q.` : mode === "f" ? `${nf(k)} cartes` : [nq(k) ? nq(k) + " q." : "", nf(k) ? nf(k) + " cartes" : ""].filter(Boolean).join(" · ");
+    const none = !chapCount(cat);
+    return `<div class="chap-box" style="${hueStyle(cat)}">${cats.length > 1 ? `<div class="chap-cat"><span class="tabcode">${h(c.code)}</span>${h(c.name)}</div>` : ""}
+      <div class="chap-list"><button class="chap${none ? " on" : ""}" data-act="chapAll" data-cat="${cat}" aria-pressed="${none}"><span class="chap-t">Tous les chapitres</span></button>${keys.map(k => { const on = chapSel.includes(k); return `<button class="chap${on ? " on" : ""}" data-act="chapToggle" data-k="${h(k)}" aria-pressed="${on}"><span class="chap-t">${h(lab(k))}</span><span class="chap-n">${meta(k)}</span></button>`; }).join("")}</div></div>`;
+  }).join("");
+}
 
 /* ---------- Navigation et accueil (version 5) ---------- */
 const SVG = p => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
@@ -2370,7 +2403,7 @@ function renderTop() {
 }
 function render() {
   const v = $("#view");
-  const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -2487,12 +2520,13 @@ function catChips(sel, act) {
   return CATS.map(c => `<button class="chip" data-act="${act}" data-cat="${c.id}" aria-pressed="${sel.includes(c.id)}"><span class="mono">${h(c.code)}</span>${h(c.name)}</button>`).join("");
 }
 function vQuizSetup() {
-  const pool = QS.filter(x => !quizSel.length || quizSel.includes(x.c));
+  const pool = QS.filter(x => (!quizSel.length || quizSel.includes(x.c)) && chapOk(x));
   const wrong = QS.filter(x => S.q[x.id] && S.q[x.id][2] === 0);
   return `<section class="setup">
     <div><span class="eyebrow">Quiz corrigé</span><h1>Choisis tes matières</h1></div>
     <p class="muted">Chaque réponse est corrigée et expliquée tout de suite. Sans sélection, toutes les matières sont mélangées.</p>
     <div><div class="label">Matières</div><div class="picker">${catChips(quizSel, "toggleQuiz")}</div></div>
+    <div><div class="label">Chapitres</div>${chapPicker(quizSel, "q")}</div>
     <div><div class="label">Nombre de questions</div><div class="picker">
       ${[10, 20, 40].map(n => `<button class="chip" data-act="len" data-n="${n}" aria-pressed="${quizLen === n}">${n}</button>`).join("")}
     </div></div>
@@ -2620,14 +2654,30 @@ function vResult() {
 }
 
 /* Cartes */
+function vCible() {
+  const c = CAT[cibleCat] || CAT.p1, q = QS.filter(x => x.c === c.id && chapOk(x)), f = FS.filter(x => x.c === c.id && chapOk(x)), n = chapCount(c.id);
+  return `<section class="setup" style="${hueStyle(c.id)}">
+    <button class="crumb" data-nav="ex">${ICON.back}S'entraîner</button>
+    <div><span class="eyebrow"><span class="tabcode">${h(c.code)}</span> ${h(c.name)}</span><h1>Choisis tes chapitres</h1></div>
+    <p class="muted">Touche les chapitres à travailler. Ton choix est gardé : les boutons Quiz et Flashcards de cette matière ne porteront que sur eux, jusqu'à ce que tu reprennes « Tous les chapitres ».</p>
+    ${chapPicker([c.id], "")}
+    <div><div class="label">Nombre de questions</div><div class="picker">${[10, 20, 40].map(k => `<button class="chip" data-act="len" data-n="${k}" aria-pressed="${quizLen === k}">${k}</button>`).join("")}</div></div>
+    <div class="row cible-go">
+      <button class="btn primary" data-act="cibleQuiz" ${q.length ? "" : "disabled"}>Quiz : ${Math.min(quizLen, q.length)} question${Math.min(quizLen, q.length) > 1 ? "s" : ""}</button>
+      <button class="btn primary" data-act="cibleCards" ${f.length ? "" : "disabled"}>Flashcards : ${Math.min(40, f.length)} carte${Math.min(40, f.length) > 1 ? "s" : ""}</button>
+    </div>
+    <p class="muted small">${n ? `${n} chapitre${n > 1 ? "s" : ""} choisi${n > 1 ? "s" : ""} : ` : "Toute la matière : "}${q.length} questions et ${f.length} cartes disponibles.</p>
+  </section>`;
+}
 function vCardsSetup() {
-  const due = dueCards(cardSel.length ? cardSel : null);
+  const due = dueCards(cardSel.length ? cardSel : null, true);
   const n = Math.min(30, due.reviews.length + Math.min(15, due.fresh.length));
-  const poolN = FS.filter(x => !cardSel.length || cardSel.includes(x.c)).length;
+  const poolN = FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)).length;
   return `<section class="setup">
     <div><span class="eyebrow">Cartes à répétition espacée</span><h1>Tes fiches bristol</h1></div>
     <p class="muted">Retourne la carte, puis réponds honnêtement. « Je savais » : la carte revient plus tard (1, 3, 7, 15 puis 30 jours). « Difficile » : tu l'avais à moitié, elle revient demain sans monter de niveau. « À revoir » : elle revient dans la session et repart au début. Ne coche « Je savais » que si tu avais toute la réponse.</p>
     <div><div class="label">Matières</div><div class="picker">${catChips(cardSel, "toggleCards")}</div></div>
+    <div><div class="label">Chapitres</div>${chapPicker(cardSel, "f")}</div>
     <div class="row">
       <button class="btn primary" data-act="startDue" ${n ? "" : "disabled"}>Cartes du jour (${n})</button>
       <button class="btn" data-act="startAllCards">Toutes les cartes, au hasard (${poolN})</button>
@@ -2902,6 +2952,7 @@ function matTrain(c) {
       <button class="mode lead-mode" data-act="quickQuiz" data-cat="${c.id}"><b>Quiz de 10 questions</b><span>Tirées parmi ${QBY[c.id].length}, corrigées et expliquées une par une.</span></button>
       <button class="mode" data-act="dueCat" data-cat="${c.id}" ${n ? "" : "disabled"}><b>Cartes de la matière</b><span>${n ? `${n} cartes à revoir aujourd'hui.` : "Rien à revoir aujourd'hui dans cette matière."}</span></button>
       <button class="mode" data-act="defi" data-cat="${c.id}"><b>Défi 60 secondes</b><span>Un maximum de bonnes réponses en une minute, sur cette matière.</span></button>
+      <button class="mode" data-act="pickChap" data-cat="${c.id}"><b>Choisir les chapitres</b><span>${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""} choisi${chapCount(c.id) > 1 ? "s" : ""} : quiz et cartes ne portent que sur eux.` : "Quiz et flashcards sur les seuls chapitres que tu veux."}</span></button>
       <button class="mode" data-act="quizCat" data-cat="${c.id}"><b>Quiz plus long</b><span>Choisis 20 ou 40 questions, ou mélange avec d'autres matières.</span></button>
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
@@ -3867,7 +3918,7 @@ function vExHome() {
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
       <h3 class="qf-title">Par matière</h3>
-      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}</div></div>`; }).join("")}</div>
+      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>
     <section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
@@ -4427,7 +4478,7 @@ document.addEventListener("click", e => {
   switch (a) {
     case "quizCat": quizSel = [cat]; go("quiz"); break;
     case "cardsCat": cardSel = [cat]; go("cards"); break;
-    case "flashCat": { const d = dueCards([cat]); let l = shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30); if (!l.length) l = shuffle(FS.filter(x => x.c === cat)).slice(0, 30); startCards(l); break; }
+    case "flashCat": { const d = dueCards([cat], true); let l = shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30); if (!l.length) l = shuffle(FS.filter(x => x.c === cat && chapOk(x))).slice(0, 30); startCards(l); break; }
     case "goEx": go("ex"); break;
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "exCheck": { readUser(); const it = X.list[X.i]; grade(it); recordEx(it); touch(); render(); break; }
@@ -4473,7 +4524,7 @@ document.addEventListener("click", e => {
     case "lessonNext": { const nx = nextOf(LS.cid, LS.k); markRead(LS.cid, LS.k); if (nx) openLesson(nx.cid, nx.k); else { touch(); render(); } break; }
     case "lessonPrev": { const pv = prevOf(LS.cid, LS.k); if (pv) openLesson(pv.cid, pv.k); break; }
     case "lessonDone": { markRead(LS.cid, LS.k); touch(); const lc = CMETA(LS.cid).cat; startRun(shuffle(QBY[lc]).slice(0, 10), "quiz"); break; }
-    case "quickQuiz": startRun(shuffle(QBY[cat]).slice(0, 10), "quiz"); break;
+    case "quickQuiz": startRun(shuffle(QBY[cat].filter(chapOk)).slice(0, 10), "quiz"); break;
     case "dueCat": { const d = dueCards([cat]); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
     case "hit": { const k = +b.dataset.k; coursQuery = ""; if (k) openLesson(b.dataset.cid, k); else openMat(CMETA(b.dataset.cid).cat, "lecons"); break; }
     case "toggleQuiz": quizSel = quizSel.includes(cat) ? quizSel.filter(x => x !== cat) : quizSel.concat(cat); render(); break;
@@ -4481,7 +4532,7 @@ document.addEventListener("click", e => {
     case "clearQuiz": quizSel = []; render(); break;
     case "clearCards": cardSel = []; render(); break;
     case "len": quizLen = +b.dataset.n; render(); break;
-    case "startQuiz": { const pool = QS.filter(x => !quizSel.length || quizSel.includes(x.c)); startRun(shuffle(pool).slice(0, quizLen), "quiz"); break; }
+    case "startQuiz": { const pool = QS.filter(x => (!quizSel.length || quizSel.includes(x.c)) && chapOk(x)); startRun(shuffle(pool).slice(0, quizLen), "quiz"); break; }
     case "startWrong": { const w = QS.filter(x => S.q[x.id] && S.q[x.id][2] === 0); startRun(shuffle(w).slice(0, 40), "quiz"); break; }
     case "redoErrors": { const w = R.list.filter(x => !(x.pick !== null && x.order[x.pick] === 0)).map(x => x.it); startRun(shuffle(w), "quiz"); break; }
     case "pick": pick(+b.dataset.pos); break;
@@ -4494,8 +4545,13 @@ document.addEventListener("click", e => {
     case "goExam": go("exam"); break;
     case "startExam": startExam(); break;
     case "today": { const d = dueCards(); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
-    case "startDue": { const d = dueCards(cardSel.length ? cardSel : null); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
-    case "startAllCards": startCards(shuffle(FS.filter(x => !cardSel.length || cardSel.includes(x.c)))); break;
+    case "startDue": { const d = dueCards(cardSel.length ? cardSel : null, true); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
+    case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
+    case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); render(); break; }
+    case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); render(); break;
+    case "pickChap": cibleCat = cat; go("cible"); break;
+    case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
+    case "cibleCards": { const pool = FS.filter(x => x.c === cibleCat && chapOk(x)), d = dayNum(), due = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d)), fresh = shuffle(pool.filter(x => !S.c[x.id])), rest = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] > d)); startCards(due.concat(fresh, rest).slice(0, 40)); break; }
     case "flip": flipCard(); break;
     case "again": answerCard(false); break;
     case "knew": answerCard(true); break;
