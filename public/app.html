@@ -1035,6 +1035,14 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 
 #view[data-view="home"], #view[data-view="cours"], #view[data-view="fiches"], #view[data-view="ex"], #view[data-view="bts"] { touch-action: pan-y pinch-zoom; }
 body { overflow-x: hidden; }
+
+.card-runner .card3d { touch-action: pan-y; }
+.stamp { position: absolute; top: 18px; z-index: 3; font: 800 1.1rem/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; padding: 6px 12px; border: 3px solid currentColor; border-radius: 10px; opacity: 0; pointer-events: none; background: color-mix(in srgb, var(--sheet) 85%, transparent); }
+.stamp.ok { left: 18px; color: #1d8a4e; transform: rotate(-10deg); }
+.stamp.ko { right: 18px; color: #c23a46; transform: rotate(10deg); }
+.face-back.bristol { position: relative; }
+.swipe-hint { display: none; margin: 0 0 4px; text-align: center; font-size: .82rem; color: var(--muted); }
+@media (pointer: coarse) { .card-runner.flipped .swipe-hint { display: block; } .runner-top .kbd { display: none; } }
 </style>
 
 <header class="top">
@@ -2391,7 +2399,8 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
-const PREF_DEF = { theme: "auto", fs: "m", motion: "on", qlen: 10, clen: 30, name: "" };
+const PREF_DEF = { theme: "auto", fs: "m", motion: "on", vib: "on", qlen: 10, clen: 30, name: "" };
+function buzz(p) { try { if ((S.pref || PREF_DEF).vib !== "off" && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 function P() { S.pref = Object.assign({}, PREF_DEF, S.pref || {}); return S.pref; }
 function applyPrefs() {
   const p = S.pref || PREF_DEF, r = document.documentElement;
@@ -2477,6 +2486,7 @@ function renderTop() {
 function render() {
   applyPrefs();
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
+  if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
   const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
@@ -2677,7 +2687,7 @@ function pick(pos) {
   if (R.mode === "quiz") {
     if (cur.pick !== null) return;
     cur.pick = pos;
-    recordQ(cur.it, cur.order[pos] === 0);
+    recordQ(cur.it, cur.order[pos] === 0); buzz(cur.order[pos] === 0 ? 15 : [35, 45, 35]);
     touch(); render();
     const n = document.getElementById("nextBtn"); if (n) n.focus({ preventScroll: true });
   } else { cur.pick = pos; render(); }
@@ -2775,6 +2785,7 @@ function vProfil() {
         <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "☀︎ Jour"], ["dark", "☾ Nuit"]])}</div>
         <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
+        <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
         <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
@@ -2788,7 +2799,7 @@ function vCible() {
   return `<section class="setup" style="${hueStyle(c.id)}">
     <button class="crumb" data-nav="ex">${ICON.back}S'entraîner</button>
     <div><span class="eyebrow"><span class="tabcode">${h(c.code)}</span> ${h(c.name)}</span><h1>Choisis tes chapitres</h1></div>
-    <p class="muted">Touche les chapitres à travailler. Ton choix est gardé : les boutons Quiz et Flashcards de cette matière ne porteront que sur eux, jusqu'à ce que tu reprennes « Tous les chapitres ».</p>
+    <p class="muted">Touche les chapitres à travailler. Ton choix est enregistré : les boutons Quiz et Flashcards de cette matière ne porteront que sur eux, même la prochaine fois, jusqu'à ce que tu reprennes « Tous les chapitres ».</p>
     ${chapPicker([c.id], "")}
     <div><div class="label">Nombre de questions</div><div class="picker">${[10, 20, 40].map(k => `<button class="chip" data-act="len" data-n="${k}" aria-pressed="${quizLen === k}">${k}</button>`).join("")}</div></div>
     <div class="row cible-go">
@@ -2830,10 +2841,11 @@ function vCard() {
     <div class="runner-top"><span class="progress-text">Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
       <div class="face face-front bristol">${head}<div class="bristol-body"><p class="front">${h(it.f)}</p><span class="hint">Touche ou clique pour retourner la carte</span></div></div>
-      <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div></div>
+      <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span></div>
     </div>
     <div class="after-flip">
       ${it.m ? `<details class="more-box"><summary>Pour aller plus loin</summary><p>${h(it.m)}</p></details>` : ""}
+      <p class="swipe-hint">Glisse la carte : à droite, je savais · à gauche, à revoir</p>
       <div class="card-actions"><button class="btn again" data-act="again">À revoir</button><button class="btn hard" data-act="hard">Difficile</button><button class="btn know" data-act="knew">Je savais</button></div>
     </div>
     <div class="before-flip"><button class="btn primary" data-act="flip">Voir la réponse</button></div>
@@ -2842,7 +2854,7 @@ function vCard() {
 
 function answerCard(knew) {
   const cur = C.q[C.i];
-  recordC(cur.it, knew);
+  recordC(cur.it, knew); buzz(knew === true ? 12 : knew === "hard" ? 20 : [25, 35, 25]);
   if (knew) C.knew++; else { C.again++; if (cur.again < 2) C.q.push({ it: cur.it, again: cur.again + 1 }); }
   C.i++; C.flip = false; touch();
   if (C.i >= C.q.length) go("cardsEnd"); else render();
@@ -4680,9 +4692,9 @@ document.addEventListener("click", e => {
     case "today": { const d = dueCards(), n = P().clen; startCards(shuffle(d.reviews).slice(0, n).concat(shuffle(d.fresh).slice(0, Math.ceil(n / 2))).slice(0, n)); break; }
     case "startDue": { const d = dueCards(cardSel.length ? cardSel : null, true); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
     case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
-    case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); render(); break; }
+    case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
-    case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); render(); break;
+    case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); S.chap = chapSel.slice(); touch(); render(); break;
     case "pickChap": cibleCat = cat; go("cible"); break;
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
     case "cibleCards": { const pool = FS.filter(x => x.c === cibleCat && chapOk(x)), d = dayNum(), due = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d)), fresh = shuffle(pool.filter(x => !S.c[x.id])), rest = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] > d)); startCards(due.concat(fresh, rest).slice(0, P().clen)); break; }
@@ -4774,6 +4786,43 @@ initSync();
   }
   document.addEventListener("touchend", end, { passive: true });
   document.addEventListener("touchcancel", () => { if (active) { active = false; setX(0, true); } }, { passive: true });
+})();
+
+/* ---------- Flashcards : glisser la carte retournée ---------- */
+(() => {
+  let el = null, sx = 0, sy = 0, st = 0, dx = 0, lock = null, moved = false;
+  const W = () => Math.min(innerWidth, 560);
+  function paint(x, ease) {
+    if (!el) return;
+    el.style.transition = ease ? "transform .28s cubic-bezier(.2,.8,.2,1)" : "none";
+    el.style.transform = x ? `translateX(${x}px) rotate(${x / 18}deg) rotateY(180deg)` : "";
+    const ok = el.querySelector(".stamp.ok"), ko = el.querySelector(".stamp.ko"), k = Math.min(1, Math.abs(x) / (W() * .3));
+    if (ok) ok.style.opacity = x > 0 ? k : 0; if (ko) ko.style.opacity = x < 0 ? k : 0;
+  }
+  document.addEventListener("touchstart", e => {
+    const c = e.target.closest && e.target.closest(".card-runner.flipped .card3d");
+    if (!c || e.touches.length !== 1 || view !== "card") { el = null; return; }
+    el = c; const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); dx = 0; lock = null; moved = false;
+  }, { passive: true });
+  document.addEventListener("touchmove", e => {
+    if (!el) return;
+    const t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
+    if (lock === null) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; lock = Math.abs(mx) > Math.abs(my) ? "x" : "y"; }
+    if (lock !== "x") { el = null; return; }
+    moved = true; dx = mx; paint(dx, false);
+  }, { passive: true });
+  document.addEventListener("touchend", () => {
+    if (moved) setTimeout(() => { moved = false; }, 350);
+    if (!el) return;
+    const c = el, fast = Math.abs(dx) / Math.max(1, Date.now() - st) > .5 && Math.abs(dx) > 50;
+    if (lock === "x" && (Math.abs(dx) > W() * .3 || fast)) {
+      const knew = dx > 0;
+      c.style.transition = "transform .25s ease-in, opacity .25s"; c.style.transform = `translateX(${(knew ? 1 : -1) * innerWidth}px) rotate(${knew ? 18 : -18}deg) rotateY(180deg)`; c.style.opacity = "0";
+      el = null; setTimeout(() => answerCard(knew), 200);
+    } else { paint(0, true); el = null; }
+  }, { passive: true });
+  /* pas de retournement après un glissé */
+  document.addEventListener("click", e => { if (moved && e.target.closest && e.target.closest(".card3d")) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
 })();
 </script>
 
