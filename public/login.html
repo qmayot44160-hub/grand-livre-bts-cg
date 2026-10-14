@@ -70,6 +70,7 @@ mark{background:var(--hl);color:inherit;padding:0 .2em;border-radius:3px}
     </form>
     <p class="note">Ta progression (leçons lues, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</p>
   </div>
+  <div id="glInstallSlot" style="display:grid"></div>
   <p class="note">Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</p>
 </main>
 <script>
@@ -103,5 +104,6 @@ $("f").addEventListener("submit", async function (e) {
 });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
 </script>
+<script src="/install.js"></script>
 </body>
 </html>

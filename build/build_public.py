@@ -43,7 +43,7 @@ i = s.index("<body>") + len("<body>")
 s = s[:i] + "<script>" + shim + "</script>" + s[i:]
 
 # 4. Service worker (mise à jour automatique + hors ligne)
-s = s.replace("</body>", '<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script></body>', 1)
+s = s.replace("</body>", '<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script><script src="/install.js"></script></body>', 1)
 
 out = os.path.join(HERE, "..", "public", "app.html")
 open(out, "w", encoding="utf-8").write(s)
