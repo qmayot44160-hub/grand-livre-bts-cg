@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grand Livre BTS CG</title>
+<meta name="theme-color" content="#2c43c6">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400..700&display=swap">
+<style>
+:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--accent:#2c43c6;--accent-soft:#e7eafb;--bad:#b02f3a;--bad-bg:#fbe5e7;--hl:#fff2a8;
+--f-d:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;--f-b:"Figtree","Segoe UI",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--accent:#9eacff;--accent-soft:#242a55;--bad:#ff9ba3;--bad-bg:#3b1c25;--hl:rgba(255,219,77,.18);color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-b);display:grid;place-items:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
+main{width:100%;max-width:420px;display:grid;gap:22px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
+.logo svg{width:24px;height:24px}
+h1{font:800 1.9rem/1.05 var(--f-d);margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:22px;display:grid;gap:16px;box-shadow:0 1px 2px rgba(28,33,66,.06),0 8px 22px rgba(28,33,66,.07)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:4px}
+.tabs button{font:600 .95rem var(--f-b);border:0;background:none;color:var(--muted);padding:9px;border-radius:8px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 3px rgba(28,33,66,.12)}
+form{display:grid;gap:14px}
+label{display:grid;gap:6px;font-weight:600;font-size:.92rem}
+input{font:inherit;padding:11px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
+input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.hint{font-weight:400;color:var(--muted);font-size:.83rem}
+.go{font:700 1rem var(--f-b);border:0;border-radius:10px;padding:12px;background:var(--accent);color:#fff;cursor:pointer}
+@media (prefers-color-scheme:dark){.go{color:#11132a}}
+.go[disabled]{opacity:.6;cursor:wait}
+.err{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.92rem}
+.note{font-size:.85rem;color:var(--muted);margin:0}
+mark{background:var(--hl);color:inherit;padding:0 .2em;border-radius:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h6"/></svg></div>
+    <div><h1>Grand Livre</h1><p class="sub">Le classeur de révision du BTS CG</p></div>
+  </div>
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tLogin" aria-selected="true">Se connecter</button>
+      <button type="button" role="tab" id="tSignup" aria-selected="false">Créer mon compte</button>
+    </div>
+    <form id="f" novalidate>
+      <label for="name">Ton nom<span class="hint">Prénom et initiale, ex. « Léa M. »</span>
+        <input id="name" name="name" autocomplete="username" required maxlength="40"></label>
+      <label for="pw">Mot de passe<span class="hint" id="pwHint" hidden>6 caractères minimum. Note-le bien : il ne peut pas être envoyé par mail.</span>
+        <input id="pw" name="password" type="password" autocomplete="current-password" required minlength="6"></label>
+      <label for="pw2" id="pw2Box" hidden>Confirme ton mot de passe
+        <input id="pw2" type="password" autocomplete="new-password"></label>
+      <label for="code" id="codeBox" hidden>Code d'inscription<span class="hint">Donné par la personne qui t'a partagé le Grand Livre.</span>
+        <input id="code" autocomplete="off"></label>
+      <div class="err" id="err" role="alert" hidden></div>
+      <button class="go" id="go" type="submit">Se connecter</button>
+    </form>
+    <p class="note">Ta progression (leçons lues, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</p>
+  </div>
+  <p class="note">Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</p>
+</main>
+<script>
+var CODE = "__SIGNUP_CODE__" === "1", mode = "login";
+var $ = function (id) { return document.getElementById(id); };
+function setMode(m) {
+  mode = m;
+  $("tLogin").setAttribute("aria-selected", m === "login"); $("tSignup").setAttribute("aria-selected", m === "signup");
+  $("pw2Box").hidden = m === "login"; $("pwHint").hidden = m === "login"; $("codeBox").hidden = !(m === "signup" && CODE);
+  $("pw").autocomplete = m === "login" ? "current-password" : "new-password";
+  $("go").textContent = m === "login" ? "Se connecter" : "Créer mon compte";
+  $("err").hidden = true;
+}
+$("tLogin").onclick = function () { setMode("login"); };
+$("tSignup").onclick = function () { setMode("signup"); };
+$("f").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var name = $("name").value.trim(), pw = $("pw").value, err = $("err");
+  err.hidden = true;
+  function fail(t) { err.textContent = t; err.hidden = false; }
+  if (name.length < 2) return fail("Indique ton nom (2 caractères minimum).");
+  if (pw.length < 6) return fail("Le mot de passe doit faire au moins 6 caractères.");
+  if (mode === "signup" && pw !== $("pw2").value) return fail("Les deux mots de passe ne sont pas identiques.");
+  $("go").disabled = true;
+  try {
+    var r = await fetch(mode === "login" ? "/api/login" : "/api/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, password: pw, code: $("code").value }) });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok) { fail(j.error || "Une erreur est survenue. Réessaie."); $("go").disabled = false; return; }
+    location.replace("/");
+  } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); $("go").disabled = false; }
+});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+</script>
+</body>
+</html>

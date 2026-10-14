@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grand Livre · Administration</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--accent:#2c43c6;--ok:#1d7a4b;--bad:#b02f3a}
+@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--accent:#9eacff;--ok:#72d6a0;--bad:#ff9ba3;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:24px 16px}
+main{max-width:640px;margin:0 auto;display:grid;gap:18px}
+h1{margin:0;font-size:1.5rem}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:18px;display:grid;gap:12px}
+label{display:grid;gap:5px;font-weight:600;font-size:.92rem}
+input{font:inherit;padding:10px;border:1px solid var(--rule);border-radius:9px;background:var(--paper);color:var(--ink)}
+button{font:600 .95rem system-ui;border:0;border-radius:9px;padding:10px 14px;background:var(--accent);color:#fff;cursor:pointer;justify-self:start}
+.msg{font-size:.92rem}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule)}
+th{color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <h1>Administration du Grand Livre</h1>
+  <div class="card">
+    <label for="key">Clé d'administration (variable ADMIN_KEY sur Railway)<input id="key" type="password" autocomplete="off"></label>
+    <button id="list" type="button">Voir les élèves inscrits</button>
+    <div class="tbl" id="users"></div>
+  </div>
+  <div class="card">
+    <strong>Réinitialiser le mot de passe d'un élève</strong>
+    <label for="who">Nom de l'élève (tel qu'il l'a tapé)<input id="who" autocomplete="off"></label>
+    <label for="np">Nouveau mot de passe provisoire<input id="np" autocomplete="off"></label>
+    <button id="reset" type="button">Réinitialiser</button>
+    <div class="msg" id="msg" role="status"></div>
+  </div>
+</main>
+<script>
+var $ = function (i) { return document.getElementById(i); };
+async function call(url, body) {
+  var r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": $("key").value }, body: JSON.stringify(body || {}) });
+  var j = await r.json().catch(function () { return {}; });
+  if (!r.ok) throw new Error(j.error || "Erreur");
+  return j;
+}
+function d(t) { return t ? new Date(Number(t)).toLocaleDateString("fr-FR") : "—"; }
+$("list").onclick = async function () {
+  try {
+    var j = await call("/api/admin/users");
+    var tb = document.createElement("table");
+    tb.innerHTML = "<thead><tr><th>Élève</th><th>Inscrit le</th><th>Dernière activité</th></tr></thead>";
+    var body = document.createElement("tbody");
+    j.users.forEach(function (u) { var tr = document.createElement("tr"); [u.name, d(u.created), d(u.updated)].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }); body.appendChild(tr); });
+    tb.appendChild(body); $("users").replaceChildren(tb);
+    if (!j.users.length) $("users").textContent = "Aucun élève inscrit pour l'instant.";
+  } catch (e) { $("users").textContent = e.message; }
+};
+$("reset").onclick = async function () {
+  var m = $("msg");
+  try { var j = await call("/api/admin/reset", { name: $("who").value, password: $("np").value }); m.className = "msg ok"; m.textContent = "Mot de passe de " + j.name + " réinitialisé. Donne-lui le mot de passe provisoire."; }
+  catch (e) { m.className = "msg bad"; m.textContent = e.message; }
+};
+</script>
+</body>
+</html>
