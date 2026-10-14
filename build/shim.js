@@ -77,8 +77,21 @@
     });
     return d;
   }
+
+  /* Bouton « Se déconnecter » dans la barre du haut : retour à la page de connexion */
+  function addLogout() {
+    var top = document.querySelector(".top-inner");
+    if (!top || top.querySelector(".gl-out")) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "gl-out"; b.title = "Se déconnecter (" + ME.name + ")";
+    b.setAttribute("aria-label", "Se déconnecter et revenir à la page de connexion");
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>Déconnexion</span>';
+    b.addEventListener("click", async function () { b.disabled = true; try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} toLogin(); });
+    top.appendChild(b);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addLogout); else addLogout();
   var st = document.createElement("style");
-  st.textContent = ".gl-account{margin:16px 0}.gl-acc-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}.gl-acc-btns{display:flex;flex-wrap:wrap;gap:8px}.gl-pw{display:grid;gap:10px;margin-top:12px;max-width:420px}.gl-pw label{display:grid;gap:4px;font-weight:600;font-size:.9rem}.gl-pw input{font:inherit;padding:9px 10px;border:1px solid var(--rule-strong,#c7cde3);border-radius:9px;background:var(--paper,#f4f6fb);color:var(--ink,#1c2142)}";
+  st.textContent = ".gl-out{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid var(--rule-strong,#c7cde3);background:var(--sheet,#fff);color:var(--ink,#1c2142);border-radius:999px;padding:8px 12px;font:inherit;font-weight:600;font-size:.9rem;cursor:pointer}.gl-out:hover{border-color:var(--accent,#2c43c6);color:var(--accent,#2c43c6)}.gl-out span{display:none}.gl-out{padding:8px}@media (max-width:480px){.top-inner .who .lvl{display:none}}.gl-account{margin:16px 0}.gl-acc-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}.gl-acc-btns{display:flex;flex-wrap:wrap;gap:8px}.gl-pw{display:grid;gap:10px;margin-top:12px;max-width:420px}.gl-pw label{display:grid;gap:4px;font-weight:600;font-size:.9rem}.gl-pw input{font:inherit;padding:9px 10px;border:1px solid var(--rule-strong,#c7cde3);border-radius:9px;background:var(--paper,#f4f6fb);color:var(--ink,#1c2142)}";
   document.head.appendChild(st);
   new MutationObserver(function () {
     var hero = document.querySelector(".bts-hero");
