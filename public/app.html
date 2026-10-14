@@ -17,6 +17,17 @@
   .ep-table td:nth-child(4), .ep-table td:nth-child(5) { grid-column: 1 / -1; }
   .ep-table td:nth-child(4) { color: var(--muted); font-size: .88rem; }
 }
+
+.qf-title { margin: 6px 0 0; font-size: 1rem; }
+.qf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 10px; }
+.qf { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.qf-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.qf-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qf-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.qf-b .btn span { opacity: .75; font-weight: 500; margin-left: 4px; }
+.qf-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
+.qf-cta > span { margin-right: 2px; }
+@media (max-width: 760px) { .qf-grid { grid-template-columns: minmax(0, 1fr); } .qf-cta > span { flex-basis: 100%; } }
 </style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
@@ -2903,6 +2914,7 @@ function vFiches() {
       <h1>Fiches</h1>
       <p class="muted">${CHAP.length} fiches-chapitres (l'idée clé, l'explication simple, les définitions, un exemple, l'essentiel) et un mémo express de ${FS.filter(x => !x.ch).length} notions. Choisis une matière ou cherche directement.</p>
       <input class="search" id="ficheSearch" type="search" placeholder="Chercher : CAF, 4196, Akerlof, syllogisme, pourparlers…" aria-label="Chercher dans toutes les fiches">
+      <div class="qf-cta"><span>Tu as lu tes fiches ? Teste-toi :</span><button class="btn small primary" data-act="goQuiz">Quiz</button><button class="btn small" data-act="goCards">Flashcards</button><button class="btn small" data-nav="ex">Tout l'entraînement</button></div>
     </section>
     <div id="ficheHits" hidden></div>
     <div id="ficheMain" class="stack">${groupsOf(dividerFiche)}</div>`;
@@ -3845,14 +3857,16 @@ function vExHome() {
     </section>
     <div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div>
     <section class="stack">
-      <div class="sec-head"><h2>Révisions rapides</h2><p>Entre deux annales, pour entretenir ce que tu sais.</p></div>
+      <div class="sec-head"><h2>Quiz et flashcards</h2><p>Toutes matières mélangées, ou une matière précise juste en dessous.</p></div>
       <div class="modes">
         <button class="mode lead-mode" data-act="today" ${n ? "" : "disabled"}><b>Cartes du jour</b><span>${n ? `${n} cartes à revoir, de 5 à 10 minutes.` : "Rien à revoir aujourd'hui."}</span></button>
         <button class="mode" data-act="goQuiz"><b>Quiz corrigé</b><span>${QS.length} questions, expliquées juste après ta réponse.</span></button>
         <button class="mode" data-act="goExam"><b>QCM chrono</b><span>20 questions toutes matières en 20 minutes.</span></button>
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
-      <div class="row"><button class="btn" data-act="goCards">Cartes au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
+      <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
+      <h3 class="qf-title">Par matière</h3>
+      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="cardsCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}</div></div>`; }).join("")}</div>
     </section>
     <section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
