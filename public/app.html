@@ -3607,13 +3607,12 @@ function initShelf() {
   Object.assign(SHELF, { r, scene, cam, group, binders, ray: new T.Raycaster(), mouse: new T.Vector2(-9, -9), px: 0, py: 0, hover: null, t0: performance.now(), dark: null, running: false });
   const el = r.domElement; el.className = "shelf-canvas"; el.setAttribute("aria-hidden", "true");
   const aim = e => { const b = el.getBoundingClientRect(); SHELF.mouse.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); };
-  /* Au doigt : pas de parallaxe ni de survol qui suit le doigt ; un simple toucher ouvre le classeur visé */
+  /* Au doigt : l'étagère suit le doigt comme la souris ; un toucher bref ouvre le classeur visé */
   let downX = 0, downY = 0;
   el.addEventListener("pointerdown", e => { downX = e.clientX; downY = e.clientY; if (e.pointerType === "touch") aim(e); });
-  el.addEventListener("pointerup", e => { if (e.pointerType === "touch") setTimeout(() => SHELF.mouse.set(-9, -9), 350); });
   el.addEventListener("pointercancel", () => SHELF.mouse.set(-9, -9));
-  el.addEventListener("pointermove", e => { if (e.pointerType === "touch") return; const b = el.getBoundingClientRect(); SHELF.mouse.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); SHELF.px = SHELF.mouse.x; SHELF.py = SHELF.mouse.y; });
-  el.addEventListener("pointerleave", e => { if (e.pointerType === "touch") return; SHELF.mouse.set(-9, -9); SHELF.px = 0; SHELF.py = 0; });
+  el.addEventListener("pointermove", e => { const b = el.getBoundingClientRect(); SHELF.mouse.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); SHELF.px = SHELF.mouse.x; SHELF.py = SHELF.mouse.y; });
+  el.addEventListener("pointerleave", e => { SHELF.mouse.set(-9, -9); SHELF.px = 0; SHELF.py = 0; });
   el.addEventListener("click", e => { if (Math.abs(e.clientX - downX) > 12 || Math.abs(e.clientY - downY) > 12) return; if (e.pointerType === "touch" || !SHELF.hover) { aim(e); const T = window.THREE; SHELF.ray.setFromCamera(SHELF.mouse, SHELF.cam); const hit = SHELF.ray.intersectObjects(SHELF.binders)[0]; if (hit) { openMat(hit.object.userData.cat, "lecons"); return; } } if (SHELF.hover) openMat(SHELF.hover.userData.cat, "lecons"); });
   try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => paintShelf(true)); } catch (e) {}
 }
@@ -4840,7 +4839,7 @@ initSync();
     if (document.querySelector(".gs.open, dialog[open], .gl-pop:not([hidden])")) return false;
     const f = t.closest("input, textarea, select, [contenteditable]");
     if (f && (f === document.activeElement || f.type === "range")) return false;
-    if (t.closest(".no-swipe")) return false;
+    if (t.closest(".no-swipe, .shelf, #shelf3d, .shelf-canvas")) return false;
     for (let e = t; e && e !== document.body; e = e.parentElement) {
       if (e.scrollWidth > e.clientWidth + 2) { const o = getComputedStyle(e).overflowX; if (o === "auto" || o === "scroll") return false; }
     }
