@@ -3644,15 +3644,15 @@ function initShelf() {
   const wood = woodTexture("#b98a57", 1024, 128, 70), woodDark = woodTexture("#8b6a48", 512, 512, 120);
   wood.repeat.set(1, 1); woodDark.repeat.set(2, 1);
   const woodMat = new T.MeshStandardMaterial({ map: wood, roughness: .62, metalness: 0 });
-  const plank = new T.Mesh(new T.BoxGeometry(width + 1.1, 0.2, 2.6), woodMat);
+  const plank = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.2, 2.5), woodMat);
   plank.position.set(0, -0.1, -0.15); plank.receiveShadow = true; plank.castShadow = true; group.add(plank); SHELF.plank = plank;
-  const lip = new T.Mesh(new T.BoxGeometry(width + 1.1, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0x7a5636, roughness: .55 }));
-  lip.position.set(0, -0.12, 1.16); group.add(lip);
+  const lip = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0x7a5636, roughness: .55 }));
+  lip.position.set(0, -0.12, 1.11); group.add(lip);
   const sideMat = new T.MeshStandardMaterial({ map: woodDark, roughness: .65 });
-  [-1, 1].forEach(sg => { const up = new T.Mesh(new T.BoxGeometry(0.16, 3.4, 2.6), sideMat); up.position.set(sg * (width / 2 + 0.63), 1.5, -0.15); up.castShadow = true; up.receiveShadow = true; group.add(up); });
-  const back = new T.Mesh(new T.PlaneGeometry(width + 1.4, 3.6), new T.MeshStandardMaterial({ map: woodDark, roughness: .85, color: 0xd9cbb8 }));
-  back.position.set(0, 1.55, -1.45); back.receiveShadow = true; group.add(back); SHELF.back = back; SHELF.sideMat = sideMat;
-  const stand = new T.Mesh(new T.BoxGeometry(width + 1.1, 0.2, 2.6), woodMat); stand.position.set(0, 3.2, -0.15); group.add(stand);
+  [-1, 1].forEach(sg => { const up = new T.Mesh(new T.BoxGeometry(0.16, 3.3, 2.5), sideMat); up.position.set(sg * (width / 2 + 0.23), 1.45, -0.15); up.castShadow = true; up.receiveShadow = true; group.add(up); });
+  const back = new T.Mesh(new T.PlaneGeometry(width + 0.5, 3.2), new T.MeshStandardMaterial({ map: woodDark, roughness: .85, color: 0xd9cbb8 }));
+  back.position.set(0, 1.45, -1.38); back.receiveShadow = true; group.add(back); SHELF.back = back; SHELF.sideMat = sideMat;
+  const stand = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.2, 2.5), woodMat); stand.position.set(0, 3.0, -0.15); group.add(stand);
   Object.assign(SHELF, { r, scene, cam, group, binders, ray: new T.Raycaster(), mouse: new T.Vector2(-9, -9), px: 0, py: 0, hover: null, t0: performance.now(), dark: null, running: false });
   const el = r.domElement; el.className = "shelf-canvas"; el.setAttribute("aria-hidden", "true");
   const aim = e => { const b = el.getBoundingClientRect(); SHELF.mouse.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); };
@@ -3688,13 +3688,14 @@ function sizeShelf() {
   const host = document.getElementById("shelf3d"); if (!host || !SHELF.r) return;
   const w = host.clientWidth || 600, hh = host.clientHeight || 300;
   SHELF.r.setSize(w, hh, false); SHELF.cam.aspect = w / hh;
-  const span = CATS.length * 0.68 + 1.7, dist = (span / 2) / Math.tan((SHELF.cam.fov * Math.PI / 180) / 2) / SHELF.cam.aspect * 1.04;
-  SHELF.dist = Math.max(7.5, dist); SHELF.cam.updateProjectionMatrix();
+  const vf = SHELF.cam.fov * Math.PI / 180, spanW = CATS.length * 0.68 + 0.95, spanH = 3.7;
+  const dW = (spanW / 2) / Math.tan(vf / 2) / SHELF.cam.aspect, dH = (spanH / 2) / Math.tan(vf / 2);
+  SHELF.dist = Math.max(dW, dH) * 1.08 + 1.25; SHELF.cam.updateProjectionMatrix();
 }
 function shelfFrame(now) {
   if (!SHELF.r || !SHELF.r.domElement.isConnected) { SHELF.running = false; return; }
   const t = (now - SHELF.t0) / 1000, sway = RM ? 0 : Math.sin(t * 0.25) * 0.5;
-  const cam = SHELF.cam; cam.position.set(sway + SHELF.px * 1.2, 2.2 + SHELF.py * 0.6, SHELF.dist); cam.lookAt(0, 1.25, 0);
+  const cam = SHELF.cam; cam.position.set(sway * .35 + SHELF.px * .5, 1.75 + SHELF.py * .35, SHELF.dist); cam.lookAt(0, 1.45, 0);
   SHELF.ray.setFromCamera(SHELF.mouse, cam);
   const hit = SHELF.ray.intersectObjects(SHELF.binders)[0], hov = hit ? hit.object : null;
   if (hov !== SHELF.hover) { SHELF.hover = hov; SHELF.r.domElement.style.cursor = hov ? "pointer" : "default"; const lab = document.getElementById("shelfLabel"); if (lab) lab.textContent = hov ? `${CAT[hov.userData.cat].code} ${CAT[hov.userData.cat].name} : ${matchMedia("(pointer: coarse)").matches ? "lâche pour ouvrir" : "ouvrir"}` : shelfHint(); }
