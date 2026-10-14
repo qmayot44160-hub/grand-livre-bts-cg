@@ -1034,7 +1034,9 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 }
 
 #view[data-view="home"], #view[data-view="cours"], #view[data-view="fiches"], #view[data-view="ex"], #view[data-view="bts"] { touch-action: pan-y pinch-zoom; }
-body { overflow-x: hidden; }
+html, body { overflow-x: hidden; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+.nav { will-change: transform; transform: translateZ(0); }
 
 .card-runner .card3d { touch-action: pan-y; }
 .stamp { position: absolute; top: 18px; z-index: 3; font: 800 1.1rem/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; padding: 6px 12px; border: 3px solid currentColor; border-radius: 10px; opacity: 0; pointer-events: none; background: color-mix(in srgb, var(--sheet) 85%, transparent); }
