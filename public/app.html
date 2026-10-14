@@ -1098,6 +1098,22 @@ html, body { overflow-x: hidden; }
 .lesson-test { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 22px 0 6px; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--c, var(--accent)) 9%, var(--sheet)); border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 30%, var(--rule)); }
 .lesson-test > div:first-child { display: grid; gap: 2px; flex: 1; min-width: 200px; } .lesson-test span { color: var(--muted); font-size: .88rem; }
 @media (pointer: coarse) { .runner .row .kbd { display: none; } }
+
+.ctl-sec .sec-head p { font-weight: 700; color: var(--c, var(--accent)); }
+.ctl-list { display: grid; gap: 8px; }
+.ctl-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--rule-strong); border-radius: 12px; padding: 10px 12px; flex-wrap: wrap; }
+.ctl-row.is-ok { border-left-color: #1d8a4e; }
+.ctl-t { display: grid; gap: 4px; flex: 1; min-width: 200px; } .ctl-t b { font-size: .93rem; }
+.ctl-b { justify-self: start; font-size: .76rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--paper); color: var(--muted); border: 1px solid var(--rule); }
+.ctl-b.ok { background: #e3f4ea; color: #16683b; border-color: #b9e2c9; } .ctl-b.mid { background: #fff3d6; color: #8a5a00; border-color: #f0d79a; } .ctl-b.ko { background: #fbe5e7; color: #a12a36; border-color: #f2c2c7; }
+:root[data-theme="dark"] .ctl-b.ok { background: #143323; color: #8fe0b0; border-color: #1f5136; } :root[data-theme="dark"] .ctl-b.mid { background: #3a2d10; color: #ffd27a; border-color: #5a4518; } :root[data-theme="dark"] .ctl-b.ko { background: #3b1c25; color: #ff9ba3; border-color: #5a2a34; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ctl-b.ok { background: #143323; color: #8fe0b0; border-color: #1f5136; } :root:not([data-theme="light"]) .ctl-b.mid { background: #3a2d10; color: #ffd27a; border-color: #5a4518; } :root:not([data-theme="light"]) .ctl-b.ko { background: #3b1c25; color: #ff9ba3; border-color: #5a2a34; } }
+.ctl-ban { display: grid; gap: 4px; border-radius: 14px; padding: 14px 16px; border: 1px solid var(--rule); background: var(--sheet); }
+.ctl-ban b { font: 800 1.1rem/1.2 var(--f-display); } .ctl-ban span { color: var(--muted); }
+.ctl-ban.ok { border-color: #1d8a4e; background: color-mix(in srgb, #1d8a4e 10%, var(--sheet)); } .ctl-ban.ok b { color: #1d8a4e; }
+.ctl-ban.mid { border-color: #e0a31f; background: color-mix(in srgb, #e0a31f 10%, var(--sheet)); }
+.ctl-ban.ko { border-color: #c23a46; background: color-mix(in srgb, #c23a46 8%, var(--sheet)); }
+.ctl-tag { margin-right: 8px; }
 </style>
 
 <header class="top">
@@ -2421,11 +2437,36 @@ function bumpStreak() {
   S.st.n = S.st.d === d - 1 ? S.st.n + 1 : 1; S.st.d = d;
 }
 function streakNow() { const d = dayNum(); return (S.st.d === d || S.st.d === d - 1) ? S.st.n : 0; }
+/* État d'une question : 0 à découvrir, 1 en cours, 2 acquise (juste 2 jours différents, 3 jours d'écart), 3 maîtrisée (3 fois, sur 7 jours ou plus) */
+function qState(id) {
+  if (!S.q[id]) return 0; const o = (S.qd || {})[id]; if (!o || !o.ok.length) return 1;
+  const a = o.ok[0], b = o.ok[o.ok.length - 1];
+  return o.ok.length >= 3 && b - a >= 7 ? 3 : o.ok.length >= 2 && b - a >= 3 ? 2 : 1;
+}
+function cState(id) { const r = S.c[id]; return !r ? 0 : r[0] >= 5 ? 3 : r[0] >= 3 ? 2 : 1; }
+const QGAP = [0, 3, 7, 15, 30];
+function qDue(id) { const o = (S.qd || {})[id]; if (!o || !o.ok.length) return false; return dayNum() >= o.ok[o.ok.length - 1] + QGAP[Math.min(4, o.ok.length)]; }
+function dueQs() { return QS.filter(x => qDue(x.id)); }
+/* Contrôles de chapitre : réussi à 80 % deux jours différents, à 3 jours d'écart au moins */
+function ctlOf(k) { return ((S.ctl || {})[k]) || []; }
+function chapStatus(k) {
+  const L = ctlOf(k), pass = [...new Set(L.filter(x => x.pc >= 80).map(x => x.d))].sort((a, b) => a - b), d = dayNum();
+  const ok = pass.length >= 2 && pass[pass.length - 1] - pass[0] >= 3, today = L.some(x => x.d === d);
+  return { ok, pass, today, tried: L.length, next: pass.length ? pass[0] + 3 : null, best: L.reduce((m, x) => Math.max(m, x.pc), 0) };
+}
+function ctlChaps(cat) { return (CHBY[cat] || []).filter(c => (QCH[c.id] || []).length >= 4); }
+function validCount(cat) { const l = cat ? ctlChaps(cat) : CATS.flatMap(c => ctlChaps(c.id)); return { v: l.filter(c => chapStatus(c.id).ok).length, n: l.length }; }
+function dayLabel(dn) { const t = new Date(Date.now() + (dn - dayNum()) * 86400000); return t.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); }
+function startCtl(k) {
+  const pool = QCH[k] || []; if (pool.length < 4 || chapStatus(k).today) return;
+  const items = shuffle(pool).slice(0, 10); startRun(items, "exam");
+  R.ctrl = k; R.end = Date.now() + items.length * 75 * 1000; render();
+}
 function mastery(cat) {
   const qs = cat ? QBY[cat] : QS, fs = cat ? FBY[cat] : FS;
   let m = 0;
-  qs.forEach(x => { const r = S.q[x.id]; if (r && r[2] === 1) m++; });
-  fs.forEach(x => { const r = S.c[x.id]; if (r && r[0] >= 3) m++; });
+  qs.forEach(x => { if (qState(x.id) >= 2) m++; });
+  fs.forEach(x => { if (cState(x.id) >= 2) m++; });
   return { m, t: qs.length + fs.length };
 }
 function dueCards(cats, useChap) {
@@ -2439,6 +2480,9 @@ function recordQ(item, ok) {
   if (String(item.id)[0] === "g") { S.xp += ok ? 6 : 1; bumpStreak(); return; }
   const r = S.q[item.id] || [0, 0, 0];
   S.q[item.id] = [r[0] + 1, r[1] + (ok ? 1 : 0), ok ? 1 : 0];
+  { const d = dayNum(); S.qd = S.qd || {}; const o = S.qd[item.id] || (S.qd[item.id] = { w: 0, ok: [] });
+    if (ok) { if (o.w !== d && !o.ok.includes(d)) { o.ok.push(d); if (o.ok.length > 6) o.ok.shift(); } }
+    else { o.w = d; o.ok = []; } }
   S.xp += ok ? 10 : 2; bumpStreak();
 }
 function recordC(item, knew) {
@@ -2718,7 +2762,7 @@ function vRun() {
       <p class="muted">${h(it.e)}</p>
     </div>` : "";
   const head = R.mode === "exam"
-    ? `<span class="timer${R.end - Date.now() < 120000 ? " low" : ""}" id="timer">${timeLeft()}</span>`
+    ? `${R.ctrl ? `<span class="ep ctl-tag">Contrôle · ${h(CAT[chCat(R.ctrl)].code)}</span>` : ""}<span class="timer${R.end - Date.now() < 120000 ? " low" : ""}" id="timer">${timeLeft()}</span>`
     : `<span class="ep">${h(c.code)} · ${h(c.name)}</span>`;
   const nav = R.mode === "exam"
     ? `<div class="row">
@@ -2759,6 +2803,7 @@ function finishExam() {
   R.done = true;
   if (examTick) { clearInterval(examTick); examTick = null; }
   R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0));
+  if (R.ctrl) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, pc = Math.round(good / R.list.length * 100); S.ctl = S.ctl || {}; (S.ctl[R.ctrl] = S.ctl[R.ctrl] || []).push({ d: dayNum(), pc }); if (S.ctl[R.ctrl].length > 20) S.ctl[R.ctrl].shift(); R.ctlRes = chapStatus(R.ctrl); if (R.ctlRes.ok && pc >= 80) S.xp += 40; }
   dayLog().e++; touch(); go("result");
 }
 function vResult() {
@@ -2778,7 +2823,10 @@ function vResult() {
       <p class="e">${h(x.it.e)}</p>
     </div>`).join("");
   return `<section class="runner">
-    <div><span class="eyebrow">${R.mode === "exam" ? "QCM chronométré" : "Bilan du quiz"}</span><h1>${R.mode === "exam" ? "Ta copie est corrigée" : "Ton grand livre de la session"}</h1></div>
+    <div><span class="eyebrow">${R.ctrl ? "Contrôle de chapitre" : R.mode === "exam" ? "QCM chronométré" : "Bilan du quiz"}</span><h1>${R.ctrl ? h(chLabel(R.ctrl)) : R.mode === "exam" ? "Ta copie est corrigée" : "Ton grand livre de la session"}</h1></div>
+    ${R.ctrl && R.ctlRes ? (() => { const st = R.ctlRes, pc = pct(good.length, total); return st.ok ? `<div class="ctl-ban ok"><b>✓ Chapitre validé</b><span>Tu as réussi ce contrôle deux jours différents : c'est acquis. +40 XP. Il reviendra dans tes révisions pour vérifier que tu ne l'oublies pas.</span></div>`
+      : pc >= 80 ? `<div class="ctl-ban mid"><b>Réussi : ${st.pass.length} sur 2</b><span>${st.pass.length >= 2 ? "Encore une réussite après le " + dayLabel(st.pass[0] + 3) + " pour valider." : "Repasse ce contrôle à partir du " + dayLabel(st.pass[0] + 3) + " : s'il est encore réussi, le chapitre est validé."}</span></div>`
+      : `<div class="ctl-ban ko"><b>Pas encore validé (${pc} %)</b><span>Il faut 80 %. Relis la fiche du chapitre et retravaille tes erreurs, puis repasse le contrôle demain.</span></div>`; })() : ""}
     ${(() => { const pc = pct(good.length, total), C = 2 * Math.PI * 52, msg = pc >= 90 ? ["Excellent !", "Tu maîtrises : passe à un autre chapitre ou augmente la difficulté."] : pc >= 70 ? ["Très bien !", "Encore quelques points à consolider, regarde les corrections."] : pc >= 50 ? ["Pas mal, continue", "Relis les corrections puis refais tes erreurs tout de suite."] : ["On s'accroche !", "Relis la fiche du chapitre, puis refais tes erreurs : c'est comme ça qu'on progresse."];
       return `<div class="res-hero"><div class="ring" style="--pc:${pc}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg${pc >= 70 ? " good" : pc >= 50 ? " mid" : " low"}" cx="60" cy="60" r="52" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pc / 100)).toFixed(1)}" style="--c0:${C.toFixed(1)}"/></svg><div class="ring-t"><b>${R.mode === "exam" ? String(note).replace(".", ",") : good.length}<small>${R.mode === "exam" ? "/20" : "/" + total}</small></b><span>${pc} %</span></div></div>
         <div class="res-msg"><b>${msg[0]}</b><p>${msg[1]}</p><span class="res-xp">+${S.xp - R.xp0} XP</span></div></div>`; })()}
@@ -2834,6 +2882,8 @@ function vProfil() {
     [st, st > 1 ? "jours d'affilée" : "jour d'affilée", "Série en cours"],
     [`${tl.r}<small>/${tl.n}</small>`, "leçons lues", "Cours"],
     [`${known}<small>/${FS.length}</small>`, "cartes bien sues", `${seen} déjà vues`],
+    [`${QS.filter(x => qState(x.id) >= 2).length}<small>/${QS.length}</small>`, "questions acquises", "Justes 2 jours différents"],
+    [`${validCount().v}<small>/${validCount().n}</small>`, "chapitres validés", "Contrôles réussis 2 fois"],
     [tries ? Math.round(oks / tries * 100) + "<small> %</small>" : "–", "de bonnes réponses", `${oks} sur ${tries} réponses`],
     [ex, "exercices pratiqués", "Guidés et annales"],
     [best, "record au défi 60 s", "Bonnes réponses en 1 min"]
@@ -2851,7 +2901,7 @@ function vProfil() {
       <div class="pf-xp"><div class="pf-xp-bar"><i style="width:${prog}%"></i></div>
         <p>${L.next ? `Encore <b>${L.next - S.xp} XP</b> pour devenir <b>${h(L.nextName.toLowerCase())}</b>.` : "Niveau maximum atteint : bravo !"}</p></div>
       <ol class="pf-ladder">${LEVELS.map((l, i) => `<li class="${i < lvIdx ? "done" : i === lvIdx ? "cur" : ""}"><span class="dot">${i < lvIdx ? "✓" : i + 1}</span><span class="t">${h(l[1])}</span><span class="x">${l[0]} XP</span></li>`).join("")}</ol>
-      <p class="pf-how">Tu gagnes des XP en lisant (leçon lue), en répondant aux quiz (10 par bonne réponse), en révisant tes cartes et en faisant des exercices.</p>
+      <p class="pf-how">Un chapitre est validé quand tu réussis son contrôle (80 %) deux jours différents. Tu gagnes des XP en lisant (leçon lue), en répondant aux quiz (10 par bonne réponse), en révisant tes cartes et en faisant des exercices.</p>
     </section>
     <section class="stack"><h2>Mes chiffres</h2>
       <div class="pf-tiles">${tiles.map(([v, l, sub]) => `<div class="pf-tile"><b>${v}</b><span>${l}</span><small>${sub}</small></div>`).join("")}</div>
@@ -2879,6 +2929,17 @@ function vProfil() {
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
     </section>`;
 }
+function ctlSection(cat) {
+  const L = ctlChaps(cat); if (!L.length) return "";
+  const vc = validCount(cat);
+  return `<section class="stack ctl-sec" style="${hueStyle(cat)}"><div class="sec-head"><h2>Contrôles de chapitre</h2><p>${vc.v} sur ${vc.n} validé${vc.v > 1 ? "s" : ""}</p></div>
+    <p class="muted">10 questions chronométrées, sans correction avant la fin, une fois par jour. Un chapitre est <b>validé</b> quand tu réussis son contrôle à 80 % ou plus <b>deux jours différents</b>, à 3 jours d'écart au moins : la preuve que c'est vraiment retenu, pas juste vu.</p>
+    <div class="ctl-list">${L.map(ch => { const st = chapStatus(ch.id), d = dayNum();
+      const badge = st.ok ? `<span class="ctl-b ok">✓ Validé</span>` : st.pass.length ? `<span class="ctl-b mid">1 réussite sur 2</span>` : st.tried ? `<span class="ctl-b ko">Meilleur : ${st.best} %</span>` : `<span class="ctl-b">Pas encore passé</span>`;
+      const wait = !st.ok && st.pass.length && d < st.pass[0] + 3;
+      const btn = st.today ? `<button class="btn small" disabled>Fait aujourd'hui</button>` : wait ? `<button class="btn small" disabled>À partir du ${dayLabel(st.pass[0] + 3).replace(/^\w+ /, "")}</button>` : `<button class="btn small ${st.ok ? "" : "primary"}" data-act="ctlStart" data-k="${h(ch.id)}">${st.ok ? "Repasser" : "Passer le contrôle"}</button>`;
+      return `<div class="ctl-row${st.ok ? " is-ok" : ""}"><div class="ctl-t"><b>${h(ch.title)}</b>${badge}</div>${btn}</div>`; }).join("")}</div></section>`;
+}
 function vCible() {
   const c = CAT[cibleCat] || CAT.p1, q = QS.filter(x => x.c === c.id && chapOk(x)), f = FS.filter(x => x.c === c.id && chapOk(x)), n = chapCount(c.id);
   return `<section class="setup" style="${hueStyle(c.id)}">
@@ -2892,7 +2953,8 @@ function vCible() {
       <button class="btn primary" data-act="cibleCards" ${f.length ? "" : "disabled"}>Flashcards : ${Math.min(P().clen, f.length)} carte${Math.min(P().clen, f.length) > 1 ? "s" : ""}</button>
     </div>
     <p class="muted small">${n ? `${n} chapitre${n > 1 ? "s" : ""} choisi${n > 1 ? "s" : ""} : ` : "Toute la matière : "}${q.length} questions et ${f.length} cartes disponibles.</p>
-  </section>`;
+  </section>
+  ${ctlSection(c.id)}`;
 }
 function vCardsSetup() {
   const due = dueCards(cardSel.length ? cardSel : null, true);
@@ -3140,7 +3202,7 @@ function vMat() {
       ${binder3d(c)}
       <div class="mat-title"><span class="tabcode">${h(c.code)}</span><h1>${h(c.name)}</h1></div>
       <p class="mat-desc">${h(c.desc)}. ${h(EPTEXT[c.id] || "")}</p>
-      <div class="mat-figs"><span><b>${ls.r}/${ls.n}</b> leçons lues</span><span><b>${pct(ms.m, ms.t)} %</b> des quiz et cartes maîtrisés</span><span><b>${QBY[c.id].length}</b> questions de quiz</span></div>
+      <div class="mat-figs"><span><b>${ls.r}/${ls.n}</b> leçons lues</span><span><b>${pct(ms.m, ms.t)} %</b> des quiz et cartes acquis</span><span><b>${validCount(c.id).v}/${validCount(c.id).n}</b> chapitres validés</span><span><b>${QBY[c.id].length}</b> questions de quiz</span></div>
       <div class="seg" role="tablist" aria-label="Contenu de la matière">${segs.map(([k, l]) => `<button role="tab" class="seg-btn" data-act="seg" data-seg="${k}" aria-selected="${matSeg === k}">${l}</button>`).join("")}</div>
     </section>
     <section class="mat-body" style="${hueStyle(c.id)}">${body}</section>`;
@@ -3178,7 +3240,7 @@ function matTrain(c) {
       <button class="mode lead-mode" data-act="quickQuiz" data-cat="${c.id}"><b>Quiz de 10 questions</b><span>Tirées parmi ${QBY[c.id].length}, corrigées et expliquées une par une.</span></button>
       <button class="mode" data-act="dueCat" data-cat="${c.id}" ${n ? "" : "disabled"}><b>Cartes de la matière</b><span>${n ? `${n} cartes à revoir aujourd'hui.` : "Rien à revoir aujourd'hui dans cette matière."}</span></button>
       <button class="mode" data-act="defi" data-cat="${c.id}"><b>Défi 60 secondes</b><span>Un maximum de bonnes réponses en une minute, sur cette matière.</span></button>
-      <button class="mode" data-act="pickChap" data-cat="${c.id}"><b>Choisir les chapitres</b><span>${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""} choisi${chapCount(c.id) > 1 ? "s" : ""} : quiz et cartes ne portent que sur eux.` : "Quiz et flashcards sur les seuls chapitres que tu veux."}</span></button>
+      <button class="mode" data-act="pickChap" data-cat="${c.id}"><b>Chapitres et contrôles</b><span>${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""} choisi${chapCount(c.id) > 1 ? "s" : ""} : quiz et cartes ne portent que sur eux.` : "Quiz et flashcards sur les seuls chapitres que tu veux."}</span></button>
       <button class="mode" data-act="quizCat" data-cat="${c.id}"><b>Quiz plus long</b><span>Choisis 20 ou 40 questions, ou mélange avec d'autres matières.</span></button>
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
@@ -4212,6 +4274,7 @@ function vExHome() {
       <div class="modes">
         <button class="mode lead-mode" data-act="today" ${n ? "" : "disabled"}><b>Cartes du jour</b><span>${n ? `${n} cartes à revoir, de 5 à 10 minutes.` : "Rien à revoir aujourd'hui."}</span></button>
         <button class="mode" data-act="goQuiz"><b>Quiz corrigé</b><span>${QS.length} questions, expliquées juste après ta réponse.</span></button>
+        <button class="mode" data-act="dueQuiz" ${dueQs().length ? "" : "disabled"}><b>Révision des acquis</b><span>${dueQs().length ? `${dueQs().length} question${dueQs().length > 1 ? "s" : ""} à revérifier aujourd'hui.` : "Rien à revérifier aujourd'hui."}</span></button>
         <button class="mode" data-act="goExam"><b>QCM chrono</b><span>20 questions toutes matières en 20 minutes.</span></button>
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
@@ -4852,6 +4915,8 @@ document.addEventListener("click", e => {
     case "weakQuiz": { const k = b.dataset.k; startRun(shuffle(QS.filter(x => chKey(x) === k)).slice(0, quizLen), "quiz"); break; }
     case "weakMix": { const ks = weakChaps(5).map(o => o.k), wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
     case "quitRun": go(R && R.list.some(x => x.pick !== null) ? "result" : "ex"); break;
+    case "ctlStart": startCtl(b.dataset.k); break;
+    case "dueQuiz": { const d = shuffle(dueQs()); if (d.length) startRun(d.slice(0, quizLen), "quiz"); break; }
     case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); S.chap = chapSel.slice(); touch(); render(); break;
     case "pickChap": cibleCat = cat; go("cible"); break;
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
