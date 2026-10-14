@@ -14,94 +14,204 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400..700&display=swap">
 <style>
-:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--accent:#2c43c6;--accent-soft:#e7eafb;--bad:#b02f3a;--bad-bg:#fbe5e7;--hl:#fff2a8;
+:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--rule-strong:#c7cde3;--accent:#2c43c6;--accent-soft:#e7eafb;--bad:#b02f3a;--bad-bg:#fbe5e7;--warn:#8a5a00;--warn-bg:#fff3d6;
 --f-d:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;--f-b:"Figtree","Segoe UI",system-ui,sans-serif}
-@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--accent:#9eacff;--accent-soft:#242a55;--bad:#ff9ba3;--bad-bg:#3b1c25;--hl:rgba(255,219,77,.18);color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--rule-strong:#3b4068;--accent:#9eacff;--accent-soft:#242a55;--bad:#ff9ba3;--bad-bg:#3b1c25;--warn:#ffd27a;--warn-bg:#3a2d10;color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;min-height:100%}
-body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-b);display:grid;place-items:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
-main{width:100%;max-width:420px;display:grid;gap:22px}
+body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-b);min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
+.shell{width:100%;max-width:1040px;display:grid;grid-template-columns:1.05fr 1fr;background:var(--sheet);border:1px solid var(--rule);border-radius:26px;overflow:hidden;box-shadow:0 2px 4px rgba(20,24,60,.05),0 24px 60px rgba(20,24,60,.12);animation:in .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.shell,.go .spin{animation:none!important}}
+
+/* Colonne de présentation */
+.hero{position:relative;overflow:hidden;color:#fff;padding:38px 38px 34px;display:grid;align-content:space-between;gap:28px;background:radial-gradient(120% 120% at 0% 0%,#5b6cff 0%,#2c43c6 48%,#18237a 100%)}
+.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.hero::before{width:340px;height:340px;right:-120px;top:-120px;background:rgba(255,255,255,.07)}
+.hero::after{width:240px;height:240px;left:-90px;bottom:-110px;background:rgba(255,214,107,.10)}
+.hero>*{position:relative}
 .brand{display:flex;align-items:center;gap:12px}
-.logo{width:44px;height:44px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
+.logo{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);display:grid;place-items:center}
 .logo svg{width:24px;height:24px}
-h1{font:800 1.9rem/1.05 var(--f-d);margin:0;letter-spacing:-.01em}
-.sub{color:var(--muted);margin:0}
-.card{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:22px;display:grid;gap:16px;box-shadow:0 1px 2px rgba(28,33,66,.06),0 8px 22px rgba(28,33,66,.07)}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:4px}
-.tabs button{font:600 .95rem var(--f-b);border:0;background:none;color:var(--muted);padding:9px;border-radius:8px;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 3px rgba(28,33,66,.12)}
+.brand b{font:800 1.35rem/1 var(--f-d);letter-spacing:-.01em}
+.brand small{display:block;font-size:.8rem;opacity:.8;margin-top:3px}
+.pitch h1{font:800 clamp(1.9rem,3.4vw,2.6rem)/1.05 var(--f-d);margin:0 0 12px;letter-spacing:-.02em}
+.pitch h1 em{font-style:normal;color:#ffd66b}
+.pitch p{margin:0;opacity:.88;max-width:34ch}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fig{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 8px;text-align:center}
+.fig b{display:block;font:800 1.3rem/1.1 var(--f-d)}
+.fig span{font-size:.72rem;opacity:.85}
+.preview{background:rgba(10,14,50,.28);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:14px 16px;display:grid;gap:8px}
+.pv-top{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:800 .85rem/1 var(--f-d);background:linear-gradient(145deg,#ffd66b,#f2a93b);color:#3a2600;flex:none}
+.pv-top div{flex:1;min-width:0}.pv-top b{display:block;font-size:.92rem}.pv-top small{opacity:.8;font-size:.78rem}
+.pv-xp{font-weight:700;color:#ffd66b;font-size:.85rem}
+.bar{height:8px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+.bar i{display:block;height:100%;width:62%;border-radius:inherit;background:linear-gradient(90deg,#ffd66b,#ffb341)}
+.pv-row{display:flex;gap:6px;flex-wrap:wrap}
+.pv-row span{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12)}
+
+/* Colonne du formulaire */
+.side{padding:38px 40px;display:grid;align-content:center;gap:20px}
+.side h2{font:800 1.6rem/1.15 var(--f-d);margin:0}
+.side .sub{margin:4px 0 0;color:var(--muted)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:4px;position:relative}
+.tabs button{position:relative;z-index:1;font:600 .95rem var(--f-b);border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;cursor:pointer;transition:color .2s}
+.tabs button[aria-selected="true"]{color:var(--ink)}
+.tabs .pill{position:absolute;z-index:0;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:9px;background:var(--sheet);box-shadow:0 1px 3px rgba(28,33,66,.14);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.tabs[data-mode="signup"] .pill{transform:translateX(100%)}
 form{display:grid;gap:14px}
 label{display:grid;gap:6px;font-weight:600;font-size:.92rem}
-input{font:inherit;padding:11px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
-input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
-.hint{font-weight:400;color:var(--muted);font-size:.83rem}
-.go{font:700 1rem var(--f-b);border:0;border-radius:10px;padding:12px;background:var(--accent);color:#fff;cursor:pointer}
+.hint{font-weight:400;color:var(--muted);font-size:.82rem}
+.field{position:relative;display:flex;align-items:center}
+.field svg.ic{position:absolute;left:12px;width:18px;height:18px;color:var(--muted);pointer-events:none}
+input{font:inherit;width:100%;padding:12px 12px 12px 40px;border:1px solid var(--rule-strong);border-radius:12px;background:var(--paper);color:var(--ink);min-height:48px;transition:border-color .15s,box-shadow .15s}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.field.pw input{padding-right:46px}
+.eye{position:absolute;right:6px;width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.eye:hover{color:var(--ink);background:var(--accent-soft)}
+.eye svg{width:20px;height:20px}
+.caps{font-size:.82rem;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:6px 10px}
+.go{position:relative;font:700 1rem var(--f-b);border:0;border-radius:12px;padding:13px;min-height:50px;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .1s,filter .15s}
+.go:hover{filter:brightness(1.06)}.go:active{transform:scale(.99)}
 @media (prefers-color-scheme:dark){.go{color:#11132a}}
-.go[disabled]{opacity:.6;cursor:wait}
+.go[disabled]{opacity:.75;cursor:wait}
+.go .spin{width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 .err{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.92rem}
-.note{font-size:.85rem;color:var(--muted);margin:0}
-mark{background:var(--hl);color:inherit;padding:0 .2em;border-radius:3px}
+.note{font-size:.85rem;color:var(--muted);margin:0;display:flex;gap:8px;align-items:flex-start}
+.note svg{flex:none;width:16px;height:16px;margin-top:2px}
+.foot{display:grid;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+#glInstallSlot{display:grid}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+@media (max-width:860px){
+  body{place-items:start center;padding:0 0 calc(16px + env(safe-area-inset-bottom))}
+  .shell{grid-template-columns:minmax(0,1fr);border-radius:0 0 24px 24px;border-top:0;max-width:560px;box-shadow:none;background:transparent;border:0}
+  .hero{padding:calc(22px + env(safe-area-inset-top)) 20px 26px;gap:18px;border-radius:0 0 26px 26px}
+  .pitch h1{font-size:1.75rem}
+  .tabs button{font-size:.88rem;padding:10px 4px;white-space:nowrap}
+  .preview{display:none}
+  .figs{gap:6px}.fig{padding:8px 4px}.fig b{font-size:1.1rem}.fig span{font-size:.66rem}
+  .side{padding:22px 16px 8px;background:transparent}
+  .card{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;padding:18px;display:grid;gap:16px}
+}
+@media (min-width:861px){.card{display:grid;gap:16px}}
 </style>
 </head>
 <body>
-<main>
-  <div class="brand">
-    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h6"/></svg></div>
-    <div><h1>Grand Livre</h1><p class="sub">Le classeur de révision du BTS CG</p></div>
-  </div>
-  <div class="card">
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" id="tLogin" aria-selected="true">Se connecter</button>
-      <button type="button" role="tab" id="tSignup" aria-selected="false">Créer mon compte</button>
+<main class="shell">
+  <section class="hero" aria-label="Présentation">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h6"/></svg></div>
+      <div><b>Grand Livre</b><small>BTS Comptabilité et Gestion</small></div>
     </div>
-    <form id="f" novalidate>
-      <label for="name">Ton nom<span class="hint">Prénom et initiale, ex. « Léa M. »</span>
-        <input id="name" name="name" autocomplete="username" required maxlength="40"></label>
-      <label for="pw">Mot de passe<span class="hint" id="pwHint" hidden>6 caractères minimum. Note-le bien : il ne peut pas être envoyé par mail.</span>
-        <input id="pw" name="password" type="password" autocomplete="current-password" required minlength="6"></label>
-      <label for="pw2" id="pw2Box" hidden>Confirme ton mot de passe
-        <input id="pw2" type="password" autocomplete="new-password"></label>
-      <label for="code" id="codeBox" hidden>Code d'inscription<span class="hint">Donné par la personne qui t'a partagé le Grand Livre.</span>
-        <input id="code" autocomplete="off"></label>
-      <div class="err" id="err" role="alert" hidden></div>
-      <button class="go" id="go" type="submit">Se connecter</button>
-    </form>
-    <p class="note">Ta progression (leçons lues, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</p>
-  </div>
-  <div id="glInstallSlot" style="display:grid"></div>
-  <p class="note">Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</p>
+    <div class="pitch">
+      <h1>Révise ton BTS CG <em>un chapitre</em> après l'autre.</h1>
+      <p>Cours expliqués simplement, fiches, quiz, flashcards et vraies annales : tout au même endroit, avec ta progression sauvegardée.</p>
+    </div>
+    <div class="figs" aria-label="Contenu du Grand Livre">
+      <div class="fig"><b>125</b><span>leçons</span></div>
+      <div class="fig"><b>1 260</b><span>questions</span></div>
+      <div class="fig"><b>733</b><span>flashcards</span></div>
+      <div class="fig"><b>26</b><span>annales</span></div>
+    </div>
+    <div class="preview" aria-hidden="true">
+      <div class="pv-top"><span class="av">LM</span><div><b>Ton profil</b><small>Assistant comptable · série de 4 jours</small></div><span class="pv-xp">230 XP</span></div>
+      <div class="bar"><i></i></div>
+      <div class="pv-row"><span>P3 Fiscalité · 64 %</span><span>E4 CEJM · 41 %</span><span>J-215</span></div>
+    </div>
+  </section>
+
+  <section class="side">
+    <div>
+      <h2 id="title">Content de te revoir</h2>
+      <p class="sub" id="subtitle">Connecte-toi pour reprendre là où tu t'étais arrêté.</p>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist" id="tabs" data-mode="login">
+        <span class="pill" aria-hidden="true"></span>
+        <button type="button" role="tab" id="tLogin" aria-selected="true">Se connecter</button>
+        <button type="button" role="tab" id="tSignup" aria-selected="false">Créer mon compte</button>
+      </div>
+      <form id="f" novalidate>
+        <label for="name">Ton nom<span class="hint">Prénom et initiale, ex. « Léa M. »</span>
+          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          <input id="name" name="name" autocomplete="username" required maxlength="40" autocapitalize="words" spellcheck="false"></span></label>
+        <label for="pw">Mot de passe<span class="hint" id="pwHint" hidden>6 caractères minimum. Note-le bien : il ne peut pas être envoyé par mail.</span>
+          <span class="field pw"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <input id="pw" name="password" type="password" autocomplete="current-password" required minlength="6">
+          <button type="button" class="eye" id="eye" aria-label="Afficher le mot de passe" aria-pressed="false"></button></span></label>
+        <div class="caps" id="caps" hidden>Majuscules activées (Verr. Maj)</div>
+        <label for="pw2" id="pw2Box" hidden>Confirme ton mot de passe
+          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <input id="pw2" type="password" autocomplete="new-password"></span></label>
+        <label for="code" id="codeBox" hidden>Code d'inscription<span class="hint">Donné par la personne qui t'a partagé le Grand Livre.</span>
+          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7a4 4 0 1 1-3.9 4.9L4 19v-3h3v-3h3l1.1-1.1A4 4 0 0 1 15 7z"/></svg>
+          <input id="code" autocomplete="off"></span></label>
+        <div class="err" id="err" role="alert" hidden></div>
+        <button class="go" id="go" type="submit"><span id="goTxt">Se connecter</span></button>
+      </form>
+      <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg><span>Ta progression (leçons, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</span></p>
+    </div>
+    <div class="foot">
+      <div id="glInstallSlot"></div>
+      <p class="note"><span>Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</span></p>
+    </div>
+  </section>
 </main>
 <script>
 var CODE = "__SIGNUP_CODE__" === "1", mode = "login";
 var $ = function (id) { return document.getElementById(id); };
+var EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.3 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+$("eye").innerHTML = EYE;
+try { var last = localStorage.getItem("gl-last-name"); if (last) { $("name").value = last; } } catch (e) {}
 function setMode(m) {
-  mode = m;
+  mode = m; $("tabs").dataset.mode = m;
   $("tLogin").setAttribute("aria-selected", m === "login"); $("tSignup").setAttribute("aria-selected", m === "signup");
   $("pw2Box").hidden = m === "login"; $("pwHint").hidden = m === "login"; $("codeBox").hidden = !(m === "signup" && CODE);
   $("pw").autocomplete = m === "login" ? "current-password" : "new-password";
-  $("go").textContent = m === "login" ? "Se connecter" : "Créer mon compte";
+  $("goTxt").textContent = m === "login" ? "Se connecter" : "Créer mon compte";
+  $("title").textContent = m === "login" ? "Content de te revoir" : "Bienvenue !";
+  $("subtitle").textContent = m === "login" ? "Connecte-toi pour reprendre là où tu t'étais arrêté." : "Choisis ton nom et un mot de passe : ton compte est prêt en 10 secondes.";
   $("err").hidden = true;
+  (m === "signup" || !$("name").value ? $("name") : $("pw")).focus({ preventScroll: true });
 }
 $("tLogin").onclick = function () { setMode("login"); };
 $("tSignup").onclick = function () { setMode("signup"); };
+$("eye").onclick = function () {
+  var show = $("pw").type === "password";
+  $("pw").type = show ? "text" : "password"; $("pw2").type = $("pw").type;
+  this.innerHTML = show ? EYE_OFF : EYE; this.setAttribute("aria-pressed", show);
+  this.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+};
+function caps(e) { if (e.getModifierState) $("caps").hidden = !e.getModifierState("CapsLock"); }
+["pw", "pw2"].forEach(function (id) { $(id).addEventListener("keyup", caps); $(id).addEventListener("keydown", caps); $(id).addEventListener("blur", function () { $("caps").hidden = true; }); });
+function busy(on) {
+  $("go").disabled = on;
+  $("go").innerHTML = on ? '<span class="spin" aria-hidden="true"></span><span id="goTxt">' + (mode === "login" ? "Connexion…" : "Création du compte…") + '</span>' : '<span id="goTxt">' + (mode === "login" ? "Se connecter" : "Créer mon compte") + '</span>';
+}
 $("f").addEventListener("submit", async function (e) {
   e.preventDefault();
   var name = $("name").value.trim(), pw = $("pw").value, err = $("err");
   err.hidden = true;
-  function fail(t) { err.textContent = t; err.hidden = false; }
+  function fail(t) { err.textContent = t; err.hidden = false; busy(false); }
   if (name.length < 2) return fail("Indique ton nom (2 caractères minimum).");
   if (pw.length < 6) return fail("Le mot de passe doit faire au moins 6 caractères.");
   if (mode === "signup" && pw !== $("pw2").value) return fail("Les deux mots de passe ne sont pas identiques.");
-  $("go").disabled = true;
+  busy(true);
   try {
     var r = await fetch(mode === "login" ? "/api/login" : "/api/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, password: pw, code: $("code").value }) });
     var j = await r.json().catch(function () { return {}; });
-    if (!r.ok) { fail(j.error || "Une erreur est survenue. Réessaie."); $("go").disabled = false; return; }
+    if (!r.ok) return fail(j.error || "Une erreur est survenue. Réessaie.");
+    try { localStorage.setItem("gl-last-name", name); } catch (x) {}
     location.replace("/");
-  } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); $("go").disabled = false; }
+  } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); }
 });
+if ($("name").value) $("pw").focus({ preventScroll: true });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
 </script>
 <script src="/install.js"></script>
