@@ -1,34 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
-.ann-more { margin-top: 2px; }
-.ann-more > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .9rem; color: var(--accent); padding: 8px 0 2px; }
-.ann-more > summary::-webkit-details-marker { display: none; }
-.ann-more > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
-.ann-more[open] > summary::before { transform: rotate(45deg); }
-.ann-more[open] > summary { margin-bottom: 6px; }
-.gc-more > summary { color: var(--ink); padding: 6px 0; }
-.gc-more > summary h3 { margin: 0; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.gc-more > summary h3 .muted { font-size: .85rem; font-weight: 500; }
-@media (max-width: 760px) {
-  .ep-table, .ep-table tbody { display: block; }
-  .ep-table thead { display: none; }
-  .ep-table tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
-  .ep-table td { display: block; padding: 0 !important; border: 0 !important; background: none !important; }
-  .ann-rest > summary { display: flex; justify-content: center; width: 100%; padding: 12px; border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--sheet); }
-  .ep-table td:nth-child(4), .ep-table td:nth-child(5) { grid-column: 1 / -1; }
-  .ep-table td:nth-child(4) { color: var(--muted); font-size: .88rem; }
-}
-
-.qf-title { margin: 6px 0 0; font-size: 1rem; }
-.qf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 10px; }
-.qf { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
-.qf-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.qf-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qf-b { display: flex; gap: 8px; flex-wrap: wrap; }
-.qf-b .btn span { opacity: .75; font-weight: 500; margin-left: 4px; }
-.qf-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
-.qf-cta > span { margin-right: 2px; }
-@media (max-width: 760px) { .qf-grid { grid-template-columns: minmax(0, 1fr); } .qf-cta > span { flex-basis: 100%; } }
-</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__;
@@ -956,6 +926,37 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .ann-tagbox { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 12px; }
 .ann-tagbox summary { cursor: pointer; font-weight: 700; font-size: .9rem; }
 .ann-tagbox[open] summary { margin-bottom: 8px; }
+
+
+.ann-more { margin-top: 2px; }
+.ann-more > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .9rem; color: var(--accent); padding: 8px 0 2px; }
+.ann-more > summary::-webkit-details-marker { display: none; }
+.ann-more > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+.ann-more[open] > summary::before { transform: rotate(45deg); }
+.ann-more[open] > summary { margin-bottom: 6px; }
+.gc-more > summary { color: var(--ink); padding: 6px 0; }
+.gc-more > summary h3 { margin: 0; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gc-more > summary h3 .muted { font-size: .85rem; font-weight: 500; }
+@media (max-width: 760px) {
+  .ep-table, .ep-table tbody { display: block; }
+  .ep-table thead { display: none; }
+  .ep-table tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+  .ep-table td { display: block; padding: 0 !important; border: 0 !important; background: none !important; }
+  .ann-rest > summary { display: flex; justify-content: center; width: 100%; padding: 12px; border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--sheet); }
+  .ep-table td:nth-child(4), .ep-table td:nth-child(5) { grid-column: 1 / -1; }
+  .ep-table td:nth-child(4) { color: var(--muted); font-size: .88rem; }
+}
+
+.qf-title { margin: 6px 0 0; font-size: 1rem; }
+.qf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 10px; }
+.qf { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.qf-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.qf-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qf-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.qf-b .btn span { opacity: .75; font-weight: 500; margin-left: 4px; }
+.qf-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
+.qf-cta > span { margin-right: 2px; }
+@media (max-width: 760px) { .qf-grid { grid-template-columns: minmax(0, 1fr); } .qf-cta > span { flex-basis: 100%; } }
 
 </style>
 
@@ -3866,7 +3867,7 @@ function vExHome() {
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
       <h3 class="qf-title">Par matière</h3>
-      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="cardsCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}</div></div>`; }).join("")}</div>
+      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}</div></div>`; }).join("")}</div>
     </section>
     <section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
@@ -4426,6 +4427,7 @@ document.addEventListener("click", e => {
   switch (a) {
     case "quizCat": quizSel = [cat]; go("quiz"); break;
     case "cardsCat": cardSel = [cat]; go("cards"); break;
+    case "flashCat": { const d = dueCards([cat]); let l = shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30); if (!l.length) l = shuffle(FS.filter(x => x.c === cat)).slice(0, 30); startCards(l); break; }
     case "goEx": go("ex"); break;
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "exCheck": { readUser(); const it = X.list[X.i]; grade(it); recordEx(it); touch(); render(); break; }
