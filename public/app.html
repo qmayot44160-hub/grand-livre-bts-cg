@@ -2,6 +2,7 @@
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__;
+  window.GL_NAME = ME.name;
   function toLogin() { location.replace("/"); }
   async function api(method, url, body, signal) {
     var r = await fetch(url, { method: method, credentials: "same-origin", signal: signal, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -86,10 +87,11 @@
     var w = document.createElement("div"); w.className = "gl-menu";
     var b = document.createElement("button");
     b.type = "button"; b.className = "gl-out"; b.title = "Mon compte (" + ME.name + ")";
-    b.setAttribute("aria-label", "Mon compte : installer l'appli ou se déconnecter"); b.setAttribute("aria-haspopup", "menu"); b.setAttribute("aria-expanded", "false");
+    b.setAttribute("aria-label", "Mon compte : profil, installer l'appli ou se déconnecter"); b.setAttribute("aria-haspopup", "menu"); b.setAttribute("aria-expanded", "false");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
     var m = document.createElement("div"); m.className = "gl-pop"; m.setAttribute("role", "menu"); m.hidden = true;
     m.innerHTML = '<div class="gl-pop-who"></div>' +
+      '<button type="button" role="menuitem" data-m="profil"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Mon profil et réglages</button>' +
       '<button type="button" role="menuitem" data-m="install"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Installer l\'appli</button>' +
       '<button type="button" role="menuitem" data-m="out"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg>Se déconnecter</button>';
     m.querySelector(".gl-pop-who").textContent = ME.name;
@@ -104,6 +106,7 @@
       show(false);
       if (it.dataset.m === "install" && window.GLInstall) window.GLInstall.go();
       if (it.dataset.m === "out") { it.disabled = true; logout(); }
+      if (it.dataset.m === "profil" && typeof go === "function") go("profil");
     });
     document.addEventListener("click", function (e) { if (!w.contains(e.target)) show(false); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") show(false); });
@@ -114,8 +117,8 @@
   st.textContent = ".gl-out{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid var(--rule-strong,#c7cde3);background:var(--sheet,#fff);color:var(--ink,#1c2142);border-radius:999px;padding:8px 12px;font:inherit;font-weight:600;font-size:.9rem;cursor:pointer}.gl-out:hover{border-color:var(--accent,#2c43c6);color:var(--accent,#2c43c6)}.gl-out{padding:8px}.gl-menu{position:relative;flex:none}.gl-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:220px;background:var(--sheet,#fff);border:1px solid var(--rule-strong,#c7cde3);border-radius:12px;box-shadow:0 12px 30px rgba(20,24,60,.18);padding:6px;display:grid}.gl-pop[hidden],.gl-pop [hidden]{display:none!important}.gl-pop-who{padding:8px 10px 6px;font-weight:700;color:var(--muted,#5a6088);font-size:.85rem;border-bottom:1px solid var(--rule,#e0e4f0);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gl-pop button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;color:var(--ink,#1c2142);font:inherit;font-weight:600;padding:10px;border-radius:8px;cursor:pointer}.gl-pop button:hover{background:var(--accent-soft,#e7eafb);color:var(--accent,#2c43c6)}@media (min-width:761px){.top-inner .gs-btn span,.top-inner .gs-btn kbd{display:none}.top-inner .gs-btn{padding:8px}}@media (min-width:761px) and (max-width:1099px){.top-inner{gap:10px}.top-inner .who .lvl{display:none}}@media (min-width:761px) and (max-width:1019px){.top-inner .nav-btn{font-size:0;gap:0;padding:9px 12px}.top-inner .nav-btn .svg{width:20px;height:20px}}@media (max-width:480px){.top-inner .who .lvl{display:none}}.gl-account{margin:16px 0}.gl-acc-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}.gl-acc-btns{display:flex;flex-wrap:wrap;gap:8px}.gl-pw{display:grid;gap:10px;margin-top:12px;max-width:420px}.gl-pw label{display:grid;gap:4px;font-weight:600;font-size:.9rem}.gl-pw input{font:inherit;padding:9px 10px;border:1px solid var(--rule-strong,#c7cde3);border-radius:9px;background:var(--paper,#f4f6fb);color:var(--ink,#1c2142)}";
   document.head.appendChild(st);
   new MutationObserver(function () {
-    var hero = document.querySelector(".bts-hero");
-    if (hero && !document.querySelector(".gl-account")) hero.insertAdjacentElement("afterend", accountPanel());
+    var set = document.querySelector(".pf-settings");
+    if (set && !document.querySelector(".gl-account")) set.insertAdjacentElement("afterend", accountPanel());
   }).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
@@ -971,6 +974,64 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .cible-go .btn { min-height: 46px; }
 .qf-ch { margin-left: auto; }
 @media (max-width: 760px) { .chap-list { grid-template-columns: minmax(0, 1fr); } .qf-ch { margin-left: 0; } }
+
+:root[data-fs="l"] { font-size: 112.5%; } :root[data-fs="xl"] { font-size: 125%; }
+:root[data-fs="l"] body, :root[data-fs="xl"] body { font-size: 1rem; }
+.no-motion *, .no-motion *::before, .no-motion *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+.pf-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 26px; display: grid; gap: 18px; color: #fff; background: radial-gradient(120% 140% at 100% 0%, #5b6cff 0%, #2c43c6 45%, #1b2a86 100%); box-shadow: 0 10px 24px rgba(28, 40, 140, .18); margin-bottom: 8px; }
+.pf-hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.07); pointer-events: none; }
+.pf-id { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.pf-av { width: 68px; height: 68px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 800 1.5rem/1 var(--f-display); background: linear-gradient(145deg, #ffd66b, #f2a93b); color: #3a2600; box-shadow: 0 0 0 4px rgba(255,255,255,.22); }
+.pf-who { flex: 1; min-width: 0; }
+.pf-who .eyebrow { color: rgba(255,255,255,.75); }
+.pf-who h1 { margin: 2px 0; color: #fff; font-size: clamp(1.6rem, 5vw, 2.2rem); overflow-wrap: anywhere; }
+.pf-lvl { margin: 0; color: rgba(255,255,255,.9); } .pf-lvl b { color: #ffd66b; }
+.pf-count { display: grid; text-align: center; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 8px 14px; }
+.pf-count b { font: 800 1.4rem/1.1 var(--f-display); } .pf-count span { font-size: .78rem; opacity: .85; }
+.pf-xp { display: grid; gap: 6px; } .pf-xp p { margin: 0; color: rgba(255,255,255,.9); font-size: .92rem; } .pf-xp b { color: #fff; }
+.pf-xp-bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,.18); overflow: hidden; }
+.pf-xp-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffd66b, #ffb341); min-width: 6px; transition: width .6s ease; }
+.pf-ladder { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.pf-ladder li { display: grid; justify-items: center; gap: 3px; text-align: center; font-size: .72rem; opacity: .6; }
+.pf-ladder li.done, .pf-ladder li.cur { opacity: 1; }
+.pf-ladder .dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.35); }
+.pf-ladder .done .dot { background: #ffd66b; border-color: #ffd66b; color: #3a2600; }
+.pf-ladder .cur .dot { background: #fff; border-color: #ffd66b; color: #2c43c6; box-shadow: 0 0 0 4px rgba(255,214,107,.35); }
+.pf-ladder .t { font-weight: 700; line-height: 1.2; } .pf-ladder .x { opacity: .75; }
+.pf-how { margin: 0; font-size: .82rem; color: rgba(255,255,255,.75); }
+.pf-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+.pf-tile { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 14px; display: grid; gap: 2px; }
+.pf-tile b { font: 800 1.7rem/1.1 var(--f-display); color: var(--ink); } .pf-tile b small { font-size: .9rem; color: var(--muted); font-weight: 600; }
+.pf-tile span { font-weight: 600; font-size: .9rem; } .pf-tile small { color: var(--muted); font-size: .78rem; }
+.pf-key { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; font-size: .82rem; } .pf-key i { width: 18px; height: 6px; border-radius: 3px; background: var(--accent); } .pf-key.alt i { background: #e0a31f; }
+.pf-mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.pf-mat { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "c n" "b b" "v v"; gap: 6px 10px; align-items: center; text-align: left; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 12px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--ink); }
+.pf-mat:hover { border-color: var(--c, var(--accent)); }
+.pf-mat .tabcode { grid-area: c; } .pf-mat-n { grid-area: n; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-bars { grid-area: b; display: grid; gap: 4px; } .pf-mat-v { grid-area: v; font-size: .8rem; color: var(--muted); }
+.pf-bar { height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; } .pf-bar i { display: block; height: 100%; background: var(--c, var(--accent)); } .pf-bar.alt i { background: #e0a31f; }
+.pf-set { background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+.pf-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; flex-wrap: wrap; }
+.pf-row + .pf-row { border-top: 1px solid var(--rule); }
+.pf-row > div:first-child { display: grid; gap: 2px; min-width: 200px; flex: 1; } .pf-row > div:first-child span { color: var(--muted); font-size: .85rem; }
+.pf-seg { display: inline-flex; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.pf-seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: .88rem; padding: 8px 14px; border-radius: 9px; cursor: pointer; min-height: 38px; }
+.pf-seg button[aria-pressed="true"] { background: var(--sheet); color: var(--accent); box-shadow: 0 1px 3px rgba(20, 24, 60, .15); }
+.pf-in { font: inherit; padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); color: var(--ink); min-height: 40px; }
+:root[data-theme="dark"] .pf-in { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pf-in { color-scheme: dark; } }
+@media (max-width: 760px) {
+  .pf-hero { padding: 20px 16px; border-radius: 18px; }
+  .pf-ladder { position: relative; }
+  .pf-ladder .x, .pf-ladder .t { display: none; }
+  .pf-id { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .pf-av { width: 58px; height: 58px; font-size: 1.3rem; }
+  .pf-count { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 6px 12px; }
+  .pf-count b { font-size: 1.15rem; }
+  .pf-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-mats { grid-template-columns: minmax(0, 1fr); }
+  .pf-row > div:first-child { min-width: 0; flex-basis: 100%; }
+}
 </style>
 
 <header class="top">
@@ -984,7 +1045,7 @@ html.gs-on, html.gs-on body { overflow: hidden; }
       <button class="nav-btn" data-nav="bts"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>Mon BTS</button>
     </nav>
     <button class="gs-btn" data-act="gsOpen" aria-label="Rechercher dans tout le Grand Livre (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
-    <button class="who" data-nav="bts" title="Ton niveau, tes points et ton compte à rebours"><span class="lvl" id="lvlName">Stagiaire</span><span class="xp" id="xpTop">0 XP</span></button>
+    <button class="who" data-nav="profil" title="Mon profil : niveau, points et réglages"><span class="lvl" id="lvlName">Stagiaire</span><span class="xp" id="xpTop">0 XP</span></button>
   </div>
 </header>
 <main class="wrap" id="view"></main>
@@ -2327,6 +2388,14 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
+const PREF_DEF = { theme: "auto", fs: "m", motion: "on", qlen: 10, clen: 30, name: "" };
+function P() { S.pref = Object.assign({}, PREF_DEF, S.pref || {}); return S.pref; }
+function applyPrefs() {
+  const p = S.pref || PREF_DEF, r = document.documentElement;
+  if (p.theme === "light" || p.theme === "dark") r.setAttribute("data-theme", p.theme); else r.removeAttribute("data-theme");
+  r.setAttribute("data-fs", p.fs || "m"); r.classList.toggle("no-motion", p.motion === "off");
+}
+let prefSeenQ = null;
 let chapSel = [];   // chapitres choisis (quiz et flashcards) ; vide pour une matière = toute la matière
 let cibleCat = "p1";
 const chKey = x => (x.ch && CHID[x.ch] ? x.ch : x.c + ":g");
@@ -2384,6 +2453,7 @@ function go(v, opts) {
   window.scrollTo({ top: 0 });
 }
 function navOf(v) {
+  if (v === "profil") return "";
   if (v === "home") return "home";
   if (v === "cours" || v === "lesson") return "cours";
   if (v === "fiches" || v === "fiche") return "fiches";
@@ -2402,8 +2472,10 @@ function renderTop() {
   if (s) s.textContent = syncMode === "sync" ? "Ta progression est enregistrée sur ton compte." : "Ta progression est enregistrée sur cet appareil.";
 }
 function render() {
+  applyPrefs();
+  if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   const v = $("#view");
-  const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -2501,6 +2573,7 @@ function vHome() {
       <span class="lvl-big">${h(L.name)}</span>
       <div class="bar gold"><i style="width:${prog}%"></i></div>
       <p class="muted">${L.next ? `${S.xp} XP. Encore ${L.next - S.xp} XP pour devenir ${h(L.nextName.toLowerCase())}.` : `${S.xp} XP. Niveau maximum atteint.`}</p>
+      <button class="btn small" data-nav="profil">Mon profil et réglages</button>
     </div>
     <div class="stack">
       <div class="figs">
@@ -2654,6 +2727,59 @@ function vResult() {
 }
 
 /* Cartes */
+function seg(k, opts) {
+  const v = P()[k];
+  return `<div class="pf-seg" role="group">${opts.map(([val, lab]) => `<button type="button" data-act="pref" data-k="${k}" data-v="${val}" aria-pressed="${String(v) === String(val)}">${lab}</button>`).join("")}</div>`;
+}
+function vProfil() {
+  const p = P(), L = levelOf(S.xp), span = L.next ? L.next - L.floor : 1, prog = L.next ? Math.round((S.xp - L.floor) / span * 100) : 100;
+  const tl = totalLessons(), known = FS.filter(x => S.c[x.id] && S.c[x.id][0] >= 3).length, seen = FS.filter(x => S.c[x.id]).length;
+  const qa = Object.values(S.q), tries = qa.reduce((a, r) => a + r[0], 0), oks = qa.reduce((a, r) => a + r[1], 0);
+  const name = p.name || window.GL_NAME || "", ini = (name.trim() ? name.trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) : "BTS").toUpperCase();
+  const st = streakNow(), best = (S.df || {}).best || 0, ex = Object.keys(S.x || {}).length, dl = daysLeft();
+  const lvIdx = LEVELS.reduce((a, l, i) => S.xp >= l[0] ? i : a, 0);
+  const tiles = [
+    [st, st > 1 ? "jours d'affilée" : "jour d'affilée", "Série en cours"],
+    [`${tl.r}<small>/${tl.n}</small>`, "leçons lues", "Cours"],
+    [`${known}<small>/${FS.length}</small>`, "cartes bien sues", `${seen} déjà vues`],
+    [tries ? Math.round(oks / tries * 100) + "<small> %</small>" : "–", "de bonnes réponses", `${oks} sur ${tries} réponses`],
+    [ex, "exercices pratiqués", "Guidés et annales"],
+    [best, "record au défi 60 s", "Bonnes réponses en 1 min"]
+  ];
+  const mats = CATS.map(c => { const ls = lessonStats(c.id), m = mastery(c.id), lp = ls.n ? Math.round(ls.r / ls.n * 100) : 0, mp = m.t ? Math.round(m.m / m.t * 100) : 0;
+    return `<button class="pf-mat" style="${hueStyle(c.id)}" data-act="mat" data-cat="${c.id}" data-seg="lecons"><span class="tabcode">${h(c.code)}</span><span class="pf-mat-n">${h(c.name)}</span>
+      <span class="pf-bars"><span class="pf-bar" title="Leçons lues"><i style="width:${lp}%"></i></span><span class="pf-bar alt" title="Quiz et cartes maîtrisés"><i style="width:${mp}%"></i></span></span>
+      <span class="pf-mat-v">${lp} % <small>lu</small> · ${mp} % <small>maîtrisé</small></span></button>`; }).join("");
+  return `<section class="pf-hero">
+      <div class="pf-id">
+        <div class="pf-av" aria-hidden="true">${h(ini)}</div>
+        <div class="pf-who"><span class="eyebrow">Mon profil</span><h1>${name ? h(name) : "Ton profil"}</h1><p class="pf-lvl">${h(L.name)} · <b>${S.xp} XP</b></p></div>
+        ${dl !== null ? `<div class="pf-count"><b>J-${dl}</b><span>avant les écrits</span></div>` : ""}
+      </div>
+      <div class="pf-xp"><div class="pf-xp-bar"><i style="width:${prog}%"></i></div>
+        <p>${L.next ? `Encore <b>${L.next - S.xp} XP</b> pour devenir <b>${h(L.nextName.toLowerCase())}</b>.` : "Niveau maximum atteint : bravo !"}</p></div>
+      <ol class="pf-ladder">${LEVELS.map((l, i) => `<li class="${i < lvIdx ? "done" : i === lvIdx ? "cur" : ""}"><span class="dot">${i < lvIdx ? "✓" : i + 1}</span><span class="t">${h(l[1])}</span><span class="x">${l[0]} XP</span></li>`).join("")}</ol>
+      <p class="pf-how">Tu gagnes des XP en lisant (leçon lue), en répondant aux quiz (10 par bonne réponse), en révisant tes cartes et en faisant des exercices.</p>
+    </section>
+    <section class="stack"><h2>Mes chiffres</h2>
+      <div class="pf-tiles">${tiles.map(([v, l, sub]) => `<div class="pf-tile"><b>${v}</b><span>${l}</span><small>${sub}</small></div>`).join("")}</div>
+    </section>
+    <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt"><i></i>quiz et cartes maîtrisés</span></p></div>
+      <div class="pf-mats">${mats}</div>
+    </section>
+    <section class="stack pf-settings"><h2>Réglages</h2>
+      <div class="pf-set">
+        <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "☀︎ Jour"], ["dark", "☾ Nuit"]])}</div>
+        <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
+        <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
+        <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
+        <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
+        <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
+        <div class="pf-row"><div><b>Date des premiers écrits</b><span>Mets celle de ta convocation : le compte à rebours s'y adapte.</span></div><input id="pfDate" class="pf-in" type="date" value="${h(btsState().date)}"></div>
+      </div>
+      <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
+    </section>`;
+}
 function vCible() {
   const c = CAT[cibleCat] || CAT.p1, q = QS.filter(x => x.c === c.id && chapOk(x)), f = FS.filter(x => x.c === c.id && chapOk(x)), n = chapCount(c.id);
   return `<section class="setup" style="${hueStyle(c.id)}">
@@ -2664,7 +2790,7 @@ function vCible() {
     <div><div class="label">Nombre de questions</div><div class="picker">${[10, 20, 40].map(k => `<button class="chip" data-act="len" data-n="${k}" aria-pressed="${quizLen === k}">${k}</button>`).join("")}</div></div>
     <div class="row cible-go">
       <button class="btn primary" data-act="cibleQuiz" ${q.length ? "" : "disabled"}>Quiz : ${Math.min(quizLen, q.length)} question${Math.min(quizLen, q.length) > 1 ? "s" : ""}</button>
-      <button class="btn primary" data-act="cibleCards" ${f.length ? "" : "disabled"}>Flashcards : ${Math.min(40, f.length)} carte${Math.min(40, f.length) > 1 ? "s" : ""}</button>
+      <button class="btn primary" data-act="cibleCards" ${f.length ? "" : "disabled"}>Flashcards : ${Math.min(P().clen, f.length)} carte${Math.min(P().clen, f.length) > 1 ? "s" : ""}</button>
     </div>
     <p class="muted small">${n ? `${n} chapitre${n > 1 ? "s" : ""} choisi${n > 1 ? "s" : ""} : ` : "Toute la matière : "}${q.length} questions et ${f.length} cartes disponibles.</p>
   </section>`;
@@ -3295,6 +3421,10 @@ function bindFusion() {
   document.querySelectorAll("textarea[data-gstep]").forEach(t => t.addEventListener("input", () => { const st = caseState(GC.id); st.notes[t.dataset.gstep] = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(touch, 900); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
+  const pd = document.getElementById("pfDate");
+  if (pd) pd.addEventListener("change", () => { if (pd.value) { btsState().date = pd.value; touch(); render(); } });
+  const pn = document.getElementById("pfName");
+  if (pn) pn.addEventListener("change", () => { P().name = pn.value.trim().slice(0, 40); touch(); render(); });
   document.querySelectorAll("[data-note]").forEach(inp => inp.addEventListener("input", () => {
     btsState().notes[inp.dataset.note] = inp.value; const s = simText();
     $("#simAvg").textContent = s.avg; const v = $("#simVerdict"); v.textContent = s.ok ? "Admis" : "Pas encore"; v.className = "pill " + (s.ok ? "ok" : "ko"); $("#simTip").textContent = s.tip;
@@ -3918,7 +4048,7 @@ function vExHome() {
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
       <h3 class="qf-title">Par matière</h3>
-      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>10 q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
+      <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>
     <section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
@@ -4478,7 +4608,7 @@ document.addEventListener("click", e => {
   switch (a) {
     case "quizCat": quizSel = [cat]; go("quiz"); break;
     case "cardsCat": cardSel = [cat]; go("cards"); break;
-    case "flashCat": { const d = dueCards([cat], true); let l = shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30); if (!l.length) l = shuffle(FS.filter(x => x.c === cat && chapOk(x))).slice(0, 30); startCards(l); break; }
+    case "flashCat": { const d = dueCards([cat], true); let l = shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30); if (!l.length) l = shuffle(FS.filter(x => x.c === cat && chapOk(x))); startCards(l.slice(0, P().clen)); break; }
     case "goEx": go("ex"); break;
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "exCheck": { readUser(); const it = X.list[X.i]; grade(it); recordEx(it); touch(); render(); break; }
@@ -4524,7 +4654,7 @@ document.addEventListener("click", e => {
     case "lessonNext": { const nx = nextOf(LS.cid, LS.k); markRead(LS.cid, LS.k); if (nx) openLesson(nx.cid, nx.k); else { touch(); render(); } break; }
     case "lessonPrev": { const pv = prevOf(LS.cid, LS.k); if (pv) openLesson(pv.cid, pv.k); break; }
     case "lessonDone": { markRead(LS.cid, LS.k); touch(); const lc = CMETA(LS.cid).cat; startRun(shuffle(QBY[lc]).slice(0, 10), "quiz"); break; }
-    case "quickQuiz": startRun(shuffle(QBY[cat].filter(chapOk)).slice(0, 10), "quiz"); break;
+    case "quickQuiz": startRun(shuffle(QBY[cat].filter(chapOk)).slice(0, quizLen), "quiz"); break;
     case "dueCat": { const d = dueCards([cat]); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
     case "hit": { const k = +b.dataset.k; coursQuery = ""; if (k) openLesson(b.dataset.cid, k); else openMat(CMETA(b.dataset.cid).cat, "lecons"); break; }
     case "toggleQuiz": quizSel = quizSel.includes(cat) ? quizSel.filter(x => x !== cat) : quizSel.concat(cat); render(); break;
@@ -4544,14 +4674,15 @@ document.addEventListener("click", e => {
     case "goCards": go("cards"); break;
     case "goExam": go("exam"); break;
     case "startExam": startExam(); break;
-    case "today": { const d = dueCards(); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
+    case "today": { const d = dueCards(), n = P().clen; startCards(shuffle(d.reviews).slice(0, n).concat(shuffle(d.fresh).slice(0, Math.ceil(n / 2))).slice(0, n)); break; }
     case "startDue": { const d = dueCards(cardSel.length ? cardSel : null, true); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
     case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); render(); break; }
+    case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); render(); break;
     case "pickChap": cibleCat = cat; go("cible"); break;
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
-    case "cibleCards": { const pool = FS.filter(x => x.c === cibleCat && chapOk(x)), d = dayNum(), due = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d)), fresh = shuffle(pool.filter(x => !S.c[x.id])), rest = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] > d)); startCards(due.concat(fresh, rest).slice(0, 40)); break; }
+    case "cibleCards": { const pool = FS.filter(x => x.c === cibleCat && chapOk(x)), d = dayNum(), due = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d)), fresh = shuffle(pool.filter(x => !S.c[x.id])), rest = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] > d)); startCards(due.concat(fresh, rest).slice(0, P().clen)); break; }
     case "flip": flipCard(); break;
     case "again": answerCard(false); break;
     case "knew": answerCard(true); break;
