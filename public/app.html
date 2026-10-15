@@ -2844,6 +2844,7 @@ function go(v, opts) {
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
   if (opts && opts.reset) { R = null; C = null; }
   closeSheet();
+  if (tourI >= 0) { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); }
   render();
   window.scrollTo({ top: 0 });
 }
