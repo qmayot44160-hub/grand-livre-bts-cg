@@ -1038,13 +1038,15 @@ html, body { overflow-x: hidden; }
 @supports (overflow: clip) { html, body { overflow-x: clip; } }
 .nav { will-change: transform; transform: translateZ(0); }
 
-.card-runner .card3d { touch-action: pan-y; }
+.card-runner .card3d { touch-action: pan-y; } .card-runner.flipped .card3d { touch-action: none; user-select: none; -webkit-user-select: none; }
 .stamp { position: absolute; top: 18px; z-index: 3; font: 800 1.1rem/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; padding: 6px 12px; border: 3px solid currentColor; border-radius: 10px; opacity: 0; pointer-events: none; background: color-mix(in srgb, var(--sheet) 85%, transparent); }
 .stamp.ok { left: 18px; color: #1d8a4e; transform: rotate(-10deg); }
 .stamp.ko { right: 18px; color: #c23a46; transform: rotate(10deg); }
+.stamp.hd { left: 50%; top: auto; bottom: 18px; color: #b07a00; transform: translateX(-50%) rotate(-4deg); }
 .face-back.bristol { position: relative; }
 .swipe-hint { display: none; margin: 0 0 4px; text-align: center; font-size: .82rem; color: var(--muted); }
-@media (pointer: coarse) { .card-runner.flipped .swipe-hint { display: block; } .runner-top .kbd { display: none; } }
+@media (pointer: coarse), (hover: hover) { .card-runner.flipped .swipe-hint { display: block; } }
+@media (pointer: coarse) { .runner-top .kbd { display: none; } }
 
 .pf-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
 .hm-wrap { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
@@ -1153,6 +1155,45 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Effets : tampon, XP, niveau, visite, réponses, anneaux */
+.fx-stamp { position: fixed; inset: 0; z-index: 210; display: grid; place-items: center; pointer-events: none; }
+.fx-stamp span { display: grid; justify-items: center; gap: 2px; padding: 10px 26px 12px; border: 5px solid #c23a46; border-radius: 14px; color: #c23a46; background: color-mix(in srgb, var(--sheet) 70%, transparent); transform: rotate(-12deg); text-transform: uppercase; box-shadow: inset 0 0 0 2px color-mix(in srgb, #c23a46 35%, transparent); animation: stampIn .5s cubic-bezier(.2, 1.4, .4, 1) both, stampOut .35s ease-in 1.2s forwards; mix-blend-mode: multiply; }
+.fx-stamp b { font: 900 2.4rem/1 var(--f-display, inherit); letter-spacing: .08em; } .fx-stamp small { font-weight: 800; letter-spacing: .12em; font-size: .78rem; }
+:root[data-theme="dark"] .fx-stamp span { mix-blend-mode: normal; color: #ff7b86; border-color: #ff7b86; }
+@keyframes stampIn { 0% { opacity: 0; transform: rotate(-12deg) scale(2.4); } 60% { opacity: 1; transform: rotate(-12deg) scale(.92); } 100% { opacity: 1; transform: rotate(-12deg) scale(1); } }
+@keyframes stampOut { to { opacity: 0; transform: rotate(-12deg) scale(1.05); } }
+.fx-xp { position: fixed; z-index: 220; pointer-events: none; transform: translate(0, 0); margin: -14px 0 0 -30px; font-weight: 800; color: #8a5a00; background: #fff3d6; border: 1px solid #f0cf7a; border-radius: 999px; padding: 3px 10px; font-size: .9rem; box-shadow: 0 6px 18px rgba(0,0,0,.15); transition: transform .8s cubic-bezier(.5, 0, .3, 1), opacity .8s ease-in; white-space: nowrap; }
+.who.bump { animation: whoBump .45s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes whoBump { 40% { transform: scale(1.12); } }
+.fx-lvl { position: fixed; inset: 0; z-index: 205; display: grid; place-items: center; padding: 16px; background: rgba(10, 14, 30, .62); animation: wkIn .25s ease; }
+.fx-lvl-box { display: grid; justify-items: center; gap: 16px; text-align: center; color: #fff; max-width: 420px; }
+.fx-lvl-card { width: min(320px, 82vw); aspect-ratio: 1.6; perspective: 1200px; }
+.fx-lvl-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: lvlFlip 1s cubic-bezier(.3, 1.3, .4, 1) .45s both; }
+.fx-lvl.still .fx-lvl-in { animation: none; transform: rotateY(180deg); }
+.fx-lvl-f, .fx-lvl-b { position: absolute; inset: 0; border-radius: 16px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-content: center; justify-items: center; gap: 4px; box-shadow: 0 24px 60px rgba(0,0,0,.4); }
+.fx-lvl-f { background: linear-gradient(135deg, #2c43c6, #5b6cff); color: #fff; } .fx-lvl-f span { text-transform: uppercase; letter-spacing: .14em; font-size: .8rem; opacity: .85; } .fx-lvl-f b { font-size: 3.4rem; line-height: 1; } .fx-lvl-f small { opacity: .8; }
+.fx-lvl-b { transform: rotateY(180deg); background: #fffaf0; color: #1d2340; border: 1px solid #e8d9b0; padding: 16px; }
+.fx-lvl-b h2 { margin: 2px 0; font-size: 1.5rem; } .fx-lvl-b p { margin: 0; font-weight: 600; } .fx-lvl-b small { color: #8a7a55; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; } .fx-lvl-b .eyebrow { color: #b07a00; }
+.fx-lvl-msg { margin: 0; font-size: 1rem; } .fx-lvl-msg b { color: #ffd66b; }
+@keyframes lvlFlip { from { transform: rotateY(0) scale(.6); } 40% { transform: rotateY(0) scale(1); } to { transform: rotateY(180deg) scale(1); } }
+.tour { position: fixed; inset: 0; z-index: 190; }
+.tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 14, 30, .55); transition: all .3s ease; pointer-events: none; outline: 2px solid #ffd66b; outline-offset: 2px; }
+.tour-tip { position: fixed; background: var(--sheet); color: var(--ink); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; box-shadow: 0 16px 40px rgba(0,0,0,.3); animation: gsPop .25s ease both; }
+.tour-tip p { margin: 0; font-size: .92rem; color: var(--muted); } .tour-tip .row { justify-content: flex-end; margin-top: 4px; }
+.opt.wrong { animation: optShake .42s cubic-bezier(.36, .07, .19, .97); }
+@keyframes optShake { 15%, 85% { transform: translateX(-2px); } 30%, 70% { transform: translateX(5px); } 45%, 55% { transform: translateX(-7px); } }
+.opt.right { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 45%, transparent); animation: optPop .45s cubic-bezier(.2, .9, .3, 1.3), optGlow 1s ease-out .1s; }
+@keyframes optGlow { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 45%, transparent); } to { box-shadow: 0 0 0 14px transparent; } }
+.feedback .verdict { animation: pop .35s cubic-bezier(.2, 1.4, .4, 1); display: inline-block; }
+.pf-mat-r { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "c n r" "v v r"; }
+.pf-ring { grid-area: r; width: 58px; height: 58px; transform: rotate(-90deg); }
+.pr-bg { fill: none; stroke: var(--rule); stroke-width: 5; }
+.pr-fg { fill: none; stroke-width: 5; stroke-linecap: round; animation: ringIn 1.2s cubic-bezier(.2, .8, .2, 1) both; }
+.pr-fg.l { stroke: hsl(var(--h) var(--s) 48%); } .pr-fg.w { stroke: #f0c55c; } .pr-fg.m { stroke: #c58a10; }
+.pf-mat-r:nth-child(2) .pr-fg { animation-delay: .06s; } .pf-mat-r:nth-child(3) .pr-fg { animation-delay: .12s; } .pf-mat-r:nth-child(4) .pr-fg { animation-delay: .18s; } .pf-mat-r:nth-child(n+5) .pr-fg { animation-delay: .24s; }
+.no-motion .fx-xp { display: none; }
+@media (prefers-reduced-motion: reduce) { .fx-xp { display: none; } .fx-stamp span, .fx-lvl-in, .tour-hole, .opt.wrong, .opt.right, .pr-fg { animation: none !important; transition: none !important; } .fx-lvl-in { transform: rotateY(180deg); } }
+
 /* Séance, équilibre, auto-évaluation des annales */
 .plan-go { justify-self: start; margin-top: 4px; }
 .ex-tab-ic { display: inline-flex; } .ex-tab-ic .svg { width: 20px; height: 20px; }
@@ -2617,7 +2658,9 @@ function recordQ(item, ok, pickTxt) {
     if (ok) { if (o.w !== d && !o.ok.includes(d)) { fresh = true; o.ok.push(d); if (o.ok.length > 6) o.ok.shift(); } }
     else { o.w = d; o.ok = []; } }
   if (!ok) { S.ew = S.ew || {}; S.ew[item.id] = { t: pickTxt || "", d: dayNum() }; }
-  else { S.xp += fresh ? 5 : 1; const after = qState(item.id); if (after >= 2 && after > before) S.xp += after === 3 ? 30 : 20; }
+  else { S.xp += fresh ? 5 : 1; const after = qState(item.id), live = view === "run" && R && R.mode === "quiz";
+    if (after >= 2 && after > before) { S.xp += after === 3 ? 30 : 20; if (live) setTimeout(() => fxStamp(after === 3 ? "Maîtrisée" : "Acquise", "Question validée"), 120); }
+    else if (live && r[0] > r[1] && r[2] === 0) setTimeout(() => fxStamp("Lettré", "Erreur corrigée"), 120); }
   bumpStreak();
 }
 function recordC(item, knew) {
@@ -2635,7 +2678,103 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
-const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", qlen: 10, clen: 30, name: "" };
+const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", snd: "off", qlen: 10, clen: 30, name: "" };
+/* Effets : sons, tampon, XP, niveau, visite guidée */
+const fxOn = () => !document.documentElement.classList.contains("no-motion") && !(typeof RM !== "undefined" && RM);
+let lastPt = { x: 0, y: 0, t: 0 };
+document.addEventListener("pointerdown", e => { lastPt = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
+document.addEventListener("keydown", () => { lastPt = { x: innerWidth / 2, y: innerHeight / 2, t: Date.now() }; }, true);
+let AC = null;
+function tone(kind) {
+  if ((S.pref || PREF_DEF).snd !== "on") return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
+    const seq = { ok: [[660, .07], [990, .12]], ko: [[200, .16]], stamp: [[150, .05], [95, .12]], lvl: [[523, .11], [659, .11], [784, .11], [1047, .3]], xp: [[1320, .04]] }[kind] || [];
+    let t = AC.currentTime;
+    seq.forEach(([f, d]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = kind === "stamp" || kind === "ko" ? "triangle" : "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .03); t += d * .85; });
+  } catch (e) {}
+}
+function fxStamp(txt, sub) {
+  buzz([12, 50, 30]); tone("stamp");
+  if (!fxOn()) { toast(txt + (sub ? " · " + sub : "")); return; }
+  document.querySelectorAll(".fx-stamp").forEach(x => x.remove());
+  const el = document.createElement("div"); el.className = "fx-stamp"; el.setAttribute("role", "status");
+  el.innerHTML = `<span><b>${h(txt)}</b>${sub ? `<small>${h(sub)}</small>` : ""}</span>`;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1600);
+}
+function confettiBurst(n) {
+  if (!fxOn()) return;
+  const box = document.createElement("div"); box.className = "confetti"; box.setAttribute("aria-hidden", "true");
+  const cols = ["#ffd66b", "#2c43c6", "#1d8a4e", "#e0a31f", "#c23a46", "#5b6cff"];
+  for (let i = 0; i < n; i++) { const c = document.createElement("i"); c.style.left = Math.random() * 100 + "%"; c.style.background = cols[i % cols.length]; c.style.animationDelay = Math.random() * .5 + "s"; c.style.animationDuration = 1.8 + Math.random() * 1.4 + "s"; c.style.setProperty("--dx", (Math.random() * 160 - 80) + "px"); c.style.setProperty("--r", (Math.random() * 720 - 360) + "deg"); box.appendChild(c); }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 3800);
+}
+function xpFx(gain, from) {
+  const el = document.getElementById("xpTop"); if (!el) return;
+  tone("xp");
+  if (!fxOn()) return;
+  const r = el.getBoundingClientRect(), vis = r.bottom > 0 && r.width > 0;
+  const f = document.createElement("div"); f.className = "fx-xp"; f.textContent = "+" + gain + " XP"; f.setAttribute("aria-hidden", "true");
+  const x0 = lastPt.x || innerWidth / 2, y0 = lastPt.y || innerHeight / 2;
+  const x1 = vis ? r.left + r.width / 2 : x0, y1 = vis ? r.top + r.height / 2 : Math.max(10, y0 - 120);
+  f.style.left = x0 + "px"; f.style.top = y0 + "px"; document.body.appendChild(f);
+  requestAnimationFrame(() => requestAnimationFrame(() => { f.style.transform = `translate(${x1 - x0}px, ${y1 - y0}px) scale(.7)`; f.style.opacity = vis ? ".2" : "0"; }));
+  setTimeout(() => f.remove(), 950);
+  const t0 = performance.now(), to = from + gain;
+  const step = now => { const k = Math.min(1, (now - t0) / 700); el.textContent = Math.round(from + gain * (1 - Math.pow(1 - k, 3))) + " XP"; if (k < 1) requestAnimationFrame(step); else { el.textContent = to + " XP"; el.parentNode.classList.remove("bump"); void el.offsetWidth; el.parentNode.classList.add("bump"); } };
+  requestAnimationFrame(step);
+}
+function levelUpFx(L) {
+  document.querySelectorAll(".fx-lvl").forEach(x => x.remove());
+  tone("lvl"); buzz([30, 60, 30, 60, 90]);
+  const idx = LEVELS.findIndex(l => l[1] === L.name), name = (S.pref && S.pref.name) || window.GL_NAME || "";
+  const el = document.createElement("div"); el.className = "fx-lvl" + (fxOn() ? "" : " still");
+  el.innerHTML = `<div class="fx-lvl-box" role="dialog" aria-modal="true" aria-labelledby="lvlT">
+    <div class="fx-lvl-card"><div class="fx-lvl-in">
+      <div class="fx-lvl-f"><span>Niveau</span><b>${idx + 1}</b><small>sur ${LEVELS.length}</small></div>
+      <div class="fx-lvl-b"><span class="eyebrow">Cabinet Grand Livre</span><h2 id="lvlT">${h(L.name)}</h2>${name ? `<p>${h(name)}</p>` : ""}<small>BTS Comptabilité et gestion</small></div>
+    </div></div>
+    <p class="fx-lvl-msg"><b>Nouveau titre !</b> ${L.next ? `Prochain : ${h(L.nextName.toLowerCase())} à ${L.next} XP.` : "C'est le niveau maximum : bravo."}</p>
+    <button class="btn primary" data-act="lvlClose">Continuer</button></div>`;
+  el.addEventListener("click", e => { if (e.target === el) el.remove(); });
+  document.body.appendChild(el); confettiBurst(90);
+  const b = el.querySelector(".btn"); if (b) setTimeout(() => b.focus(), 50);
+}
+/* Visite guidée */
+const TOUR = [
+  [".plan", "Ta séance du jour", "Trois étapes, environ 20 minutes. Le bouton « Commencer la séance » les enchaîne pour toi."],
+  ['[data-nav="ex"]', "S'entraîner", "Quiz, exercices chiffrés, cas guidés, annales et rédactions, rangés par onglet. Ton cahier des erreurs est là aussi."],
+  ['[data-nav="bts"]', "Mon BTS", "Le compte à rebours, le poids de chaque épreuve et ton équilibre de révision."],
+  [".who", "Ton niveau", "Tu gagnes des XP en répondant juste. Une question réussie deux jours différents devient acquise : tampon !"]
+];
+let tourI = -1;
+const visEl = sel => [...document.querySelectorAll(sel)].find(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; });
+function tourShow() {
+  document.querySelectorAll(".tour").forEach(x => x.remove());
+  if (tourI < 0 || tourI >= TOUR.length) return;
+  const [sel, t, txt] = TOUR[tourI], tg = visEl(sel);
+  if (!tg) { tourI++; return tourShow(); }
+  const r0 = tg.getBoundingClientRect();
+  if (r0.top < 60 || r0.bottom > innerHeight - 90) { tg.scrollIntoView({ block: "center" }); }
+  const r = tg.getBoundingClientRect(), pad = 6;
+  const el = document.createElement("div"); el.className = "tour";
+  const big = r.height > innerHeight * .45;
+  el.innerHTML = `<div class="tour-hole" style="left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + 2 * pad}px;height:${Math.min(r.height, innerHeight * .45) + 2 * pad}px"></div>
+    <div class="tour-tip" role="dialog" aria-labelledby="tourT"><span class="eyebrow">${tourI + 1} sur ${TOUR.length}</span><b id="tourT">${h(t)}</b><p>${h(txt)}</p>
+    <div class="row"><button class="btn small" data-act="tourEnd">Passer</button><button class="btn small primary" data-act="tourNext">${tourI === TOUR.length - 1 ? "C'est parti" : "Suivant"}</button></div></div>`;
+  document.body.appendChild(el);
+  const tip = el.querySelector(".tour-tip"), tw = Math.min(320, innerWidth - 32), below = r.top + Math.min(r.height, innerHeight * .45) + 16;
+  tip.style.width = tw + "px";
+  tip.style.left = Math.max(16, Math.min(innerWidth - tw - 16, r.left + r.width / 2 - tw / 2)) + "px";
+  const th = tip.offsetHeight;
+  tip.style.top = (below + th < innerHeight - 8 && !big ? below : Math.max(12, r.top - th - 16)) + "px";
+  const nb = tip.querySelector(".primary"); if (nb) nb.focus({ preventScroll: true });
+}
+function tourStart() { if (tourI >= 0) return; tourI = 0; tourShow(); }
+function tourEnd() { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); S.tour = 1; touch(); }
+window.addEventListener("resize", () => { if (tourI >= 0) tourShow(); });
 function buzz(p) { try { if ((S.pref || PREF_DEF).vib !== "off" && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 function P() { S.pref = Object.assign({}, PREF_DEF, S.pref || {}); return S.pref; }
 function applyPrefs() {
@@ -2719,11 +2858,16 @@ function navOf(v) {
   return "ex";
 }
 function renderTop() {
+  { const prev = renderTop.xp; renderTop.xp = S.xp; const recent = Date.now() - lastPt.t < 5000;
+    if (prev != null && S.xp > prev && S.xp - prev <= 300 && recent) {
+      const a = levelOf(prev), b = levelOf(S.xp); xpFx(S.xp - prev, prev);
+      if (b.floor > a.floor) setTimeout(() => levelUpFx(b), 450);
+    } }
   { const t = document.querySelector(".top"); if (t) document.documentElement.style.setProperty("--top-h", getComputedStyle(t).position === "sticky" ? t.offsetHeight + "px" : "0px");
     requestAnimationFrame(() => { const n = document.querySelector(".ex-tabs"), c = n && n.querySelector('[aria-current="page"]'); if (n && c && n.scrollWidth > n.clientWidth) n.scrollLeft = c.offsetLeft - 16; }); }
   const L = levelOf(S.xp);
   $("#lvlName").textContent = L.name;
-  $("#xpTop").textContent = S.xp + " XP";
+  if (!document.querySelector(".fx-xp")) $("#xpTop").textContent = S.xp + " XP";
   const cur = navOf(view);
   document.querySelectorAll(".nav-btn").forEach(b => b.setAttribute("aria-current", b.dataset.nav === cur ? "page" : "false"));
   const s = document.getElementById("syncNote");
@@ -2750,6 +2894,7 @@ function render() {
   v.dataset.view = view;
   renderTop();
   bindView();
+  if (view === "home" && !S.tour && tourI < 0) setTimeout(() => { if (view === "home" && !S.tour && tourI < 0 && !document.querySelector(".gl-auth, .fx-lvl")) tourStart(); }, 900);
   bindFusion();
   bindAnn();
   fx3d();
@@ -2956,7 +3101,7 @@ function pick(pos) {
   if (R.mode === "quiz") {
     if (cur.pick !== null) return;
     cur.pick = pos;
-    recordQ(cur.it, cur.order[pos] === 0, cur.it.o[cur.order[pos]]); buzz(cur.order[pos] === 0 ? 15 : [35, 45, 35]);
+    tone(cur.order[pos] === 0 ? "ok" : "ko"); recordQ(cur.it, cur.order[pos] === 0, cur.it.o[cur.order[pos]]); buzz(cur.order[pos] === 0 ? 15 : [35, 45, 35]);
     touch(); render();
     const n = document.getElementById("nextBtn"); if (n) n.focus({ preventScroll: true });
   } else { cur.pick = pos; render(); }
@@ -3133,8 +3278,9 @@ function vProfil() {
   const mats = CATS.map(c => { const ls = lessonStats(c.id), m = mastery(c.id), qs = QBY[c.id] || [], fs = FBY[c.id] || [];
     const wk = qs.filter(x => S.q[x.id]).length + fs.filter(x => S.c[x.id]).length, lp = pcs(ls.r, ls.n), wp = pcs(wk, m.t), mp = pcs(m.m, m.t);
     anyWorked += wk; anyMast += m.m;
-    return `<button class="pf-mat" style="${hueStyle(c.id)}" data-act="mat" data-cat="${c.id}" data-seg="lecons"><span class="tabcode">${h(c.code)}</span><span class="pf-mat-n">${h(c.name)}</span>
-      <span class="pf-bars"><span class="pf-bar" title="Leçons lues"><i style="width:${lp}%"></i></span><span class="pf-bar alt" title="Quiz et cartes : travaillés (clair) et maîtrisés (foncé)"><i class="w" style="width:${wp}%"></i><i class="m" style="width:${mp}%"></i></span></span>
+    const arc = (r, p, cls) => { const C2 = 2 * Math.PI * r, off = C2 * (1 - Math.min(100, p) / 100); return `<circle class="pr-bg" cx="32" cy="32" r="${r}"/><circle class="pr-fg ${cls}" cx="32" cy="32" r="${r}" style="--c0:${C2.toFixed(1)};stroke-dasharray:${C2.toFixed(1)};stroke-dashoffset:${off.toFixed(1)}"/>`; };
+    return `<button class="pf-mat pf-mat-r" style="${hueStyle(c.id)}" data-act="mat" data-cat="${c.id}" data-seg="lecons"><span class="tabcode">${h(c.code)}</span><span class="pf-mat-n">${h(c.name)}</span>
+      <svg class="pf-ring" viewBox="0 0 64 64" aria-hidden="true">${arc(28, lp, "l")}${arc(21, wp, "w")}${arc(14, mp, "m")}</svg>
       <span class="pf-mat-v">${pTxt(lp)} <small>lu</small> · ${pTxt(wp)} <small>travaillé</small> · ${pTxt(mp)} <small>maîtrisé</small></span></button>`; }).join("");
   const firstOk = Object.values(S.qd || {}).map(o => o.ok && o.ok[0]).filter(Boolean).sort((a, b) => a - b)[0];
   const mastNote = anyWorked && !anyMast ? `<p class="muted small pf-note">« Maîtrisé » ne compte que ce que tu as réussi <b>deux jours différents, à au moins 3 jours d'écart</b> : c'est la preuve que c'est retenu, pas juste vu. ${firstOk ? `Tes premières questions pourront devenir acquises à partir du <b>${dayLabel(firstOk + 3)}</b> : la révision des acquis te les reproposera.` : ""}</p>` : "";
@@ -3159,7 +3305,7 @@ function vProfil() {
       ${weakList(3)}
       <div class="row"><button class="btn" data-act="goErr">${ICON.errbook}Tout voir dans le cahier des erreurs</button></div>
     </section>
-    <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt w"><i></i>quiz et cartes travaillés</span><span class="pf-key alt"><i></i>maîtrisés</span></p></div>
+    <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p>Anneau extérieur : <b>leçons lues</b> · milieu : <b>quiz et cartes travaillés</b> · centre : <b>maîtrisés</b>.</p></div>
       ${mastNote}<div class="pf-mats">${mats}</div>
     </section>
     <section class="stack pf-settings"><h2>Réglages</h2>
@@ -3167,7 +3313,9 @@ function vProfil() {
         <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "☀︎ Jour"], ["dark", "☾ Nuit"]])}</div>
         <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
-        <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
+        <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse, tampon et niveau (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
+        <div class="pf-row"><div><b>Visite guidée</b><span>Revoir la présentation de l'appli en 4 étapes.</span></div><button class="btn small" data-act="tourAgain">Relancer</button></div>
+        <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : bonne réponse, tampon, passage de niveau.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
         <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
@@ -3235,11 +3383,11 @@ function vCard() {
     <div class="runner-top"><span class="progress-text">Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
       <div class="face face-front bristol">${head}<div class="bristol-body"><p class="front">${h(it.f)}</p><span class="hint">Touche ou clique pour retourner la carte</span></div></div>
-      <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span></div>
+      <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span><span class="stamp hd" aria-hidden="true">Difficile</span></div>
     </div>
     <div class="after-flip">
       ${it.m ? `<details class="more-box"><summary>Pour aller plus loin</summary><p>${h(it.m)}</p></details>` : ""}
-      <p class="swipe-hint">Glisse la carte : à droite, je savais · à gauche, à revoir</p>
+      <p class="swipe-hint">Glisse la carte : à droite, je savais · à gauche, à revoir · vers le haut, difficile</p>
       <div class="card-actions"><button class="btn again" data-act="again">À revoir</button><button class="btn hard" data-act="hard">Difficile</button><button class="btn know" data-act="knew">Je savais</button></div>
     </div>
     <div class="before-flip"><button class="btn primary" data-act="flip">Voir la réponse</button></div>
@@ -5674,6 +5822,10 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "lvlClose": document.querySelectorAll(".fx-lvl").forEach(x => x.remove()); break;
+    case "tourNext": tourI++; if (tourI >= TOUR.length) tourEnd(); else tourShow(); break;
+    case "tourEnd": tourEnd(); break;
+    case "tourAgain": S.tour = 0; go("home"); setTimeout(tourStart, 400); break;
     case "planGo": { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); break; }
     case "planNext": { go("home"); setTimeout(() => { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); }, 30); break; }
     case "exTab": { setExTab(b.dataset.t); if (view !== "ex") go("ex"); else { render(); const n = document.querySelector(".ex-tabs"), y = n ? n.getBoundingClientRect().top + window.scrollY - 70 : 0; if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y) }); } break; }
@@ -5803,39 +5955,51 @@ initSync();
   document.addEventListener("touchcancel", () => { if (active) { active = false; paint(0, true); busy = true; setTimeout(settle, 310); } }, { passive: true });
 })();
 
-/* ---------- Flashcards : glisser la carte retournée ---------- */
+/* ---------- Flashcards : glisser la carte retournée (doigt ou souris) ---------- */
 (() => {
-  let el = null, sx = 0, sy = 0, st = 0, dx = 0, lock = null, moved = false;
-  const W = () => Math.min(innerWidth, 560);
-  function paint(x, ease) {
+  let el = null, sx = 0, sy = 0, st = 0, dx = 0, dy = 0, lock = null, moved = false, pid = null;
+  const W = () => Math.min(innerWidth, 560), H = () => Math.min(innerHeight, 700);
+  function stamps(x, y) {
+    if (!el) return;
+    const ok = el.querySelector(".stamp.ok"), ko = el.querySelector(".stamp.ko"), hd = el.querySelector(".stamp.hd");
+    const kx = Math.min(1, Math.abs(x) / (W() * .3)), ky = Math.min(1, Math.abs(y) / (H() * .2));
+    if (ok) ok.style.opacity = x > 0 ? kx : 0; if (ko) ko.style.opacity = x < 0 ? kx : 0; if (hd) hd.style.opacity = y < 0 ? ky : 0;
+  }
+  function paint(x, y, ease) {
     if (!el) return;
     el.style.transition = ease ? "transform .28s cubic-bezier(.2,.8,.2,1)" : "none";
-    el.style.transform = x ? `translateX(${x}px) rotate(${x / 18}deg) rotateY(180deg)` : "";
-    const ok = el.querySelector(".stamp.ok"), ko = el.querySelector(".stamp.ko"), k = Math.min(1, Math.abs(x) / (W() * .3));
-    if (ok) ok.style.opacity = x > 0 ? k : 0; if (ko) ko.style.opacity = x < 0 ? k : 0;
+    el.style.transform = x || y ? `translate(${x}px, ${y}px) rotate(${x / 18}deg) rotateY(180deg)` : "";
+    stamps(x, y);
   }
-  document.addEventListener("touchstart", e => {
+  document.addEventListener("pointerdown", e => {
     const c = e.target.closest && e.target.closest(".card-runner.flipped .card3d");
-    if (!c || e.touches.length !== 1 || view !== "card") { el = null; return; }
-    el = c; const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); dx = 0; lock = null; moved = false;
-  }, { passive: true });
-  document.addEventListener("touchmove", e => {
-    if (!el) return;
-    const t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
-    if (lock === null) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; lock = Math.abs(mx) > Math.abs(my) ? "x" : "y"; }
-    if (lock !== "x") { el = null; return; }
-    moved = true; dx = mx; paint(dx, false);
-  }, { passive: true });
-  document.addEventListener("touchend", () => {
+    if (!c || view !== "card" || (e.pointerType === "mouse" && e.button !== 0)) { el = null; return; }
+    el = c; pid = e.pointerId; sx = e.clientX; sy = e.clientY; st = Date.now(); dx = dy = 0; lock = null; moved = false;
+  });
+  document.addEventListener("pointermove", e => {
+    if (!el || e.pointerId !== pid) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (lock === null) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; lock = Math.abs(mx) > Math.abs(my) ? "x" : my < 0 ? "u" : "y"; }
+    if (lock === "y") { paint(0, 0, true); el = null; return; }
+    moved = true;
+    if (lock === "x") { dx = mx; dy = 0; } else { dy = Math.min(0, my); dx = mx * .2; }
+    paint(dx, dy, false);
+  });
+  function end(e) {
+    if (!el || (e && e.pointerId !== pid)) return;
     if (moved) setTimeout(() => { moved = false; }, 350);
-    if (!el) return;
-    const c = el, fast = Math.abs(dx) / Math.max(1, Date.now() - st) > .5 && Math.abs(dx) > 50;
-    if (lock === "x" && (Math.abs(dx) > W() * .3 || fast)) {
-      const knew = dx > 0;
-      c.style.transition = "transform .25s ease-in, opacity .25s"; c.style.transform = `translateX(${(knew ? 1 : -1) * innerWidth}px) rotate(${knew ? 18 : -18}deg) rotateY(180deg)`; c.style.opacity = "0";
-      el = null; setTimeout(() => answerCard(knew), 200);
-    } else { paint(0, true); el = null; }
-  }, { passive: true });
+    const c = el, dt = Math.max(1, Date.now() - st);
+    const fx = lock === "x" && (Math.abs(dx) > W() * .3 || (Math.abs(dx) / dt > .5 && Math.abs(dx) > 50));
+    const fu = lock === "u" && (-dy > H() * .2 || (-dy / dt > .5 && -dy > 50));
+    if (fx || fu) {
+      const knew = fu ? "hard" : dx > 0;
+      c.style.transition = "transform .25s ease-in, opacity .25s";
+      c.style.transform = fu ? `translate(0, ${-innerHeight}px) rotateY(180deg)` : `translateX(${(dx > 0 ? 1 : -1) * innerWidth}px) rotate(${dx > 0 ? 18 : -18}deg) rotateY(180deg)`;
+      c.style.opacity = "0"; el = null; setTimeout(() => answerCard(knew), 200);
+    } else { paint(0, 0, true); el = null; }
+  }
+  document.addEventListener("pointerup", end);
+  document.addEventListener("pointercancel", () => { if (el) { paint(0, 0, true); el = null; } });
   /* pas de retournement après un glissé */
   document.addEventListener("click", e => { if (moved && e.target.closest && e.target.closest(".card3d")) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
 })();
