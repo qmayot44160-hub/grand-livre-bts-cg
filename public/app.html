@@ -1153,6 +1153,32 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Cahier des erreurs et choix des points faibles */
+.eb-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.eb-sum > div { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.eb-sum b { font-size: 1.4rem; font-variant-numeric: tabular-nums; } .eb-sum span { color: var(--muted); font-size: .85rem; }
+.eb-bar { display: grid; gap: 8px; } .eb-fl { display: flex; flex-wrap: wrap; gap: 6px; }
+.eb-f { font: inherit; font-size: .86rem; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); cursor: pointer; min-height: 32px; }
+.eb-f.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.eb-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); font-size: .86rem; font-weight: 600; }
+.eb-tag button { border: 0; background: none; font: inherit; font-size: 1.1rem; cursor: pointer; color: inherit; padding: 0 6px; }
+.eb-it { border-left: 4px solid hsl(var(--h) var(--s) 48%); }
+.eb-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .eb-h small { color: var(--muted); flex: 1; min-width: 140px; }
+.eb-n { font-size: .8rem; font-weight: 700; color: var(--bad); } .eb-st { font-size: .76rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.eb-st.ko { color: var(--bad); background: var(--bad-bg); } .eb-st.ok { color: var(--ok); background: var(--ok-bg); }
+@media (max-width: 640px) { .eb-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.wk-sheet { position: fixed; inset: 0; z-index: 80; background: rgba(10, 14, 24, .45); display: flex; align-items: center; justify-content: center; padding: 16px; animation: wkIn .15s ease; }
+@keyframes wkIn { from { opacity: 0; } }
+.wk-box { position: relative; width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--sheet); color: var(--ink); border-radius: 18px; padding: 22px 20px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.3); display: grid; gap: 10px; }
+.wk-box h2 { margin: 0; font-size: 1.2rem; padding-right: 30px; } .wk-box p { margin: 0; }
+.wk-x { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+.wk-opts { display: grid; gap: 8px; }
+.wk-opt { display: grid; gap: 3px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 12px; padding: 12px 14px; }
+.wk-opt:hover:not([disabled]) { border-color: var(--accent); } .wk-opt[disabled] { opacity: .5; cursor: not-allowed; }
+.wk-opt span { color: var(--muted); font-size: .88rem; }
+.wk-read { display: grid; gap: 6px; } .wk-read > div { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 640px) { .wk-sheet { align-items: flex-end; padding: 0; } .wk-box { border-radius: 18px 18px 0 0; width: 100%; padding-bottom: calc(20px + env(safe-area-inset-bottom)); } }
+
 </style>
 
 <header class="top">
@@ -2434,7 +2460,7 @@ const QS = [], FS = [];
 const QBY = {}, FBY = {};
 CATS.forEach(c => { QBY[c.id] = QS.filter(x => x.c === c.id); FBY[c.id] = FS.filter(x => x.c === c.id); });
 
-const LEVELS = [[0, "Stagiaire"], [150, "Assistant comptable"], [400, "Comptable"], [800, "Collaborateur"], [1400, "Chef de mission"], [2200, "Expert-comptable"]];
+const LEVELS = [[0, "Stagiaire"], [300, "Assistant comptable"], [1000, "Comptable"], [2500, "Collaborateur"], [5000, "Chef de mission"], [9000, "Expert-comptable"]];
 const INTERVALS = [0, 1, 3, 7, 15, 30];
 const EXAM_PLAN = { p1: 3, p2: 3, p3: 2, p4: 2, p5: 2, p6: 2, p7: 1, ma: 1, ce: 2, cg: 1, an: 1 };
 
@@ -2542,20 +2568,23 @@ function dueCards(cats, useChap) {
   const fresh = pool.filter(x => !S.c[x.id]);
   return { reviews, fresh };
 }
-function recordQ(item, ok) {
-  if (String(item.id)[0] === "g") { S.xp += ok ? 6 : 1; bumpStreak(); return; }
+function recordQ(item, ok, pickTxt) {
+  if (String(item.id)[0] === "g") { if (ok) S.xp += 6; bumpStreak(); return; }
   const r = S.q[item.id] || [0, 0, 0];
   S.q[item.id] = [r[0] + 1, r[1] + (ok ? 1 : 0), ok ? 1 : 0];
+  const before = qState(item.id); let fresh = false;
   { const d = dayNum(); S.qd = S.qd || {}; const o = S.qd[item.id] || (S.qd[item.id] = { w: 0, ok: [] });
-    if (ok) { if (o.w !== d && !o.ok.includes(d)) { o.ok.push(d); if (o.ok.length > 6) o.ok.shift(); } }
+    if (ok) { if (o.w !== d && !o.ok.includes(d)) { fresh = true; o.ok.push(d); if (o.ok.length > 6) o.ok.shift(); } }
     else { o.w = d; o.ok = []; } }
-  S.xp += ok ? 10 : 2; bumpStreak();
+  if (!ok) { S.ew = S.ew || {}; S.ew[item.id] = { t: pickTxt || "", d: dayNum() }; }
+  else { S.xp += fresh ? 5 : 1; const after = qState(item.id); if (after >= 2 && after > before) S.xp += after === 3 ? 30 : 20; }
+  bumpStreak();
 }
 function recordC(item, knew) {
   const r = S.c[item.id] || [0, 0];
   const box = knew === "hard" ? Math.max(1, r[0]) : knew ? Math.min(5, r[0] + 1) : 0;
   S.c[item.id] = [box, dayNum() + (knew === "hard" ? 1 : INTERVALS[box])];
-  S.xp += knew === "hard" ? 3 : knew ? 5 : 2; dayLog().c++; bumpStreak();
+  S.xp += knew === "hard" ? 1 : knew ? 4 : 0; dayLog().c++; bumpStreak();
 }
 
 /* ---------- Vues ---------- */
@@ -2629,6 +2658,7 @@ function go(v, opts) {
   if (exTick && v !== "exrun") { clearInterval(exTick); exTick = null; }
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
   if (opts && opts.reset) { R = null; C = null; }
+  closeSheet();
   render();
   window.scrollTo({ top: 0 });
 }
@@ -2656,7 +2686,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -2855,7 +2885,7 @@ function pick(pos) {
   if (R.mode === "quiz") {
     if (cur.pick !== null) return;
     cur.pick = pos;
-    recordQ(cur.it, cur.order[pos] === 0); buzz(cur.order[pos] === 0 ? 15 : [35, 45, 35]);
+    recordQ(cur.it, cur.order[pos] === 0, cur.it.o[cur.order[pos]]); buzz(cur.order[pos] === 0 ? 15 : [35, 45, 35]);
     touch(); render();
     const n = document.getElementById("nextBtn"); if (n) n.focus({ preventScroll: true });
   } else { cur.pick = pos; render(); }
@@ -2869,7 +2899,7 @@ function finishExam() {
   if (!R || R.mode !== "exam" || R.done) return;
   R.done = true;
   if (examTick) { clearInterval(examTick); examTick = null; }
-  R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0));
+  R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0, x.pick !== null ? x.it.o[x.order[x.pick]] : ""));
   if (R.ctrl) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, pc = Math.round(good / R.list.length * 100); S.ctl = S.ctl || {}; (S.ctl[R.ctrl] = S.ctl[R.ctrl] || []).push({ d: dayNum(), pc }); if (S.ctl[R.ctrl].length > 20) S.ctl[R.ctrl].shift(); R.ctlRes = chapStatus(R.ctrl); if (R.ctlRes.ok && pc >= 80) S.xp += 40; }
   dayLog().e++; touch(); go("result");
 }
@@ -2905,16 +2935,77 @@ function vResult() {
       </tbody>
     </table></div>
     <div class="row">
-      ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button>` : ""}
+      ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button><button class="btn" data-act="goErr">📕 Cahier des erreurs</button>` : ""}
       <button class="btn" data-act="${R.mode === "exam" ? "goExam" : "goQuiz"}">${R.mode === "exam" ? "Nouveau QCM chronométré" : "Nouveau quiz"}</button>
       <button class="btn" data-act="goHome">Accueil</button>
     </div>
-    ${(() => { const ks = {}; bad.forEach(x => { const k = chKey(x.it); ks[k] = (ks[k] || 0) + 1; }); const list = Object.entries(ks).sort((a, b) => b[1] - a[1]); return list.length ? `<div class="res-ch"><h2>Chapitres à retravailler</h2><div class="res-ch-l">${list.map(([k, n]) => `<button class="res-chip" style="${hueStyle(chCat(k))}" data-act="weakQuiz" data-k="${h(k)}"><span>${h(chLabel(k))}</span><small>${n} erreur${n > 1 ? "s" : ""} · quiz ›</small></button>`).join("")}</div></div>` : ""; })()}
+    ${(() => { const ks = {}; bad.forEach(x => { const k = chKey(x.it); ks[k] = (ks[k] || 0) + 1; }); const list = Object.entries(ks).sort((a, b) => b[1] - a[1]); return list.length ? `<div class="res-ch"><h2>Chapitres à retravailler</h2><div class="res-ch-l">${list.map(([k, n]) => `<button class="res-chip" style="${hueStyle(chCat(k))}" data-act="weakPick" data-k="${h(k)}"><span>${h(chLabel(k))}</span><small>${n} erreur${n > 1 ? "s" : ""} · retravailler ›</small></button>`).join("")}</div></div>` : ""; })()}
     ${bad.length ? `<h2>Corrections</h2><div class="review">${review}</div>` : `<div class="empty">Aucune erreur. Le compte est soldé.</div>`}
   </section>`;
 }
 
 /* Cartes */
+/* Cahier des erreurs */
+let EF = { cat: "", ks: null, st: "todo" };
+function errList() { return QS.map(x => { const r = S.q[x.id]; return r && r[0] - r[1] > 0 ? { x, n: r[0] - r[1], ok: r[2] === 1, w: (S.ew || {})[x.id] } : null; }).filter(Boolean); }
+function errFiltered() {
+  return errList().filter(e => (!EF.cat || e.x.c === EF.cat) && (!EF.ks || EF.ks.includes(chKey(e.x))) && (EF.st === "all" || (EF.st === "todo" ? !e.ok : e.ok)))
+    .sort((a, b) => (a.ok - b.ok) || b.n - a.n);
+}
+function vErreurs() {
+  const all = errList();
+  const head = `<div><span class="eyebrow">S'entraîner</span><h1>Cahier des erreurs</h1></div>
+    <p class="muted">Chaque question où tu t'es trompé est gardée ici, avec la bonne réponse et l'explication. Les plus fréquentes passent en premier. Une question est « corrigée » quand ta dernière réponse est juste.</p>`;
+  if (!all.length) return `<section class="stack eb">${head}<div class="empty">Aucune erreur pour l'instant. Dès que tu te trompes à un quiz, la question arrive ici.</div><div class="row"><button class="btn primary" data-act="goQuiz">Faire un quiz</button></div></section>`;
+  const todo = all.filter(e => !e.ok).length, tot = all.reduce((t, e) => t + e.n, 0);
+  const byCh = {}; all.forEach(e => { const k = chKey(e.x), o = byCh[k] || (byCh[k] = { k, c: e.x.c, n: 0, q: 0 }); o.n += e.n; o.q++; });
+  const top = Object.values(byCh).sort((a, b) => b.n - a.n || b.q - a.q).slice(0, 5);
+  const cats = CATS.filter(c => all.some(e => e.x.c === c.id));
+  const list = errFiltered(), shown = list.slice(0, 60);
+  const one = EF.ks && EF.ks.length === 1 ? EF.ks[0] : null;
+  const fiches = (EF.ks || []).filter(k => CHID[k]);
+  const stB = (v, l) => `<button class="eb-f${EF.st === v ? " on" : ""}" data-act="ebSt" data-v="${v}">${l}</button>`;
+  return `<section class="stack eb">${head}
+    <div class="eb-sum"><div><b>${all.length}</b><span>question${all.length > 1 ? "s" : ""} ratée${all.length > 1 ? "s" : ""}</span></div><div><b>${tot}</b><span>erreur${tot > 1 ? "s" : ""} au total</span></div><div><b>${todo}</b><span>encore à revoir</span></div><div><b>${all.length - todo}</b><span>corrigée${all.length - todo > 1 ? "s" : ""} depuis</span></div></div>
+    ${EF.ks ? "" : `<div class="stack"><h2>Où tu te trompes le plus</h2>
+      <div class="res-ch-l">${top.map(o => `<button class="res-chip" style="${hueStyle(o.c)}" data-act="ebCh" data-k="${h(o.k)}"><span>${h(chLabel(o.k))}</span><small>${o.n} erreur${o.n > 1 ? "s" : ""} sur ${o.q} question${o.q > 1 ? "s" : ""} · voir ›</small></button>`).join("")}</div></div>`}
+    <div class="eb-bar">
+      <div class="eb-fl"><button class="eb-f${!EF.cat && !EF.ks ? " on" : ""}" data-act="ebCat" data-cat="">Toutes les matières</button>${cats.map(c => `<button class="eb-f${EF.cat === c.id ? " on" : ""}" data-act="ebCat" data-cat="${c.id}">${h(c.code)}</button>`).join("")}</div>
+      <div class="eb-fl">${stB("todo", "À revoir")}${stB("ok", "Corrigées")}${stB("all", "Toutes")}</div>
+      ${EF.ks ? `<div class="eb-fl"><span class="eb-tag">${one ? h(chLabel(one)) : EF.ks.length + " chapitres"}<button data-act="ebClear" aria-label="Retirer le filtre">×</button></span></div>` : ""}
+    </div>
+    <div class="row">${list.length ? `<button class="btn primary" data-act="ebTrain">M'entraîner sur ${list.length > 20 ? "20 de ces" : list.length === 1 ? "cette" : "ces " + list.length} erreur${list.length > 1 ? "s" : ""}</button>` : ""}${fiches.map(k => `<button class="btn" data-act="fiche" data-id="${k}">Relire la fiche${fiches.length > 1 ? " : " + h(CHID[k].title) : ""}</button>`).join("")}</div>
+    ${shown.length ? `<div class="review eb-list">${shown.map(e => `<div class="review-item eb-it" style="${hueStyle(e.x.c)}">
+      <div class="eb-h"><span class="tabcode">${h(CAT[e.x.c].code)}</span><small>${h(chLabel(chKey(e.x)))}</small><span class="eb-n">${e.n} erreur${e.n > 1 ? "s" : ""}</span><span class="eb-st ${e.ok ? "ok" : "ko"}">${e.ok ? "Corrigée" : "À revoir"}</span></div>
+      <p class="q">${h(e.x.q)}</p>
+      ${e.w && e.w.t ? `<p class="y">Ta dernière erreur : ${h(e.w.t)}</p>` : ""}
+      <p class="a">Bonne réponse : ${h(e.x.o[0])}</p>
+      ${e.x.e ? `<p class="e">${h(e.x.e)}</p>` : ""}
+    </div>`).join("")}</div>${list.length > shown.length ? `<p class="muted small">Et ${list.length - shown.length} autres : filtre par matière pour les voir.</p>` : ""}` : `<div class="empty">${EF.st === "todo" ? "Tout est corrigé dans cette sélection. Choisis « Toutes » pour relire tes anciennes erreurs." : "Rien dans cette sélection."}</div>`}
+  </section>`;
+}
+function weakSheet(k) {
+  closeSheet();
+  const ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], one = ks.length === 1 ? ks[0] : null, fiches = ks.filter(x => CHID[x]);
+  const nErr = errList().filter(e => ks.includes(chKey(e.x))).length;
+  const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  el.innerHTML = `<div class="wk-box" role="dialog" aria-modal="true" aria-labelledby="wkT">
+    <button class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
+    <span class="eyebrow">${one ? "Point faible" : "Tes points faibles"}</span><h2 id="wkT">${one ? h(chLabel(one)) : ks.map(x => h(chLabel(x))).join(" · ")}</h2>
+    <p class="muted">Tu veux t'entraîner tout de suite, ou relire avant ?</p>
+    <div class="wk-opts">
+      <button class="wk-opt" data-act="wkTrain" data-k="${h(k)}"><b>🎯 S'entraîner</b><span>Quiz de ${quizLen} questions, en commençant par celles que tu as ratées.</span></button>
+      ${one && CHID[one] ? `<button class="wk-opt" data-act="wkFiche" data-id="${one}"><b>📖 Relire la fiche</b><span>La fiche de cours du chapitre, pour reprendre les bases.</span></button>` : ""}
+      <button class="wk-opt" data-act="wkErr" data-k="${h(k)}" ${nErr ? "" : "disabled"}><b>📕 Relire mes erreurs</b><span>${nErr ? `${nErr} question${nErr > 1 ? "s" : ""} ratée${nErr > 1 ? "s" : ""}, avec la bonne réponse et l'explication.` : "Aucune erreur enregistrée ici."}</span></button>
+    </div>
+    ${!one && fiches.length ? `<div class="wk-read"><b>📖 Relire une fiche</b><div>${fiches.map(id => `<button class="btn small" data-act="wkFiche" data-id="${id}">${h(CHID[id].title)}</button>`).join("")}</div></div>` : ""}
+  </div>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  document.body.appendChild(el);
+  const f = el.querySelector(".wk-opt"); if (f) f.focus();
+}
+function closeSheet() { const x = document.getElementById("wkSheet"); if (x) x.remove(); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 function weakChaps(limit) {
   const by = {};
   QS.forEach(x => { const r = S.q[x.id]; if (!r || !r[0]) return; const k = chKey(x), o = by[k] || (by[k] = { k, c: x.c, n: 0, ok: 0, last0: 0 }); o.n++; if (r[2] === 1) o.ok++; else o.last0++; });
@@ -2931,7 +3022,7 @@ function weakList(limit) {
   if (!w.length) { w = watchChaps(limit); watch = true; }
   const answered = Object.keys(S.q || {}).length;
   if (!w.length) return `<div class="empty">${answered ? `Aucune erreur pour l'instant sur tes ${answered} question${answered > 1 ? "s" : ""} : continue les quiz, les chapitres où tu te trompes apparaîtront ici.` : "Pas encore de point faible repéré : fais quelques quiz et les chapitres où tu te trompes apparaîtront ici."}</div>`;
-  return (watch ? `<p class="muted small wk-note">Encore peu de réponses par chapitre : voici les chapitres où tu as déjà fait des erreurs. Le classement s'affine à partir de 3 questions par chapitre.</p>` : "") + `<div class="wk-list">${w.map(o => { const pc = Math.round(o.ok / o.n * 100); return `<div class="wk" style="${hueStyle(o.c)}"><span class="tabcode">${h(CAT[o.c].code)}</span><div class="wk-t"><b>${h(chLabel(o.k))}</b><span class="wk-bar"><i style="width:${pc}%"></i></span><small>${pc} % de réussite sur ${o.n} question${o.n > 1 ? "s" : ""}${o.last0 ? ` · ${o.last0} à revoir` : ""}</small></div><button class="btn small primary" data-act="weakQuiz" data-k="${h(o.k)}">Retravailler</button></div>`; }).join("")}</div>`;
+  return (watch ? `<p class="muted small wk-note">Encore peu de réponses par chapitre : voici les chapitres où tu as déjà fait des erreurs. Le classement s'affine à partir de 3 questions par chapitre.</p>` : "") + `<div class="wk-list">${w.map(o => { const pc = Math.round(o.ok / o.n * 100); return `<div class="wk" style="${hueStyle(o.c)}"><span class="tabcode">${h(CAT[o.c].code)}</span><div class="wk-t"><b>${h(chLabel(o.k))}</b><span class="wk-bar"><i style="width:${pc}%"></i></span><small>${pc} % de réussite sur ${o.n} question${o.n > 1 ? "s" : ""}${o.last0 ? ` · ${o.last0} à revoir` : ""}</small></div><button class="btn small primary" data-act="weakPick" data-k="${h(o.k)}">Retravailler</button></div>`; }).join("")}</div>`;
 }
 function heatmap() {
   const H = S.h || {}, d0 = dayNum(), weeks = 16, today = new Date(), dow = (today.getDay() + 6) % 7;
@@ -2982,7 +3073,7 @@ function vProfil() {
       <div class="pf-xp"><div class="pf-xp-bar"><i style="width:${prog}%"></i></div>
         <p>${L.next ? `Encore <b>${L.next - S.xp} XP</b> pour devenir <b>${h(L.nextName.toLowerCase())}</b>.` : "Niveau maximum atteint : bravo !"}</p></div>
       <ol class="pf-ladder">${LEVELS.map((l, i) => `<li class="${i < lvIdx ? "done" : i === lvIdx ? "cur" : ""}"><span class="dot">${i < lvIdx ? "✓" : i + 1}</span><span class="t">${h(l[1])}</span><span class="x">${l[0]} XP</span></li>`).join("")}</ol>
-      <p class="pf-how">Un chapitre est validé quand tu réussis son contrôle (80 %) deux jours différents. Tu gagnes des XP en lisant (leçon lue), en répondant aux quiz (10 par bonne réponse), en révisant tes cartes et en faisant des exercices.</p>
+      <p class="pf-how">Un chapitre est validé quand tu réussis son contrôle (80 %) deux jours différents. Tu gagnes des XP en lisant (leçon lue), en répondant juste aux quiz (5 XP la première fois dans la journée, puis 20 XP de bonus quand la question devient acquise), en révisant tes cartes et en réussissant les exercices. Une mauvaise réponse ne rapporte rien : répondre au hasard ne fait pas monter de niveau.</p>
     </section>
     <section class="stack"><h2>Mes chiffres</h2>
       <div class="pf-tiles">${tiles.map(([v, l, sub]) => `<div class="pf-tile"><b>${v}</b><span>${l}</span><small>${sub}</small></div>`).join("")}</div>
@@ -2992,6 +3083,7 @@ function vProfil() {
     </section>
     <section class="stack"><div class="sec-head"><h2>Mes points faibles</h2><p>Les chapitres où tu te trompes le plus aux quiz.</p></div>
       ${weakList(5)}
+      ${errList().length ? `<div class="row"><button class="btn" data-act="goErr">📕 Ouvrir mon cahier des erreurs</button></div>` : ""}
     </section>
     <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt w"><i></i>quiz et cartes travaillés</span><span class="pf-key alt"><i></i>maîtrisés</span></p></div>
       ${mastNote}<div class="pf-mats">${mats}</div>
@@ -3576,7 +3668,7 @@ function startDefi(cats) {
 function defiPick(pos) {
   if (!DF || DF.done) return;
   const it = DF.pool[DF.i], ok = DF.order[pos] === 0;
-  recordQ(it, ok);
+  recordQ(it, ok, it.o[DF.order[pos]]);
   if (ok) DF.ok++; else { DF.ko++; DF.miss.push(it); }
   DF.last = { ok, good: it.o[0] };
   DF.i = (DF.i + 1) % DF.pool.length; DF.order = shuffle([0, 1, 2, 3]);
@@ -4388,8 +4480,8 @@ function vExHome() {
         <button class="mode" data-act="goExam"><b>QCM chrono</b><span>20 questions toutes matières en 20 minutes.</span></button>
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
-      <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button></div>
-      ${weakChaps(1).length ? `<button class="wk-cta" data-act="weakMix"><span class="wk-ic" aria-hidden="true">🎯</span><span><b>Travailler mes points faibles</b><small>${weakChaps(5).map(o => h(chLabel(o.k))).slice(0, 2).join(" · ")}${weakChaps(5).length > 2 ? "…" : ""}</small></span><span class="wk-go">Quiz ›</span></button>` : ""}
+      <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button><button class="btn" data-act="goErr">📕 Cahier des erreurs</button></div>
+      ${weakChaps(1).length ? `<button class="wk-cta" data-act="weakPick" data-k="*"><span class="wk-ic" aria-hidden="true">🎯</span><span><b>Travailler mes points faibles</b><small>${weakChaps(5).map(o => h(chLabel(o.k))).slice(0, 2).join(" · ")}${weakChaps(5).length > 2 ? "…" : ""}</small></span><span class="wk-go">Choisir ›</span></button>` : ""}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>
@@ -5222,7 +5314,7 @@ function recordEx(it) {
   const r = S.x[it.gid] || [0, 0, 0];
   const sc = Math.round(it.res.score * 100);
   S.x[it.gid] = [r[0] + 1, Math.max(r[1], sc), sc];
-  S.xp += it.res.score > 0 ? Math.round(2 + 15 * it.res.score) : 0; dayLog().e++; bumpStreak();
+  S.xp += it.res.score >= .5 ? Math.round(15 * it.res.score) : 0; dayLog().e++; bumpStreak();
 }
 function exInputs(it, locked) {
   const res = it.res;
@@ -5455,6 +5547,17 @@ document.addEventListener("click", e => {
     case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
+    case "weakPick": weakSheet(b.dataset.k); break;
+    case "wkClose": closeSheet(); break;
+    case "wkFiche": closeSheet(); openFiche(b.dataset.id); break;
+    case "wkErr": { const k = b.dataset.k; EF = { cat: "", ks: k === "*" ? weakChaps(5).map(o => o.k) : [k], st: "all" }; closeSheet(); go("erreurs"); break; }
+    case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
+    case "goErr": EF = { cat: "", ks: null, st: "todo" }; go("erreurs"); break;
+    case "ebCat": EF.cat = b.dataset.cat; EF.ks = null; render(); break;
+    case "ebSt": EF.st = b.dataset.v; render(); break;
+    case "ebCh": EF.ks = [b.dataset.k]; EF.cat = ""; EF.st = "all"; render(); window.scrollTo({ top: 0 }); break;
+    case "ebClear": EF.ks = null; render(); break;
+    case "ebTrain": { const l = errFiltered().map(e => e.x); startRun(l.slice(0, 20), "quiz"); break; }
     case "weakQuiz": { const k = b.dataset.k; startRun(shuffle(QS.filter(x => chKey(x) === k)).slice(0, quizLen), "quiz"); break; }
     case "weakMix": { const ks = weakChaps(5).map(o => o.k), wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
     case "quitRun": go(R && R.list.some(x => x.pick !== null) ? "result" : "ex"); break;
