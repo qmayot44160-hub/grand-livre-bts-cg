@@ -1144,6 +1144,15 @@ html, body { overflow-x: hidden; }
 .corr.is-ko { background: var(--bad-bg); }
 .corr.is-ko > b { color: var(--bad); }
 .gself { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; font-size: .9rem; }
+
+/* Profil : travaillé / maîtrisé */
+.pf-bar.alt { position: relative; }
+.pf-bar.alt i { position: absolute; left: 0; top: 0; bottom: 0; }
+.pf-bar.alt i.w { background: #e0a31f; opacity: .5; }
+.pf-bar.alt i.m { background: #e0a31f; opacity: 1; }
+.pf-key.alt.w i { opacity: .5; }
+.pf-note { margin: -4px 0 4px; line-height: 1.5; }
+.wk-note { margin: -4px 0 8px; }
 </style>
 
 <header class="top">
@@ -2906,10 +2915,17 @@ function weakChaps(limit) {
   return Object.values(by).filter(o => o.n >= 3 && o.ok / o.n < .8).sort((a, b) => a.ok / a.n - b.ok / b.n || b.n - a.n).slice(0, limit || 5);
 }
 function chLabel(k) { return CHID[k] ? CHID[k].title : CAT[chCat(k)].name + " : questions transversales"; }
+function watchChaps(limit) {
+  const by = {};
+  QS.forEach(x => { const r = S.q[x.id]; if (!r || !r[0]) return; const k = chKey(x), o = by[k] || (by[k] = { k, c: x.c, n: 0, ok: 0, last0: 0 }); o.n++; if (r[2] === 1) o.ok++; else o.last0++; });
+  return Object.values(by).filter(o => o.last0 > 0).sort((a, b) => b.last0 - a.last0 || a.ok / a.n - b.ok / b.n).slice(0, limit || 5);
+}
 function weakList(limit) {
-  const w = weakChaps(limit);
-  if (!w.length) return `<div class="empty">Pas encore de point faible repéré : réponds à quelques quiz (au moins 3 questions par chapitre) et ils apparaîtront ici.</div>`;
-  return `<div class="wk-list">${w.map(o => { const pc = Math.round(o.ok / o.n * 100); return `<div class="wk" style="${hueStyle(o.c)}"><span class="tabcode">${h(CAT[o.c].code)}</span><div class="wk-t"><b>${h(chLabel(o.k))}</b><span class="wk-bar"><i style="width:${pc}%"></i></span><small>${pc} % de réussite sur ${o.n} question${o.n > 1 ? "s" : ""}</small></div><button class="btn small primary" data-act="weakQuiz" data-k="${h(o.k)}">Retravailler</button></div>`; }).join("")}</div>`;
+  let w = weakChaps(limit), watch = false;
+  if (!w.length) { w = watchChaps(limit); watch = true; }
+  const answered = Object.keys(S.q || {}).length;
+  if (!w.length) return `<div class="empty">${answered ? `Aucune erreur pour l'instant sur tes ${answered} question${answered > 1 ? "s" : ""} : continue les quiz, les chapitres où tu te trompes apparaîtront ici.` : "Pas encore de point faible repéré : fais quelques quiz et les chapitres où tu te trompes apparaîtront ici."}</div>`;
+  return (watch ? `<p class="muted small wk-note">Encore peu de réponses par chapitre : voici les chapitres où tu as déjà fait des erreurs. Le classement s'affine à partir de 3 questions par chapitre.</p>` : "") + `<div class="wk-list">${w.map(o => { const pc = Math.round(o.ok / o.n * 100); return `<div class="wk" style="${hueStyle(o.c)}"><span class="tabcode">${h(CAT[o.c].code)}</span><div class="wk-t"><b>${h(chLabel(o.k))}</b><span class="wk-bar"><i style="width:${pc}%"></i></span><small>${pc} % de réussite sur ${o.n} question${o.n > 1 ? "s" : ""}${o.last0 ? ` · ${o.last0} à revoir` : ""}</small></div><button class="btn small primary" data-act="weakQuiz" data-k="${h(o.k)}">Retravailler</button></div>`; }).join("")}</div>`;
 }
 function heatmap() {
   const H = S.h || {}, d0 = dayNum(), weeks = 16, today = new Date(), dow = (today.getDay() + 6) % 7;
@@ -2940,10 +2956,17 @@ function vProfil() {
     [ex, "exercices pratiqués", "Guidés et annales"],
     [best, "record au défi 60 s", "Bonnes réponses en 1 min"]
   ];
-  const mats = CATS.map(c => { const ls = lessonStats(c.id), m = mastery(c.id), lp = ls.n ? Math.round(ls.r / ls.n * 100) : 0, mp = m.t ? Math.round(m.m / m.t * 100) : 0;
+  const pcs = (a, b) => { if (!b || !a) return 0; const v = a / b * 100; return v < 1 ? Math.round(v * 10) / 10 : Math.round(v); };
+  const pTxt = v => (v > 0 && v < 1 ? String(v).replace(".", ",") : v) + " %";
+  let anyWorked = 0, anyMast = 0;
+  const mats = CATS.map(c => { const ls = lessonStats(c.id), m = mastery(c.id), qs = QBY[c.id] || [], fs = FBY[c.id] || [];
+    const wk = qs.filter(x => S.q[x.id]).length + fs.filter(x => S.c[x.id]).length, lp = pcs(ls.r, ls.n), wp = pcs(wk, m.t), mp = pcs(m.m, m.t);
+    anyWorked += wk; anyMast += m.m;
     return `<button class="pf-mat" style="${hueStyle(c.id)}" data-act="mat" data-cat="${c.id}" data-seg="lecons"><span class="tabcode">${h(c.code)}</span><span class="pf-mat-n">${h(c.name)}</span>
-      <span class="pf-bars"><span class="pf-bar" title="Leçons lues"><i style="width:${lp}%"></i></span><span class="pf-bar alt" title="Quiz et cartes maîtrisés"><i style="width:${mp}%"></i></span></span>
-      <span class="pf-mat-v">${lp} % <small>lu</small> · ${mp} % <small>maîtrisé</small></span></button>`; }).join("");
+      <span class="pf-bars"><span class="pf-bar" title="Leçons lues"><i style="width:${lp}%"></i></span><span class="pf-bar alt" title="Quiz et cartes : travaillés (clair) et maîtrisés (foncé)"><i class="w" style="width:${wp}%"></i><i class="m" style="width:${mp}%"></i></span></span>
+      <span class="pf-mat-v">${pTxt(lp)} <small>lu</small> · ${pTxt(wp)} <small>travaillé</small> · ${pTxt(mp)} <small>maîtrisé</small></span></button>`; }).join("");
+  const firstOk = Object.values(S.qd || {}).map(o => o.ok && o.ok[0]).filter(Boolean).sort((a, b) => a - b)[0];
+  const mastNote = anyWorked && !anyMast ? `<p class="muted small pf-note">« Maîtrisé » ne compte que ce que tu as réussi <b>deux jours différents, à au moins 3 jours d'écart</b> : c'est la preuve que c'est retenu, pas juste vu. ${firstOk ? `Tes premières questions pourront devenir acquises à partir du <b>${dayLabel(firstOk + 3)}</b> : la révision des acquis te les reproposera.` : ""}</p>` : "";
   return `<section class="pf-hero">
       <div class="pf-id">
         <div class="pf-av" aria-hidden="true">${h(ini)}</div>
@@ -2964,8 +2987,8 @@ function vProfil() {
     <section class="stack"><div class="sec-head"><h2>Mes points faibles</h2><p>Les chapitres où tu te trompes le plus aux quiz.</p></div>
       ${weakList(5)}
     </section>
-    <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt"><i></i>quiz et cartes maîtrisés</span></p></div>
-      <div class="pf-mats">${mats}</div>
+    <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt w"><i></i>quiz et cartes travaillés</span><span class="pf-key alt"><i></i>maîtrisés</span></p></div>
+      ${mastNote}<div class="pf-mats">${mats}</div>
     </section>
     <section class="stack pf-settings"><h2>Réglages</h2>
       <div class="pf-set">
