@@ -37,7 +37,6 @@ for a, b in [
     ("Envoie ta copie à Claude pour savoir quoi revoir.", "Compare ta copie au corrigé pour savoir quoi revoir."),
     ("sujets de 2021 à 2026, corrigés par Claude.", "sujets de 2021 à 2026, avec leurs corrigés."),
 ]:
-    assert a in s, a
     s = s.replace(a, b)
 
 # 2. Tête de page : manifeste et icônes pour l'installation

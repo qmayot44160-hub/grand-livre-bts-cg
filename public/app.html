@@ -1153,6 +1153,20 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Onglets de la page S'entraîner */
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
+.ex-tab:hover { border-color: var(--accent); }
+.ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ex-tab[aria-current="page"] small { color: inherit; opacity: .85; }
+.ex-tab-ic { font-size: 1.2rem; line-height: 1; } .ex-tab b { font-size: .95rem; } .ex-tab small { color: var(--muted); font-size: .78rem; }
+@media (max-width: 760px) {
+  .ex-tabs { display: flex; overflow-x: auto; scroll-snap-type: x proximity; margin-left: -16px; margin-right: -16px; padding: 8px 16px; scrollbar-width: none; }
+  .ex-tabs::-webkit-scrollbar { display: none; }
+  .ex-tab { flex: 0 0 auto; scroll-snap-align: start; grid-template-columns: auto auto; align-items: center; column-gap: 6px; padding: 8px 12px; border-radius: 999px; }
+  .ex-tab small { display: none; }
+}
+
 /* Cahier des erreurs et choix des points faibles */
 .eb-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .eb-sum > div { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
@@ -2673,6 +2687,8 @@ function navOf(v) {
   return "ex";
 }
 function renderTop() {
+  { const t = document.querySelector(".top"); if (t) document.documentElement.style.setProperty("--top-h", getComputedStyle(t).position === "sticky" ? t.offsetHeight + "px" : "0px");
+    requestAnimationFrame(() => { const n = document.querySelector(".ex-tabs"), c = n && n.querySelector('[aria-current="page"]'); if (n && c && n.scrollWidth > n.clientWidth) n.scrollLeft = c.offsetLeft - 16; }); }
   const L = levelOf(S.xp);
   $("#lvlName").textContent = L.name;
   $("#xpTop").textContent = S.xp + " XP";
@@ -4454,6 +4470,12 @@ function annCard(a) {
   </article>`;
 }
 const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`;
+let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
+function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
+function exTabs() {
+  const T = [["quiz", "🃏", "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", "🧮", "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", "🧭", "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", "📚", "Annales", `${ANNEX.length} exercices officiels`], ["redac", "✍️", "Rédactions", `${REDAC.length} sujets`]];
+  return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
+}
 function vExHome() {
   const n = todayCount(), eps = ["E5", "E4", "E3", "E1"];
   const pool = ANN.filter(a => !ANF.ep || a.ep === ANF.ep), exPool = pool.flatMap(a => a.ex);
@@ -4468,10 +4490,10 @@ function vExHome() {
       })();
   return `<section class="page-head">
       <h1>S'entraîner</h1>
-      <p class="muted">Les vrais sujets du BTS CG, de 2021 à 2026, découpés en exercices. Ouvre le sujet, fais l'exercice sur papier ou ici, puis compare ta copie au corrigé officiel (lien sur chaque sujet).</p>
+      <p class="muted">Choisis le type d'entraînement : chaque onglet regroupe un format.</p>
     </section>
-    <div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div>
-    <section class="stack">
+    ${exTabs()}
+    ${EXT === "quiz" ? `<section class="stack">
       <div class="sec-head"><h2>Quiz et flashcards</h2><p>Toutes matières mélangées, ou une matière précise juste en dessous.</p></div>
       <div class="modes">
         <button class="mode lead-mode" data-act="today" ${n ? "" : "disabled"}><b>Cartes du jour</b><span>${n ? `${n} cartes à revoir, de 5 à 10 minutes.` : "Rien à revoir aujourd'hui."}</span></button>
@@ -4484,9 +4506,9 @@ function vExHome() {
       ${weakChaps(1).length ? `<button class="wk-cta" data-act="weakPick" data-k="*"><span class="wk-ic" aria-hidden="true">🎯</span><span><b>Travailler mes points faibles</b><small>${weakChaps(5).map(o => h(chLabel(o.k))).slice(0, 2).join(" · ")}${weakChaps(5).length > 2 ? "…" : ""}</small></span><span class="wk-go">Choisir ›</span></button>` : ""}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
-    </section>
-    <section class="stack">${dosSection()}</section>
-    <section class="stack">
+    </section>` : ""}
+    ${EXT === "chiffres" ? `<section class="stack">${dosSection()}</section>` : ""}
+    ${EXT === "annales" ? `<div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div><section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
       <div class="picker" role="tablist" aria-label="Épreuve">
         <button class="chip" data-act="annEp" data-ep="" aria-pressed="${!ANF.ep}">Toutes</button>
@@ -4495,11 +4517,15 @@ function vExHome() {
       <details class="ann-tagbox"${ANF.tag ? " open" : ""}><summary>${ANF.tag ? `Notion : ${h(NOTIONS[ANF.tag][0].split(/[:,(]/)[0].trim())}` : "Filtrer par notion"}</summary><div class="ann-tagbar">${Object.keys(NOTIONS).filter(t => tagCount[t]).map(t => `<button class="chip small" style="${hueStyle(NOTIONS[t][1])}" data-act="annTag" data-tag="${t}" aria-pressed="${ANF.tag === t}">${h(NOTIONS[t][0].split(/[:,(]/)[0].trim())} <span class="muted">${tagCount[t]}</span></button>`).join("")}</div></details>
       ${body}
     </section>
-    <section class="stack">
+    <p class="muted small">Sujets officiels de l'Éducation nationale, liens vers les sites qui les publient (Comprendre la compta gestion, Compta Online, académie de Lille, Réviser BTS CG). Les corrigés marqués « non officiel » sont rédigés par ces sites.</p>` : ""}
+    ${EXT === "guides" ? `<section class="stack">
       <div class="sec-head"><h2>Exercices guidés</h2><p>${GCASES.length} exercices type examen, découpés en étapes avec un corrigé pour chacune.</p></div>
       ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
-    </section>
-    <p class="muted small">Sujets officiels de l'Éducation nationale, liens vers les sites qui les publient (Comprendre la compta gestion, Compta Online, académie de Lille, Réviser BTS CG). Les corrigés marqués « non officiel » sont rédigés par ces sites.</p>`;
+    </section>` : ""}
+    ${EXT === "redac" ? `<section class="stack">
+      <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
+      <div class="ex-grid">${REDAC.map(redCard).join("")}</div>
+    </section>` : ""}`;
 }
 function openAnn(id) {
   const x = ANNEXID[id]; if (!x) return;
@@ -5548,6 +5574,7 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "exTab": { setExTab(b.dataset.t); if (view !== "ex") go("ex"); else { render(); const n = document.querySelector(".ex-tabs"), y = n ? n.getBoundingClientRect().top + window.scrollY - 70 : 0; if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y) }); } break; }
     case "wkClose": closeSheet(); break;
     case "wkFiche": closeSheet(); openFiche(b.dataset.id); break;
     case "wkErr": { const k = b.dataset.k; EF = { cat: "", ks: k === "*" ? weakChaps(5).map(o => o.k) : [k], st: "all" }; closeSheet(); go("erreurs"); break; }
