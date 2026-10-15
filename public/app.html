@@ -1153,6 +1153,32 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Séance, équilibre, auto-évaluation des annales */
+.plan-go { justify-self: start; margin-top: 4px; }
+.ex-tab-ic { display: inline-flex; } .ex-tab-ic .svg { width: 20px; height: 20px; }
+.wk-ic .svg { width: 26px; height: 26px; color: #c58a10; }
+.wk-opt b, .wk-read > b { display: inline-flex; align-items: center; gap: 8px; } .wk-opt b .svg, .wk-read > b .svg { color: var(--accent); }
+.bal { display: grid; gap: 8px; }
+.bal-r { display: grid; grid-template-columns: 34px minmax(0, 1.2fr) minmax(0, 1fr) 104px; align-items: center; gap: 10px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; }
+.bal-r.low { border-color: color-mix(in srgb, var(--bad) 45%, var(--rule)); }
+.bal-t { font-size: .88rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bal-bars { display: grid; gap: 3px; } .bal-b { display: block; height: 7px; border-radius: 99px; min-width: 3px; }
+.bal-b.me, .bal-key i.me { background: var(--accent); } .bal-b.w, .bal-key i.w { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.bal-r.low .bal-b.me { background: var(--bad); }
+.bal-n { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; } .bal-n small { color: var(--muted); font-weight: 400; }
+.bal-key { display: flex; gap: 16px; font-size: .85rem; color: var(--muted); margin: 0; } .bal-key span { display: inline-flex; align-items: center; gap: 6px; } .bal-key i { display: inline-block; width: 14px; height: 7px; border-radius: 99px; }
+.bal-tip { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bad-bg); } .bal-tip.ok { background: var(--ok-bg); }
+@media (max-width: 640px) { .bal-r { grid-template-columns: 30px minmax(0, 1fr) 96px; } .bal-t { display: none; } }
+.ann-gridev { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 14px; margin-top: 12px; background: var(--sheet); }
+.ann-gridev summary { cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ag-list { display: grid; gap: 10px; padding-left: 20px; margin: 10px 0; } .ag-list li span { display: block; margin-bottom: 6px; }
+.ag-b { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-o { font: inherit; font-size: .85rem; padding: 5px 12px; min-height: 34px; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); cursor: pointer; }
+.ag-o.v2[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.ag-o.v1[aria-pressed="true"] { background: color-mix(in srgb, var(--gold) 18%, transparent); border-color: var(--gold); font-weight: 700; }
+.ag-o.v0[aria-pressed="true"] { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+.ag-res { display: grid; gap: 6px; }
+
 /* Onglets de la page S'entraîner */
 .ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
@@ -2652,7 +2678,13 @@ const ICON = {
   clock: SVG('<circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V10M9.5 3h5M12 3v3.5"/>'),
   talk: SVG('<path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 9.5h8M8 12.5h5"/>'),
   list: SVG('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>'),
-  search: SVG('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/>')
+  search: SVG('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/>'),
+  target: SVG('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>'),
+  calc: SVG('<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15v3M8.5 18h.01M12 18h.01"/>'),
+  steps: SVG('<path d="M4 19h4.5v-4.5H13V10h4.5V5.5H20"/>'),
+  archive: SVG('<rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/>'),
+  errbook: SVG('<path d="M6.5 3.5H18a1 1 0 0 1 1 1V20H7.5a2 2 0 0 1-2-2V4.5a1 1 0 0 1 1-1Z"/><path d="M10 8.5l4.5 4.5M14.5 8.5 10 13"/>'),
+  read: SVG('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>')
 };
 const HUE = { p1: [220, 64], p2: [170, 62], p3: [265, 50], p4: [335, 58], p5: [28, 78], p6: [132, 46], p7: [228, 20], ma: [5, 62], ce: [194, 70], cg: [300, 38], an: [42, 78], me: [214, 24] };
 const hueStyle = cat => { const x = HUE[cat] || [228, 40]; return `--h:${x[0]};--s:${x[1]}%`; };
@@ -2697,8 +2729,19 @@ function renderTop() {
   const s = document.getElementById("syncNote");
   if (s) s.textContent = syncMode === "sync" ? "Ta progression est enregistrée sur ton compte." : "Ta progression est enregistrée sur cet appareil.";
 }
+function migrateXp() {
+  if (S.xpv >= 2) return; S.xpv = 2;
+  let est = 0;
+  Object.entries(S.q || {}).forEach(([id, r]) => { est += 5 * (r[1] || 0); const st = qState(id); if (st >= 2) est += 20; if (st >= 3) est += 30; });
+  Object.values(S.c || {}).forEach(r => est += 4 * (r[0] || 0));
+  est += 8 * Object.keys(S.l || {}).length + 4 * Object.keys(S.fr || {}).length;
+  est += 15 * Object.keys(S.x || {}).length + 10 * Object.values(S.an || {}).filter(x => x && (x.d || x.r)).length + 2 * ((S.df || {}).best || 0);
+  est = Math.round(est * 1.15 + 50);
+  if (S.xp > est) { S.xp = est; touch(); }
+}
 function render() {
   applyPrefs();
+  migrateXp();
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
@@ -2741,17 +2784,28 @@ function suggestEx(cat) {
   return pool.slice().sort((a, b) => ((sx[a.id] || [0])[0] - (sx[b.id] || [0])[0]) || (pool.indexOf(a) - pool.indexOf(b)))[0];
 }
 function todayCount(cats) { const d = dueCards(cats); return Math.min(30, d.reviews.length + Math.min(15, d.fresh.length)); }
+function planLeft() { const dy = dayLog(); return dy.l === 0 || dy.e === 0 || (dy.c < 10 && (todayCount() > 0 || dueQs().length > 0)); }
+function weekAcq() {
+  const d0 = dayNum() - 6; let n = 0, soon = 0;
+  QS.forEach(x => { const o = (S.qd || {})[x.id]; if (!o || !o.ok.length) return; const st = qState(x.id);
+    if (st >= 2) { const a = o.ok.find(v => v - o.ok[0] >= 3); if (a != null && a >= d0) n++; } else soon++; });
+  return { n, soon };
+}
 function vHome() {
   const dy = dayLog(), nl = nextLesson(), todayN = todayCount();
   const lcat = nl ? CMETA(nl.cid).cat : "p1", g = suggestAnn(lcat);
   const nlT = nl ? lessonLabel(SPLIT(nl.cid)[nl.k].title, nl.k) : null;
+  const dqN = dueQs().length, wk0 = weakChaps(1)[0];
   const steps = [
     { done: dy.l > 0, title: "Lire une leçon",
       text: nl ? `${h(CAT[lcat].name)}, ${h(nlT.lab.toLowerCase())} : ${inl(nlT.t)}` : "Tu as lu toutes les leçons. Relis celles qui te posent problème.",
       btn: nl ? `<button class="btn primary" data-act="lesson" data-cid="${nl.cid}" data-k="${nl.k}">${S.last ? "Continuer" : "Commencer"}</button>` : `<button class="btn" data-nav="cours">Voir les cours</button>` },
-    { done: dy.c >= 10, title: "Revoir tes cartes",
-      text: todayN ? `${todayN} cartes t'attendent, environ ${Math.max(3, Math.round(todayN / 3))} minutes. Dix suffisent pour valider l'étape.` : "Aucune carte à revoir aujourd'hui.",
-      btn: `<button class="btn" data-act="today" ${todayN ? "" : "disabled"}>Réviser</button>` },
+    { done: dy.c >= 10 || (!todayN && !dqN), title: "Revoir tes cartes et tes acquis",
+      text: todayN ? `${todayN} cartes t'attendent, environ ${Math.max(3, Math.round(todayN / 3))} minutes. Dix suffisent pour valider l'étape.${dqN ? ` Puis ${dqN} question${dqN > 1 ? "s" : ""} à revérifier.` : ""}` : dqN ? `${dqN} question${dqN > 1 ? "s" : ""} à revérifier pour qu'elles deviennent acquises.` : "Rien à revoir aujourd'hui.",
+      btn: todayN ? `<button class="btn" data-act="today">Réviser</button>` : `<button class="btn" data-act="dueQuiz" ${dqN ? "" : "disabled"}>Revérifier</button>` },
+    wk0 ? { done: dy.e > 0, title: "Retravailler un point faible",
+      text: `${h(chLabel(wk0.k))} : ${Math.round(wk0.ok / wk0.n * 100)} % de réussite. Un quiz qui commence par tes erreurs.`,
+      btn: `<button class="btn" data-act="wkTrain" data-k="${h(wk0.k)}">Lancer</button>` } :
     { done: dy.e > 0, title: "Faire un exercice",
       text: g ? `Annale ${h(g.a.ep)} ${g.a.year}, ${h(g.a.cas)} : ${h(g.t.charAt(0).toLowerCase() + g.t.slice(1))}${g.pts ? ` (${g.pts} points)` : ""}.` : `Un quiz de 10 questions en ${h(CAT[lcat].name.toLowerCase())}, corrigé au fur et à mesure.`,
       btn: g ? `<button class="btn" data-act="annOpen" data-id="${g.id}">Ouvrir</button>` : `<button class="btn" data-act="quickQuiz" data-cat="${lcat}">Lancer</button>` }
@@ -2777,9 +2831,9 @@ function vHome() {
     <div class="shelf" id="shelf3d"><p class="shelf-label" id="shelfLabel">${shelfHint()}</p></div>
   </section>
   <section class="plan" aria-labelledby="planTitle">
-    <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3</span></div>
+    <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3 · environ 20 min</span></div>
     <ol class="steps">${steps.map((s, i) => `<li class="step${s.done ? " done" : ""}"><span class="num">${s.done ? ICON.check : i + 1}</span><div><b>${s.title}</b><p>${s.text}</p></div>${s.btn}</li>`).join("")}</ol>
-    ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : ""}
+    ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
   <section class="stack">
     <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
@@ -2800,13 +2854,14 @@ function vHome() {
       <span class="lvl-big">${h(L.name)}</span>
       <div class="bar gold"><i style="width:${prog}%"></i></div>
       <p class="muted">${L.next ? `${S.xp} XP. Encore ${L.next - S.xp} XP pour devenir ${h(L.nextName.toLowerCase())}.` : `${S.xp} XP. Niveau maximum atteint.`}</p>
+      ${weekAcq().soon ? `<p class="muted small">${weekAcq().soon} question${weekAcq().soon > 1 ? "s" : ""} en bonne voie : réussis-les encore dans quelques jours pour qu'elles deviennent acquises.</p>` : ""}
       <button class="btn small" data-nav="profil">Mon profil et réglages</button>
     </div>
     <div class="stack">
       <div class="figs">
         <div class="fig"><b>${tl.r}<small class="muted">/${tl.n}</small></b><span>leçons lues</span></div>
         <div class="fig"><b>${known}</b><span>cartes bien sues</span></div>
-        <div class="fig"><b>${okQ}</b><span>questions réussies</span></div>
+        <div class="fig"><b>+${weekAcq().n}</b><span>questions acquises cette semaine</span></div>
         <div class="fig"><b>${Object.keys(S.x || {}).length}</b><span>exercices pratiqués</span></div>
       </div>
       <div class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></div>
@@ -2951,9 +3006,10 @@ function vResult() {
       </tbody>
     </table></div>
     <div class="row">
-      ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button><button class="btn" data-act="goErr">📕 Cahier des erreurs</button>` : ""}
+      ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button><button class="btn" data-act="goErr">${ICON.errbook}Cahier des erreurs</button>` : ""}
       <button class="btn" data-act="${R.mode === "exam" ? "goExam" : "goQuiz"}">${R.mode === "exam" ? "Nouveau QCM chronométré" : "Nouveau quiz"}</button>
       <button class="btn" data-act="goHome">Accueil</button>
+      ${planLeft() ? `<button class="btn primary" data-act="planNext">Étape suivante de la séance</button>` : ""}
     </div>
     ${(() => { const ks = {}; bad.forEach(x => { const k = chKey(x.it); ks[k] = (ks[k] || 0) + 1; }); const list = Object.entries(ks).sort((a, b) => b[1] - a[1]); return list.length ? `<div class="res-ch"><h2>Chapitres à retravailler</h2><div class="res-ch-l">${list.map(([k, n]) => `<button class="res-chip" style="${hueStyle(chCat(k))}" data-act="weakPick" data-k="${h(k)}"><span>${h(chLabel(k))}</span><small>${n} erreur${n > 1 ? "s" : ""} · retravailler ›</small></button>`).join("")}</div></div>` : ""; })()}
     ${bad.length ? `<h2>Corrections</h2><div class="review">${review}</div>` : `<div class="empty">Aucune erreur. Le compte est soldé.</div>`}
@@ -2981,8 +3037,10 @@ function vErreurs() {
   const one = EF.ks && EF.ks.length === 1 ? EF.ks[0] : null;
   const fiches = (EF.ks || []).filter(k => CHID[k]);
   const stB = (v, l) => `<button class="eb-f${EF.st === v ? " on" : ""}" data-act="ebSt" data-v="${v}">${l}</button>`;
+  const wk = EF.ks ? [] : weakChaps(3);
   return `<section class="stack eb">${head}
     <div class="eb-sum"><div><b>${all.length}</b><span>question${all.length > 1 ? "s" : ""} ratée${all.length > 1 ? "s" : ""}</span></div><div><b>${tot}</b><span>erreur${tot > 1 ? "s" : ""} au total</span></div><div><b>${todo}</b><span>encore à revoir</span></div><div><b>${all.length - todo}</b><span>corrigée${all.length - todo > 1 ? "s" : ""} depuis</span></div></div>
+    ${wk.length ? `<div class="stack"><h2>Tes points faibles</h2><p class="muted">Chapitres sous 80 % de réussite. Touche « Retravailler » pour t'entraîner, relire la fiche ou relire tes erreurs.</p>${weakList(3)}</div>` : ""}
     ${EF.ks ? "" : `<div class="stack"><h2>Où tu te trompes le plus</h2>
       <div class="res-ch-l">${top.map(o => `<button class="res-chip" style="${hueStyle(o.c)}" data-act="ebCh" data-k="${h(o.k)}"><span>${h(chLabel(o.k))}</span><small>${o.n} erreur${o.n > 1 ? "s" : ""} sur ${o.q} question${o.q > 1 ? "s" : ""} · voir ›</small></button>`).join("")}</div></div>`}
     <div class="eb-bar">
@@ -3010,11 +3068,11 @@ function weakSheet(k) {
     <span class="eyebrow">${one ? "Point faible" : "Tes points faibles"}</span><h2 id="wkT">${one ? h(chLabel(one)) : ks.map(x => h(chLabel(x))).join(" · ")}</h2>
     <p class="muted">Tu veux t'entraîner tout de suite, ou relire avant ?</p>
     <div class="wk-opts">
-      <button class="wk-opt" data-act="wkTrain" data-k="${h(k)}"><b>🎯 S'entraîner</b><span>Quiz de ${quizLen} questions, en commençant par celles que tu as ratées.</span></button>
-      ${one && CHID[one] ? `<button class="wk-opt" data-act="wkFiche" data-id="${one}"><b>📖 Relire la fiche</b><span>La fiche de cours du chapitre, pour reprendre les bases.</span></button>` : ""}
-      <button class="wk-opt" data-act="wkErr" data-k="${h(k)}" ${nErr ? "" : "disabled"}><b>📕 Relire mes erreurs</b><span>${nErr ? `${nErr} question${nErr > 1 ? "s" : ""} ratée${nErr > 1 ? "s" : ""}, avec la bonne réponse et l'explication.` : "Aucune erreur enregistrée ici."}</span></button>
+      <button class="wk-opt" data-act="wkTrain" data-k="${h(k)}"><b>${ICON.target}S'entraîner</b><span>Quiz de ${quizLen} questions, en commençant par celles que tu as ratées.</span></button>
+      ${one && CHID[one] ? `<button class="wk-opt" data-act="wkFiche" data-id="${one}"><b>${ICON.book}Relire la fiche</b><span>La fiche de cours du chapitre, pour reprendre les bases.</span></button>` : ""}
+      <button class="wk-opt" data-act="wkErr" data-k="${h(k)}" ${nErr ? "" : "disabled"}><b>${ICON.errbook}Relire mes erreurs</b><span>${nErr ? `${nErr} question${nErr > 1 ? "s" : ""} ratée${nErr > 1 ? "s" : ""}, avec la bonne réponse et l'explication.` : "Aucune erreur enregistrée ici."}</span></button>
     </div>
-    ${!one && fiches.length ? `<div class="wk-read"><b>📖 Relire une fiche</b><div>${fiches.map(id => `<button class="btn small" data-act="wkFiche" data-id="${id}">${h(CHID[id].title)}</button>`).join("")}</div></div>` : ""}
+    ${!one && fiches.length ? `<div class="wk-read"><b>${ICON.book}Relire une fiche</b><div>${fiches.map(id => `<button class="btn small" data-act="wkFiche" data-id="${id}">${h(CHID[id].title)}</button>`).join("")}</div></div>` : ""}
   </div>`;
   el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
   document.body.appendChild(el);
@@ -3063,7 +3121,7 @@ function vProfil() {
     [st, st > 1 ? "jours d'affilée" : "jour d'affilée", "Série en cours"],
     [`${tl.r}<small>/${tl.n}</small>`, "leçons lues", "Cours"],
     [`${known}<small>/${FS.length}</small>`, "cartes bien sues", `${seen} déjà vues`],
-    [`${QS.filter(x => qState(x.id) >= 2).length}<small>/${QS.length}</small>`, "questions acquises", "Justes 2 jours différents"],
+    [`${QS.filter(x => qState(x.id) >= 2).length}<small>/${QS.length}</small>`, "questions acquises", `+${weekAcq().n} cette semaine · ${weekAcq().soon} en bonne voie`],
     [`${validCount().v}<small>/${validCount().n}</small>`, "chapitres validés", "Contrôles réussis 2 fois"],
     [tries ? Math.round(oks / tries * 100) + "<small> %</small>" : "–", "de bonnes réponses", `${oks} sur ${tries} réponses`],
     [ex, "exercices pratiqués", "Guidés et annales"],
@@ -3098,8 +3156,8 @@ function vProfil() {
       <div class="pf-card">${heatmap()}</div>
     </section>
     <section class="stack"><div class="sec-head"><h2>Mes points faibles</h2><p>Les chapitres où tu te trompes le plus aux quiz.</p></div>
-      ${weakList(5)}
-      ${errList().length ? `<div class="row"><button class="btn" data-act="goErr">📕 Ouvrir mon cahier des erreurs</button></div>` : ""}
+      ${weakList(3)}
+      <div class="row"><button class="btn" data-act="goErr">${ICON.errbook}Tout voir dans le cahier des erreurs</button></div>
     </section>
     <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p><span class="pf-key"><i></i>leçons lues</span><span class="pf-key alt w"><i></i>quiz et cartes travaillés</span><span class="pf-key alt"><i></i>maîtrisés</span></p></div>
       ${mastNote}<div class="pf-mats">${mats}</div>
@@ -3204,7 +3262,7 @@ function vCardsEnd() {
       <tbody><tr class="total"><td>${C.total} cartes revues</td><td class="num debit">${C.knew}</td><td class="num credit">${C.again}</td></tr></tbody>
     </table></div>
     <p class="muted">+${S.xp - C.xp0} XP. Les cartes ratées reviendront dès ta prochaine révision du jour.</p>
-    <div class="row"><button class="btn primary" data-act="goCards">Autre session</button><button class="btn" data-act="goHome">Accueil</button></div>
+    <div class="row">${planLeft() ? `<button class="btn primary" data-act="planNext">Étape suivante de la séance</button>` : ""}<button class="btn${planLeft() ? "" : " primary"}" data-act="goCards">Autre session</button><button class="btn" data-act="goHome">Accueil</button></div>
   </section>`;
 }
 
@@ -3280,8 +3338,8 @@ function nextLesson() {
 }
 function nextOf(cid, k) { if (k < nLessons(cid)) return { cid, k: k + 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i >= 0 && i < s.length - 1 ? { cid: s[i + 1], k: 1 } : null; }
 function prevOf(cid, k) { if (k > 1) return { cid, k: k - 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i > 0 ? { cid: s[i - 1], k: nLessons(s[i - 1]) } : null; }
-function openLesson(cid, k) { if (!COURS[cid]) return; k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k }; S.last = { c: cid, k }; touch(); go("lesson"); }
-function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; S.xp += 8; dayLog().l++; bumpStreak(); }
+function openLesson(cid, k) { if (!COURS[cid]) return; k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
+function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
 function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
 
 /* Rendu du markdown des cours */
@@ -3547,7 +3605,9 @@ function blocksHTML(list) {
 function openFiche(id) {
   if (!CHID[id]) return;
   FC = { id }; S.fr = S.fr || {};
-  if (!S.fr[id]) { S.fr[id] = 1; S.xp += 4; bumpStreak(); toast("Fiche lue : +4 XP"); }
+  if (!S.fr[id]) { S.fr[id] = 1; bumpStreak(); }
+  clearTimeout(openFiche.t);
+  if (!(S.frx || {})[id]) openFiche.t = setTimeout(() => { if (view === "fiche" && FC && FC.id === id) { S.frx = S.frx || {}; if (!S.frx[id]) { S.frx[id] = 1; S.xp += 4; touch(); renderTop(); toast("Fiche lue : +4 XP"); } } }, 30000);
   touch(); go("fiche");
 }
 const ficheRead = id => !!(S.fr && S.fr[id]);
@@ -3755,6 +3815,31 @@ function simText() {
   const avg = simAvg(), ok = avg >= 10, miss = (10 * EP_TOTAL - avg * EP_TOTAL);
   return { avg: avg.toFixed(2).replace(".", ",") + " / 20", ok, tip: "Un point gagné en E5 (coefficient 9) pèse trois fois plus qu'un point en maths ou en anglais (coefficient 3)." + (ok ? "" : ` Il te manque ${(Math.ceil(miss * 10) / 10).toString().replace(".", ",")} points pondérés, soit par exemple ${(Math.ceil(miss / 9 * 10) / 10).toString().replace(".", ",")} point de plus en E5.`) };
 }
+function effortByCat() {
+  const E = {}; const add = (c, v) => { if (c && CAT[c]) E[c] = (E[c] || 0) + v; };
+  Object.entries(S.q || {}).forEach(([id, r]) => add(id.replace(/q\d+$/, ""), r[0]));
+  Object.entries(S.c || {}).forEach(([id, r]) => add(id.replace(/k\d+$/, ""), 1 + (r[0] || 0)));
+  Object.keys(S.l || {}).forEach(k => { const cid = k.split(":")[0]; try { add(CMETA(cid).cat, 6); } catch (e) {} });
+  Object.keys(S.fr || {}).forEach(id => add(CHID[id] && CHID[id].cat, 3));
+  Object.keys(S.x || {}).forEach(id => { const g = GENS.find(x => x.id === id) || GCASES.find(x => x.id === id) || (typeof REDACBY !== "undefined" && REDACBY[id]); add(g && g.cat, 8); });
+  ANNEX.forEach(x => { const st = (S.an || {})[x.id]; if (st && (st.d || st.r)) add(annCat(x), 10); });
+  return E;
+}
+function balanceHTML() {
+  const E = effortByCat(), per = {};
+  Object.entries(E).forEach(([c, v]) => { const eps = EPREUVES.filter(e => e.cats.includes(c)); eps.forEach(e => per[e.c] = (per[e.c] || 0) + v / eps.length); });
+  const tot = Object.values(per).reduce((a, b) => a + b, 0);
+  const head = `<section class="stack"><h2>Ton équilibre de révision</h2><p class="muted">Ce que tu as travaillé dans l'appli (réponses, cartes, leçons, exercices), comparé au poids de chaque épreuve dans la note finale.</p>`;
+  if (tot < 80) return head + `<div class="empty">Encore trop peu d'activité pour comparer. Reviens après quelques séances.</div></section>`;
+  const rows = EPREUVES.map(e => { const me = (per[e.c] || 0) / tot * 100, w = e.k / EP_TOTAL * 100, low = me < w * .6; return { e, me, w, low }; });
+  const lows = rows.filter(r => r.low).sort((a, b) => (a.me - a.w) - (b.me - b.w));
+  return head + `<div class="bal">${rows.map(r => `<div class="bal-r${r.low ? " low" : ""}"><b>${r.e.c}</b><span class="bal-t">${h(r.e.t)}</span>
+      <div class="bal-bars"><span class="bal-b me" style="width:${Math.min(100, r.me).toFixed(1)}%"></span><span class="bal-b w" style="width:${r.w.toFixed(1)}%"></span></div>
+      <span class="bal-n">${Math.round(r.me)} % <small>/ ${Math.round(r.w)} %</small></span></div>`).join("")}</div>
+    <p class="bal-key"><span><i class="me"></i>ton temps</span><span><i class="w"></i>poids dans la note</span></p>
+    ${lows.length ? `<p class="bal-tip"><b>À renforcer :</b> ${lows.slice(0, 3).map(r => `${r.e.c} (${Math.round(r.me)} % de ton temps pour ${Math.round(r.w)} % de la note)`).join(", ")}.</p>` : `<p class="bal-tip ok">Ton temps est bien réparti par rapport aux coefficients.</p>`}
+  </section>`;
+}
 function vBts() {
   const b = btsState(), dl = daysLeft(), now = new Date(), cur = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0"), sim = simText();
   const doneN = BTS_CHECK.filter((_, i) => b.check[i]).length;
@@ -3770,6 +3855,7 @@ function vBts() {
       </tbody></table></div>
       <p class="muted">39 coefficients au total ; le diplôme s'obtient avec une moyenne pondérée d'au moins 10 sur 20. La forme de certaines épreuves (CCF ou ponctuelle) dépend de ton statut et de ton établissement : vérifie avec ton centre.</p>
     </section>
+    ${balanceHTML()}
     <section class="stack"><h2>Simulateur de moyenne</h2><p class="muted">Entre tes notes estimées : tu vois tout de suite où un point gagné rapporte le plus.</p>
       <div class="sim">${EPREUVES.map(e => `<label class="sim-f"><span><b>${e.c}</b> coefficient ${e.k}</span><input type="number" min="0" max="20" step="0.5" data-note="${e.c}" value="${h(b.notes[e.c] != null ? b.notes[e.c] : e.ex)}"></label>`).join("")}</div>
       <div class="sim-out"><div><span class="eyebrow">Moyenne estimée</span><div class="big" id="simAvg">${sim.avg}</div></div><span class="pill ${sim.ok ? "ok" : "ko"}" id="simVerdict">${sim.ok ? "Admis" : "Pas encore"}</span><p class="muted" id="simTip">${h(sim.tip)}</p></div>
@@ -4473,7 +4559,7 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["quiz", "🃏", "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", "🧮", "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", "🧭", "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", "📚", "Annales", `${ANNEX.length} exercices officiels`], ["redac", "✍️", "Rédactions", `${REDAC.length} sujets`]];
+  const T = [["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 function vExHome() {
@@ -4502,8 +4588,8 @@ function vExHome() {
         <button class="mode" data-act="goExam"><b>QCM chrono</b><span>20 questions toutes matières en 20 minutes.</span></button>
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
-      <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button><button class="btn" data-act="startWrong" ${QS.some(x => S.q[x.id] && S.q[x.id][2] === 0) ? "" : "disabled"}>Refaire mes erreurs de quiz</button><button class="btn" data-act="goErr">📕 Cahier des erreurs</button></div>
-      ${weakChaps(1).length ? `<button class="wk-cta" data-act="weakPick" data-k="*"><span class="wk-ic" aria-hidden="true">🎯</span><span><b>Travailler mes points faibles</b><small>${weakChaps(5).map(o => h(chLabel(o.k))).slice(0, 2).join(" · ")}${weakChaps(5).length > 2 ? "…" : ""}</small></span><span class="wk-go">Choisir ›</span></button>` : ""}
+      <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button></div>
+      ${(() => { const el = errList(), td = el.filter(e => !e.ok).length, wk = weakChaps(5); return `<button class="wk-cta" data-act="goErr"><span class="wk-ic">${ICON.errbook}</span><span><b>Mes erreurs et points faibles</b><small>${el.length ? `${td} question${td > 1 ? "s" : ""} à revoir${wk.length ? ` · ${wk.length} chapitre${wk.length > 1 ? "s" : ""} faible${wk.length > 1 ? "s" : ""} : ${h(chLabel(wk[0].k))}` : ""}` : "Rien pour l'instant : tes erreurs de quiz arriveront ici."}</small></span><span class="wk-go">Ouvrir ›</span></button>`; })()}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>` : ""}
@@ -4570,6 +4656,7 @@ function vAnnEx() {
       <textarea class="ex-text ann-copy" id="annText" rows="12" placeholder="Rédige ici tes réponses : écritures (date, comptes, débit, crédit, libellé), calculs, explications…">${h(st.t || "")}</textarea>
       ${canImg ? `<div class="row"><label class="btn small file-btn">Ajouter des photos de ta copie papier<input type="file" accept="${h((SAMPLE_IMG.mediaTypes || ["image/jpeg", "image/png", "image/webp"]).join(","))}" multiple data-photo="copy" hidden></label><span class="muted small">${SAMPLE_IMG.maxCount ? `Jusqu'à ${SAMPLE_IMG.maxCount} photos au total.` : ""} Les photos ne sont pas enregistrées.</span></div>${photoStrip("copy")}` : ""}
       ${corrBlock}
+      ${annGrid(x, st)}
     </div>
     ${r ? annResult(x, r) : ""}
     <footer class="lesson-foot">${pv ? `<button class="btn" data-act="annOpen" data-id="${pv.id}">${a.ep === "E1" ? "Partie" : "Mission"} précédente</button>` : `<button class="btn" data-nav="ex">Toutes les annales</button>`}
@@ -4577,6 +4664,16 @@ function vAnnEx() {
   </section>`;
 }
 const fmtSec = s => { s = Math.round(s); const m = Math.floor(s / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min ${String(s % 60).padStart(2, "0")} s`; };
+function annGrid(x, st) {
+  const g = st.g || [], n = x.w.length, done = x.w.every((_, i) => g[i] != null), sur = x.pts || 20;
+  const sc = x.w.reduce((t, _, i) => t + (g[i] || 0), 0), note = Math.round(sc / (2 * n) * sur * 2) / 2;
+  const opts = [[2, "Juste"], [1, "En partie"], [0, "Faux ou pas fait"]];
+  return `<details class="ann-gridev"${SAMPLE_STATE !== "ok" || g.length ? " open" : ""}><summary>${ICON.list}Auto-évaluation avec le corrigé ${done ? `<span class="pill ${note >= sur / 2 ? "ok" : "ko"}">${fmtNote(note)} / ${sur}</span>` : `<span class="muted small">${g.filter(v => v != null).length} sur ${n}</span>`}</summary>
+    <p class="muted small">Ouvre le corrigé du sujet, puis pour chaque demande indique si ta réponse est juste. Sois exigeant : « juste » veut dire le bon compte, le bon montant et la justification.</p>
+    <ol class="ag-list">${x.w.map((t, i) => `<li><span>${h(t)}</span><div class="ag-b" role="group" aria-label="Ma réponse">${opts.map(([v, l]) => `<button class="ag-o v${v}" data-act="agSet" data-i="${i}" data-v="${v}" aria-pressed="${g[i] === v}">${l}</button>`).join("")}</div></li>`).join("")}</ol>
+    ${done ? `<div class="ag-res"><b>Environ ${fmtNote(note)} / ${sur}</b>${g.some(v => v < 2) ? `<span class="muted"> · Notions à revoir :</span><div class="ann-notions">${x.tags.map(t => `<button class="chip" style="${hueStyle(NOTIONS[t][1])}" data-act="annNotion" data-q="${h(NOTIONS[t][2])}">${h(NOTIONS[t][0])}</button>`).join("")}</div>` : `<span class="muted"> · Tout est juste, bravo.</span>`}</div>` : ""}
+  </details>`;
+}
 function annResult(x, r) {
   const sur = r.sur || x.pts || 20;
   return `<section class="qcard ann-res">
@@ -5526,6 +5623,9 @@ document.addEventListener("click", e => {
     case "annStop": if (annCtl) annCtl.abort(); break;
     case "annTimer": annSaveNow(); annTimerToggle(); break;
     case "annPhotoDel": { annSaveNow(); const k = b.dataset.kind; if (ANP[k]) ANP[k].splice(+b.dataset.i, 1); render(); break; }
+    case "agSet": { annSaveNow(); const st = annState(AX.id), x = ANNEXID[AX.id]; st.g = st.g || []; st.g[+b.dataset.i] = +b.dataset.v;
+      if (x.w.every((_, i) => st.g[i] != null) && !st.d) { st.d = 1; S.xp += 5; dayLog().e++; bumpStreak(); toast("Exercice fait : +5 XP"); }
+      touch(); const y = window.scrollY; render(); window.scrollTo({ top: y }); break; }
     case "annDone": { annSaveNow(); const st = annState(AX.id); if (!st.d) { st.d = 1; S.xp += 5; dayLog().e++; bumpStreak(); toast("Exercice fait : +5 XP"); } else st.d = 0; touch(); render(); break; }
     case "gsOpen": gsOpen(); break;
     case "gsClose": gsClose(); break;
@@ -5574,6 +5674,8 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "planGo": { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); break; }
+    case "planNext": { go("home"); setTimeout(() => { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); }, 30); break; }
     case "exTab": { setExTab(b.dataset.t); if (view !== "ex") go("ex"); else { render(); const n = document.querySelector(".ex-tabs"), y = n ? n.getBoundingClientRect().top + window.scrollY - 70 : 0; if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y) }); } break; }
     case "wkClose": closeSheet(); break;
     case "wkFiche": closeSheet(); openFiche(b.dataset.id); break;
