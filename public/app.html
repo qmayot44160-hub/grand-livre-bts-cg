@@ -1135,6 +1135,15 @@ html, body { overflow-x: hidden; }
 .ex-choice.ok select { border-color: var(--ok); background: var(--ok-bg); }
 .ex-choice.ko select { border-color: var(--bad); background: var(--bad-bg); }
 .ex-corr td small { color: var(--muted); }
+
+/* Exercices guidés : verdict par étape */
+.ko-badge { margin-left: auto; color: var(--bad); font-weight: 800; }
+.gverdict { margin: 8px 0 0; font-weight: 700; }
+.gverdict.ok { color: var(--ok); }
+.gverdict.ko { color: var(--bad); }
+.corr.is-ko { background: var(--bad-bg); }
+.corr.is-ko > b { color: var(--bad); }
+.gself { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; font-size: .9rem; }
 </style>
 
 <header class="top">
@@ -3484,7 +3493,18 @@ function chText(x) {
 
 /* Exercices guidés, étape par étape */
 function openCase(id) { if (!GCID[id]) return; GC = { id }; go("gcase"); }
-function caseState(id) { S.gc = S.gc || {}; return S.gc[id] || (S.gc[id] = { step: 0, notes: {} }); }
+function caseState(id) { S.gc = S.gc || {}; const st = S.gc[id] || (S.gc[id] = { step: 0, notes: {} }); st.ok = st.ok || {}; return st; }
+/* Vérification automatique des étapes chiffrées : on compare le résultat du corrigé (dernier « = nombre ») aux nombres de la réponse */
+const NUM_RE = /-?\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:,\d+)?|-?\d+(?:[.,]\d+)?/g;
+const toNum = t => parseFloat(String(t).replace(/[ \u00a0\u202f]/g, "").replace(",", "."));
+const STEP_EXP = {"p1-x1|Net commercial": [4500], "p1-x1|Net financier et base HT": [4410, 4510], "p1-x1|TVA et TTC": [902, 5412], "p1-x2|Net commercial": [1900], "p1-x2|TVA et total à payer": [380, 2430], "p1-x3|Calcul": [3000], "p1-x4|Côté comptabilité": [3250], "p1-x4|Côté banque": [3250], "p1-x5|Montants": [160, 960], "p2-x1|Taux et annuité pleine": [6000], "p2-x1|Dotation N (prorata)": [4500], "p2-x1|Dotation N+1 et VNC": [6000, 19500], "p2-x2|Taux dégressif": [35], "p2-x2|Annuité N": [7875], "p2-x2|Dérogatoire": [3375], "p2-x2|Annuité N+1": [7743.75], "p2-x3|Complément d'amortissement": [2000], "p2-x3|Résultat": [3000], "p2-x4|Dépréciation (N)": [1200], "p2-x5|Assurance": [900], "p2-x6|Réserve légale": [2000], "p2-x6|Bénéfice distribuable": [40000], "p3-x1|Réintégrations": [18500], "p3-x1|Déductions": [10000], "p3-x1|Résultat fiscal": [68500], "p3-x1|IS": [12875], "p3-x2|Acomptes": [3000], "p3-x2|Solde": [875], "p3-x3|Ventes": [8700], "p3-x3|Services": [6000], "p3-x3|Total": [14700], "p4-x1|Semaine 1": [75], "p4-x1|Semaine 2": [195], "p4-x1|Total du mois": [270], "p4-x2|Règle du dixième": [480], "p4-x2|Maintien de salaire": [461.54], "p4-x2|Montant retenu": [480], "p4-x3|Net à payer": [1862.55], "p4-x3|Coût employeur": [3462.55], "p5-x1|MCV et résultat": [200000, 80000], "p5-x1|Seuil de rentabilité": [300000], "p5-x1|Sécurité": [200000, 40], "p5-x1|Point mort": [7.2], "p5-x1|Levier opérationnel": [2.5], "p5-x2|CUMP": [11], "p5-x2|Avec le CUMP": [550], "p5-x2|Avec le PEPS": [575], "p5-x3|Quantité économique": [1095], "p5-x3|Nombre de commandes": [11], "p5-x4|Coût réel et préétabli": [10080, 10000], "p5-x4|Écart global": [80], "p5-x4|Décomposition": [500, 420], "p5-x5|Moyennes": [2.5, 125], "p5-x5|Coefficient a": [16], "p5-x5|Coefficient b et droite": [85], "p5-x5|Prévision": [165], "p5-x6|Coût de l'unité d'œuvre": [20], "p5-x6|Charges indirectes de A": [6000], "p5-x6|Coût de production": [24000], "p6-x1|Marge, production, VA": [240000], "p6-x1|EBE et résultat d'exploitation": [75000, 53000], "p6-x1|RCAI, exceptionnel, RN": [36000], "p6-x1|CAF": [56000], "p6-x2|FRNG": [150000], "p6-x2|BFR": [90000], "p6-x2|Trésorerie nette": [60000], "p6-x3|Flux actualisés": [119781], "p6-x3|VAN et IP": [19781, 1.2], "p6-x3|TRI": [15.2], "p6-x4|Annuité": [28201.18], "p6-x4|Année 1": [5000, 23201.18], "p6-x4|Année 2": [3839.94, 24361.24], "ma-x1|CA 2025": [459648], "ma-x1|Taux global": [[14.91, 1.14912]], "ma-x1|Taux annuel moyen": [[4.74, 1.0474]], "ma-x2|Banque A": [23200], "ma-x2|Banque B": [23185.48], "ma-x3|Inéquation": [14.2], "ma-x3|Conclusion": [15], "ma-x4|P(R)": [0.22], "ma-x4|P_R(P)": [[0.818, 81.8, 82]], "ma-x5|Point moyen": [5, 44], "ma-x5|Coefficient a": [4.8], "ma-x5|Coefficient b et droite": [20], "ma-x5|Prévision": [68], "ma-x6|Maximum": [[150, 150000]]};
+const numTol = x => Math.abs(x) >= 100 ? Math.max(1, Math.abs(x) * 0.002) : Math.max(0.011, Math.abs(x) * 0.01);
+function stepCheck(key, note) {
+  const exp = STEP_EXP[key]; if (!exp) return null;
+  const got = (String(note || "").match(NUM_RE) || []).map(toNum).filter(x => !isNaN(x));
+  const miss = exp.filter(e => !(Array.isArray(e) ? e : [e]).some(v => got.some(g => Math.abs(g - v) <= numTol(v))));
+  return { exp: exp.map(e => Array.isArray(e) ? e[0] : e), ok: !miss.length, none: !got.length, miss: miss.map(e => Array.isArray(e) ? e[0] : e) };
+}
 function vCase() {
   const k = GCID[GC && GC.id]; if (!k) return vExHome();
   const st = caseState(k.id), n = k.steps.length, ch = CHID[k.ch];
@@ -3498,13 +3518,16 @@ function vCase() {
     ${k.steps.map((s, i) => {
       const locked = i > st.step, shown = i < st.step;
       return `<div class="gstep${locked ? " locked" : ""}${shown ? " shown" : ""}" id="gs${i}">
-        <div class="gstep-h"><span class="mk">${h(s.k)}</span><b>${h(s.name)}</b>${shown ? `<span class="ok-badge">${ICON.check}</span>` : ""}</div>
+        <div class="gstep-h"><span class="mk">${h(s.k)}</span><b>${h(s.name)}</b>${shown && st.ok[i] === true ? `<span class="ok-badge" title="Juste">${ICON.check}</span>` : shown && st.ok[i] === false ? `<span class="ko-badge" title="À revoir">✕</span>` : ""}</div>
         ${locked ? "" : `${s.tip ? `<p class="muted">${h(s.tip)}</p>` : ""}
         <textarea class="ex-text" rows="3" data-gstep="${i}" placeholder="Ta réponse (brouillon enregistré)">${h(st.notes[i] || "")}</textarea>
-        ${shown ? `<div class="corr"><b>Corrigé</b><p style="white-space:pre-line">${h(s.corr)}</p></div>` : `<div class="row"><button class="btn primary" data-act="gReveal" data-i="${i}">Voir le corrigé de cette étape</button></div>`}`}
+        ${shown ? (() => { const ck = stepCheck(k.id + "|" + s.name, st.notes[i]);
+          const verdict = ck ? `<p class="gverdict ${ck.ok ? "ok" : "ko"}">${ck.ok ? "Juste" : ck.none ? "Pas de montant dans ta réponse" : "Faux"} : attendu ${ck.exp.map(fmt).join(" et ")}${!ck.ok && !ck.none && ck.exp.length > 1 ? ` ; il manque ou il y a une erreur sur ${ck.miss.map(fmt).join(" et ")}` : ""}.</p>`
+            : st.ok[i] == null ? `<div class="gself"><span>Compare avec le corrigé :</span><button class="btn small" data-act="gSelf" data-i="${i}" data-v="1">J'avais juste</button><button class="btn small" data-act="gSelf" data-i="${i}" data-v="0">Je m'étais trompé</button></div>` : "";
+          return `<div class="corr ${st.ok[i] === false ? "is-ko" : ""}"><b>Corrigé</b><p style="white-space:pre-line">${h(s.corr)}</p>${verdict}</div>`; })() : `<div class="row"><button class="btn primary" data-act="gReveal" data-i="${i}">Voir le corrigé de cette étape</button></div>`}`}
       </div>`;
     }).join("")}
-    ${st.step >= n ? `<div class="panel"><b>Exercice terminé.</b><p class="muted">Compare chaque étape avec le corrigé. Ce que tu as raté ira dans ta prochaine séance de cartes.</p><div class="row"><button class="btn" data-act="gReset">Recommencer</button><button class="btn primary" data-act="mat" data-cat="${k.cat}" data-seg="train">Autres exercices</button></div></div>` : ""}
+    ${st.step >= n ? `<div class="panel"><b>Exercice terminé${Object.keys(st.ok).length ? ` : ${Object.values(st.ok).filter(Boolean).length} étape${Object.values(st.ok).filter(Boolean).length > 1 ? "s" : ""} juste${Object.values(st.ok).filter(Boolean).length > 1 ? "s" : ""} sur ${n}` : ""}.</b><p class="muted">Les étapes chiffrées sont vérifiées automatiquement ; pour les autres, compare avec le corrigé et indique si tu avais juste. Refais l'exercice dans quelques jours pour vérifier que c'est acquis.</p><div class="row"><button class="btn" data-act="gReset">Recommencer</button><button class="btn primary" data-act="mat" data-cat="${k.cat}" data-seg="train">Autres exercices</button></div></div>` : ""}
   </section>`;
 }
 function gcCard(k) { const st = (S.gc || {})[k.id]; const done = st && st.step >= k.steps.length; return `<button class="ex-card" style="${hueStyle(k.cat)}" data-act="gcase" data-id="${k.id}"><b>${h(k.title)}</b><span class="muted">${k.steps.length} étapes${done ? ", terminé" : st && st.step ? `, étape ${st.step + 1}` : ""}</span></button>`; }
@@ -5328,8 +5351,9 @@ document.addEventListener("click", e => {
     case "chQuiz": { const l = QCH[b.dataset.ch] || []; if (l.length) startRun(shuffle(l).slice(0, 15), "quiz"); else toast("Pas encore de quiz pour cette fiche"); break; }
     case "chCards": { const l = FCH[b.dataset.ch] || []; if (l.length) startCards(shuffle(l)); else toast("Pas encore de cartes pour cette fiche"); break; }
     case "gcase": openCase(b.dataset.id); break;
-    case "gReveal": { const st = caseState(GC.id), k = GCID[GC.id], i = +b.dataset.i; const was = st.step; st.step = Math.max(st.step, i + 1); if (st.step >= k.steps.length && was < k.steps.length) { S.xp += 10; dayLog().e++; bumpStreak(); toast("Exercice terminé : +10 XP"); } touch(); render(); requestAnimationFrame(() => { const t = document.getElementById("gs" + (i + 1)); if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }); break; }
-    case "gReset": { S.gc[GC.id] = { step: 0, notes: {} }; touch(); render(); window.scrollTo({ top: 0 }); break; }
+    case "gSelf": { const st = caseState(GC.id); st.ok[+b.dataset.i] = b.dataset.v === "1"; touch(); render(); break; }
+    case "gReveal": { const st = caseState(GC.id), k = GCID[GC.id], i = +b.dataset.i; const was = st.step; { const ck = stepCheck(k.id + "|" + k.steps[i].name, st.notes[i]); if (ck) st.ok[i] = ck.ok; } st.step = Math.max(st.step, i + 1); if (st.step >= k.steps.length && was < k.steps.length) { S.xp += 10; dayLog().e++; bumpStreak(); toast("Exercice terminé : +10 XP"); } touch(); render(); requestAnimationFrame(() => { const t = document.getElementById("gs" + (i + 1)); if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }); break; }
+    case "gReset": { S.gc[GC.id] = { step: 0, notes: {}, ok: {} }; touch(); render(); window.scrollTo({ top: 0 }); break; }
     case "defi": startDefi(cat ? [cat] : (DF && DF.cats) || null); break;
     case "dPick": defiPick(+b.dataset.pos); break;
     case "genQuiz": genQuiz(b.dataset.ch); break;
