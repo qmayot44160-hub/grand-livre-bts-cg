@@ -2537,12 +2537,13 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
-const PREF_DEF = { theme: "auto", fs: "m", motion: "on", vib: "on", qlen: 10, clen: 30, name: "" };
+const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", qlen: 10, clen: 30, name: "" };
 function buzz(p) { try { if ((S.pref || PREF_DEF).vib !== "off" && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 function P() { S.pref = Object.assign({}, PREF_DEF, S.pref || {}); return S.pref; }
 function applyPrefs() {
   const p = S.pref || PREF_DEF, r = document.documentElement;
   if (p.theme === "light" || p.theme === "dark") r.setAttribute("data-theme", p.theme); else r.removeAttribute("data-theme");
+  try { localStorage.setItem("gl-theme", p.theme || "light"); } catch (e) {}
   r.setAttribute("data-fs", p.fs || "m"); r.classList.toggle("no-motion", p.motion === "off");
 }
 let prefSeenQ = null;
