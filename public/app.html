@@ -2930,6 +2930,7 @@ function suggestEx(cat) {
   return pool.slice().sort((a, b) => ((sx[a.id] || [0])[0] - (sx[b.id] || [0])[0]) || (pool.indexOf(a) - pool.indexOf(b)))[0];
 }
 function todayCount(cats) { const d = dueCards(cats); return Math.min(30, d.reviews.length + Math.min(15, d.fresh.length)); }
+function exCount() { return Object.keys(S.x || {}).length + Object.values(S.an || {}).filter(x => x && (x.d || x.r || (x.g && x.g.length))).length + Object.values(S.gc || {}).filter(x => x && x.step > 0).length; }
 function planLeft() { const dy = dayLog(); return dy.l === 0 || dy.e === 0 || (dy.c < 10 && (todayCount() > 0 || dueQs().length > 0)); }
 function weekAcq() {
   const d0 = dayNum() - 6; let n = 0, soon = 0;
@@ -3008,7 +3009,7 @@ function vHome() {
         <div class="fig"><b>${tl.r}<small class="muted">/${tl.n}</small></b><span>leçons lues</span></div>
         <div class="fig"><b>${known}</b><span>cartes bien sues</span></div>
         <div class="fig"><b>+${weekAcq().n}</b><span>questions acquises cette semaine</span></div>
-        <div class="fig"><b>${Object.keys(S.x || {}).length}</b><span>exercices pratiqués</span></div>
+        <div class="fig"><b>${exCount()}</b><span>exercices pratiqués</span></div>
       </div>
       <div class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></div>
     </div>
@@ -3261,7 +3262,7 @@ function vProfil() {
   const tl = totalLessons(), known = FS.filter(x => S.c[x.id] && S.c[x.id][0] >= 3).length, seen = FS.filter(x => S.c[x.id]).length;
   const qa = Object.values(S.q), tries = qa.reduce((a, r) => a + r[0], 0), oks = qa.reduce((a, r) => a + r[1], 0);
   const name = p.name || window.GL_NAME || "", ini = (name.trim() ? name.trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) : "BTS").toUpperCase();
-  const st = streakNow(), best = (S.df || {}).best || 0, ex = Object.keys(S.x || {}).length, dl = daysLeft();
+  const st = streakNow(), best = (S.df || {}).best || 0, ex = exCount(), dl = daysLeft();
   const lvIdx = LEVELS.reduce((a, l, i) => S.xp >= l[0] ? i : a, 0);
   const tiles = [
     [st, st > 1 ? "jours d'affilée" : "jour d'affilée", "Série en cours"],
