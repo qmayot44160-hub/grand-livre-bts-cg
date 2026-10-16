@@ -175,6 +175,29 @@ app.post("/api/account/delete", auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* ---------- Classement de la semaine (élèves volontaires uniquement) ---------- */
+let CLASS = { at: 0, wk: -1, rows: [] };
+function weekStats(d, wk) {
+  const d0 = wk * 7 - 3, d1 = d0 + 6;
+  let acq = 0;
+  Object.values(d.qd || {}).forEach(o => { if (!o || !Array.isArray(o.ok) || o.ok.length < 2) return; const a = o.ok.find(v => v - o.ok[0] >= 3); if (a != null && a >= d0 && a <= d1) acq++; });
+  const days = Object.entries(d.h || {}).filter(([k, v]) => +k >= d0 && +k <= d1 && v > 0).length;
+  const dw = d.dw && d.dw.w === wk ? d.dw : null;
+  return { acq, days, dsc: dw ? Math.max(0, Math.min(10, +dw.sc || 0)) : null, dt: dw ? Math.max(0, +dw.t || 0) : null };
+}
+app.get("/api/class", auth, async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const wk = Math.floor((parisNow().dayNum + 3) / 7);
+    if (Date.now() - CLASS.at > 20000 || CLASS.wk !== wk) {
+      const all = await store.allProgress();
+      CLASS = { at: Date.now(), wk, rows: all.map(r => { const d = r.data || {}; return Object.assign({ id: r.id, p: String((d.cl && d.cl.p) || "Anonyme").replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) }, weekStats(d, wk)); }) };
+    }
+    res.json({ wk, rows: CLASS.rows.map(r => ({ p: r.p, acq: r.acq, days: r.days, dsc: r.dsc, dt: r.dt, me: r.id === req.user.id })) });
+  } catch (e) { next(e); }
+});
+app.put("/api/progress", (req, res, next) => { CLASS.at = 0; next(); });
+
 /* ---------- Signalements d'erreurs dans le contenu ---------- */
 app.post("/api/report", auth, async (req, res, next) => {
   try {

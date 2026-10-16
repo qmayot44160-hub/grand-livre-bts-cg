@@ -47,6 +47,7 @@ function makePg(url) {
     async setPass(id, pass) { await q("UPDATE users SET pass=$2 WHERE id=$1", [id, pass]); },
     async countUsers() { const r = await q("SELECT COUNT(*)::int AS n FROM users"); return r.rows[0].n; },
     async listUsers() { const r = await q("SELECT u.name, u.created, p.updated FROM users u LEFT JOIN progress p ON p.user_id=u.id ORDER BY u.name_key"); return r.rows; },
+    async allProgress() { const r = await q("SELECT u.id, p.data FROM users u JOIN progress p ON p.user_id=u.id WHERE p.data->'cl'->>'on' = 'true'"); return r.rows; },
     async getProgress(uid) { const r = await q("SELECT data FROM progress WHERE user_id=$1", [uid]); return r.rows[0] ? r.rows[0].data : null; },
     async setProgress(uid, data) {
       await q(`INSERT INTO progress(user_id,data,updated) VALUES($1,$2,$3)
@@ -85,6 +86,7 @@ function makeFile(dir) {
     async setPass(id, pass) { d.users[id].pass = pass; save(); },
     async countUsers() { return Object.keys(d.users).length; },
     async listUsers() { return Object.values(d.users).map(u => ({ name: u.name, created: u.created, updated: d.progress[u.id] ? d.progress[u.id].updated : null })).sort((a, b) => a.name.localeCompare(b.name)); },
+    async allProgress() { return Object.keys(d.progress).filter(id => d.users[id] && d.progress[id].data && d.progress[id].data.cl && d.progress[id].data.cl.on).map(id => ({ id, data: d.progress[id].data })); },
     async getProgress(uid) { return d.progress[uid] ? d.progress[uid].data : null; },
     async setProgress(uid, data) { d.progress[uid] = { data, updated: Date.now() }; save(); },
     async bumpAi(uid, day) { const k = uid + "|" + day; d.ai[k] = (d.ai[k] || 0) + 1; save(); return d.ai[k]; },

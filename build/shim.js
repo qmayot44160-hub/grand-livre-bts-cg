@@ -88,6 +88,7 @@
 
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
+  if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
 
   /* Rappels quotidiens (notifications) */
   function b64(u) { var p = "=".repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
