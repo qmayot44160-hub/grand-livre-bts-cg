@@ -1256,6 +1256,13 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Examen blanc E5 */
+.e5-cta { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: #fff; cursor: pointer; border: 0; border-radius: 16px; padding: 16px 18px; background: linear-gradient(135deg, #2c43c6, #5b6cff); box-shadow: 0 10px 26px rgba(44, 67, 198, .28); margin-bottom: 14px; }
+.e5-cta > span:nth-child(2) { flex: 1; display: grid; gap: 3px; } .e5-cta small { opacity: .9; font-size: .88rem; } .e5-cta .wk-go { color: #fff; font-weight: 700; }
+.e5-ic .svg { width: 28px; height: 28px; }
+.dos-dn { align-self: center; font-size: .72rem; font-weight: 800; color: var(--muted); margin: 0 2px 0 6px; }
+.dos-dn:first-child { margin-left: 0; }
+
 /* Mode essai : matières fermées */
 .gl-locked { opacity: .55; position: relative; }
 .divider.gl-locked::after, .qf.gl-locked::after { content: "🔒"; position: absolute; right: 8px; top: 8px; font-size: .8rem; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 999px; padding: 2px 6px; }
@@ -5920,6 +5927,24 @@ const DOSS = [
         fields: [{ label: "Règle du dixième", ans: dix, tol: 0.05 }, { label: "Maintien de salaire", ans: mt, tol: 0.05 }, { label: "Indemnité à verser", ans: ind, tol: 0.05 }],
         corr: `<p>Dixième : ${fmt(Rref)} / 10 = ${fmt(r2(Rref / 10))} € pour 30 jours, soit × ${j} / 30 = <b>${fmt(dix)} €</b>.</p><p>Maintien : ${fmt(Sb)} × ${j} / ${jo} = <b>${fmt(mt)} €</b>.</p><p>On verse la méthode la plus favorable au salarié : <b>${fmt(ind)} €</b> (${dix >= mt ? "dixième" : "maintien"}).</p>` }
     ] };
+ } },
+ { id: "d-ci", cats: ["p7", "p1"], title: "Contrôle interne, banque et dématérialisation", ent: "Azur Bureau SAS", minutes: 40, make() {
+    const m = ri(1, 10), mo = MOIS[m];
+    const Sc = ri(80, 260) * 100 + ri(0, 99), F = r2(ri(25, 90) + ri(0, 99) / 100), V = ri(12, 60) * 100, C1 = ri(8, 35) * 100, R1 = ri(5, 25) * 100;
+    const Sb = r2(Sc - F + V + C1 - R1), rect = r2(Sc - F + V);
+    const l2 = [L("627", "Services bancaires et assimilés", F), L("512", "Banque", r2(V - F)), L("411", "Clients", 0, V)];
+    const ctx = `<p>Tu participes à l'amélioration du contrôle interne d'Azur Bureau SAS : sécurité des paiements, fiabilité de la banque et passage à la facture électronique.</p>`;
+    return { ctx, missions: [
+      { title: "Analyse : sécuriser les paiements fournisseurs", pts: 7, kind: "txt", enonce: `<p><b>Annexe 1</b> : le ${ri(2, 12)} ${mo}, la comptable a reçu un mail semblant venir du fournisseur Papeteries du Var : « Suite à un changement de banque, merci de régler désormais nos factures sur le RIB joint. » Elle a modifié le RIB dans le PGI et payé une facture de 8 400 € sur ce nouveau compte. Le vrai fournisseur réclame aujourd'hui son paiement.</p><p>Identifie au moins trois faiblesses du processus de paiement et propose, pour chacune, un contrôle à mettre en place.</p>`,
+        model: "**Ce qui s'est passé** : une fraude au faux fournisseur (ingénierie sociale par mail).\n\n**Faiblesse 1 : aucune vérification d'un changement de RIB.** Contrôle : contre-appel du fournisseur sur un numéro déjà connu (jamais celui du mail), avec trace écrite de la vérification.\n\n**Faiblesse 2 : une seule personne modifie le RIB et paie.** Contrôle : séparation des tâches ; la modification des données fournisseurs est validée par une deuxième personne, distincte de celle qui prépare les paiements.\n\n**Faiblesse 3 : pas de validation des paiements.** Contrôle : double validation des virements au-delà d'un seuil et validation du premier paiement vers un nouveau RIB.\n\n**Faiblesse 4 : droits trop larges dans le PGI.** Contrôle : profils d'accès limités et journal des modifications des fiches tiers, revu régulièrement.\n\n**Faiblesse 5 : manque de sensibilisation.** Contrôle : formation du personnel à l'hameçonnage et procédure écrite.",
+        crit: ["J'identifie la fraude au faux fournisseur (changement de RIB)", "Je propose le contre-appel sur un numéro connu", "Je cite la séparation des tâches ou la double validation", "Je cite les droits d'accès ou la traçabilité dans le PGI", "Chaque faiblesse est reliée à un contrôle précis"] },
+      { title: "Rapprochement bancaire", pts: 7, enonce: `<p><b>Annexe 2 : situation au 31 ${mo}</b></p>${tb(["Élément", "Montant"], [["Solde du compte 512 dans la comptabilité (débiteur)", fmt(Sc) + " €"], ["Solde du relevé bancaire (créditeur)", fmt(Sb) + " €"], ["Chèque n° " + ri(100000, 999999) + " émis au fournisseur Bureautix, non encore débité par la banque", fmt(C1) + " €"], ["Remise de chèques clients du 30 " + mo + ", pas encore créditée par la banque", fmt(R1) + " €"], ["Commissions bancaires du mois, prélevées par la banque (non soumises à la TVA)", fmt(F) + " €"], ["Virement reçu du client Cabinet Lenoir, absent de la comptabilité", fmt(V) + " €"]])}<p>Établis l'état de rapprochement, puis passe les écritures nécessaires dans la comptabilité d'Azur Bureau.</p>`,
+        fields: [{ label: "Solde rectifié de la comptabilité", ans: rect }, { label: "Solde rectifié du relevé bancaire", ans: rect }], lines: l2,
+        corr: tb(["Comptabilité (512)", "Montant", "Relevé bancaire", "Montant"], [["Solde", fmt(Sc), "Solde", fmt(Sb)], ["− Commissions", fmt(F), "− Chèque émis non débité", fmt(C1)], ["+ Virement reçu", fmt(V), "+ Remise non créditée", fmt(R1)], ["<b>Solde rectifié</b>", "<b>" + fmt(rect) + "</b>", "<b>Solde rectifié</b>", "<b>" + fmt(rect) + "</b>"]]) + jr(l2) + `<p>Les deux opérations peuvent aussi être passées en deux écritures : 627 / 512 pour ${fmt(F)} € et 512 / 411 pour ${fmt(V)} €. On enregistre seulement ce que la banque connaît et pas l'entreprise (commissions, virement reçu). Le chèque émis et la remise sont des décalages : ils disparaîtront sur le prochain relevé, sans écriture.</p>` },
+      { title: "Analyse : la facture électronique", pts: 6, kind: "txt", enonce: `<p>Le président d'Azur Bureau te demande une courte note : « Qu'est-ce que la réforme de la facturation électronique change pour nous, et que devons-nous préparer ? »</p><p>Rédige cette note (une dizaine de lignes).</p>`,
+        model: "**Ce qui change** : entre entreprises assujetties à la TVA en France, les factures doivent être émises et reçues sous forme électronique structurée (Factur-X, UBL ou CII), par l'intermédiaire d'une plateforme agréée. Un simple PDF envoyé par mail ne suffit plus.\n\n**Calendrier** : toutes les entreprises doivent pouvoir recevoir des factures électroniques dès la première étape ; l'obligation d'émettre arrive ensuite selon la taille de l'entreprise.\n\n**Nouvelles mentions** : SIREN du client, nature des opérations (biens, services ou les deux), adresse de livraison si elle diffère, option pour le paiement de la TVA d'après les débits le cas échéant.\n\n**À préparer** : choisir une plateforme agréée compatible avec le PGI, mettre à jour les fiches clients (SIREN), revoir les processus de validation des factures reçues, former l'équipe.\n\n**Avantages** : moins de saisie et d'erreurs, paiements plus rapides, préremplissage de la TVA, lutte contre la fraude.",
+        crit: ["Je définis la facture électronique (format structuré, plateforme agréée)", "J'évoque le calendrier (réception puis émission selon la taille)", "Je cite au moins deux nouvelles mentions obligatoires", "Je propose des actions concrètes pour l'entreprise", "La note est structurée et adressée au président"] }
+    ] };
  } }
 ];
 const DOSSID = Object.fromEntries(DOSS.map(d => [d.id, d]));
@@ -5981,7 +6006,32 @@ function startDos(id) {
   exTick = setInterval(() => { const t = document.getElementById("exTimer"); const left = Math.max(0, X.end - Date.now()); if (t) { t.textContent = exLeft(); t.classList.toggle("low", left < 300000); } if (left <= 0) finishE5(); }, 1000);
   go("exrun");
 }
-function dosNote() { return r2(X.list.reduce((s, it) => s + (it.pts || 0) * (it.res ? it.res.score : 0), 0)); }
+function dosNote() { const tot = X.list.reduce((s, it) => s + (it.pts || 0), 0) || 20; return r2(X.list.reduce((s, it) => s + (it.pts || 0) * (it.res ? it.res.score : 0), 0) * 20 / tot); }
+/* Examen blanc E5 complet : 5 dossiers sur une même entreprise, 4 h 30 */
+const EXAM5 = ["d-courant", "d-paie", "d-invest", "d-cloture", "d-ci"], EXAM5_MIN = 270;
+function ren5(t) {
+  return String(t)
+    .replace(/<p><b>Atelier Brun SARL<\/b> fabrique des meubles sur mesure à La Seyne-sur-Mer\./g, "<p><b>Azur Bureau SAS</b> fabrique aussi du mobilier sur mesure dans son atelier.")
+    .replace(/<b>Méditerranée Distribution SAS<\/b>, grossiste en produits d'entretien à Hyères,/g, "<b>Azur Bureau SAS</b>")
+    .replace(/<b>Bleu Horizon SARL<\/b>, agence de voyages à Toulon,/g, "<b>Azur Bureau SAS</b>")
+    .replace(/Atelier Brun SARL|Méditerranée Distribution SAS|Bleu Horizon SARL/g, "Azur Bureau SAS")
+    .replace(/Atelier Brun|Méditerranée Distribution|Bleu Horizon/g, "Azur Bureau")
+    .replace(/Le gérant/g, "Le président").replace(/le gérant/g, "le président");
+}
+function startExamE5() {
+  if (EXAM5.some(id => DOSSID[id] && DOSSID[id].cats.some(lockedCat))) return lockSheet("p2");
+  if (exTick) { clearInterval(exTick); exTick = null; }
+  const ctx = `<p><b>Azur Bureau SAS</b>, à Toulon, conçoit dans son atelier et vend du mobilier et des fournitures de bureau aux entreprises. Elle emploie 9 salariés, relève du régime réel normal de TVA (déclaration mensuelle) et clôture ses comptes au 31 décembre 2026. C'est une PME : chiffre d'affaires inférieur à 10 M€, capital entièrement libéré et détenu à plus de 75 % par des personnes physiques.</p>
+    <p>Le sujet comporte <b>5 dossiers indépendants</b>, notés chacun sur 20 points (100 points au total, ramenés à une note sur 20). Durée : 4 h 30. Commence par le dossier que tu maîtrises le mieux, et pose toujours tes calculs.</p>
+    ${tb(["Dossier", "Thème", "Points", "Temps conseillé"], EXAM5.map((id, n) => [n + 1, h(DOSSID[id].title), 20, DOSSID[id].minutes + " min"]))}`;
+  const list = [];
+  EXAM5.forEach((id, n) => { const d = DOSSID[id], o = d.make(), dctx = ren5(o.ctx), lab = "Dossier " + (n + 1) + " · " + d.title;
+    o.missions.forEach((m, k) => list.push(Object.assign({}, m, { title: ren5(m.title), enonce: ren5(m.enonce), corr: m.corr ? ren5(m.corr) : m.corr, model: m.model ? ren5(m.model) : m.model, gid: id + "-m" + (k + 1), cat: d.cats[0], user: null, res: null, dlab: lab, dn: n + 1, dctx, dfirst: k === 0 }))); });
+  X = { mode: "dos", exam: true, d: { id: "e5-blanc", title: "Examen blanc E5 complet", ent: "Azur Bureau SAS", ctx }, list, i: 0, xp0: S.xp };
+  X.end = Date.now() + EXAM5_MIN * 60000; e5Save();
+  exTick = setInterval(() => { const t = document.getElementById("exTimer"); const left = Math.max(0, X.end - Date.now()); if (t) { t.textContent = exLeft(); t.classList.toggle("low", left < 300000); } if (left <= 0) finishE5(); }, 1000);
+  go("exrun");
+}
 function dosCard(d) {
   const r = (S.x || {})[d.id];
   return `<button class="ex-card dos-card" style="${hueStyle(d.cats[0])}" data-act="dosStart" data-did="${d.id}"><span class="mini">${d.cats.map(c => h(CAT[c].code)).join(" · ")} · ${d.minutes} min</span><b>${h(d.title)}</b><span class="muted">${h(d.ent)} : ${r ? `meilleure note ${String(r[1] / 5).replace(".", ",")} / 20, dernière ${String(r[2] / 5).replace(".", ",")}` : "nouveaux chiffres à chaque essai"}</span></button>`;
@@ -5991,6 +6041,7 @@ function dosSection(cat) {
   if (!list.length && !gens.length) return "";
   const groups = cat ? "" : ["p1", "p2", "p3", "p4", "p5", "p6", "ma"].map(c => `<details class="ex-group ann-more gc-more" data-ann="gen-${c}"${ANN_OPEN.has("gen-" + c) ? " open" : ""} style="${hueStyle(c)}"><summary><h3><span class="tabcode">${h(CAT[c].code)}</span>${h(CAT[c].name)} <span class="muted small">${GENS.filter(g => g.cat === c).length} exercices</span></h3></summary><div class="ex-grid">${GENS.filter(g => g.cat === c).map(exCard).join("")}</div></details>`).join("");
   return `<div class="ex-group dos-group">
+      ${cat ? "" : (() => { const r = (S.x || {})["e5-blanc"], o = e5Load(); if (o) { const left = Math.max(0, Math.round((o.end - Date.now()) / 60000)); return `<button class="e5-cta" data-act="exam5Resume"><span class="e5-ic">${ICON.clock}</span><span><b>Reprendre ton examen blanc E5</b><small>${o.list.filter(m => m.user).length} missions sur ${o.list.length} commencées · ${left > 0 ? `il reste ${Math.floor(left / 60)} h ${String(left % 60).padStart(2, "0")}` : "temps écoulé : voir la correction"}.</small></span><span class="wk-go">Reprendre ›</span></button><p class="muted small" style="margin:-6px 0 14px"><button class="rep-btn" data-act="exam5Drop">Abandonner cet examen</button></p>`; } return `<button class="e5-cta" data-act="exam5"><span class="e5-ic">${ICON.clock}</span><span><b>Examen blanc E5 complet</b><small>Une entreprise, 5 dossiers, 4 h 30, noté sur 20 comme le jour J. Nouveaux chiffres à chaque sujet.${r ? ` Ta meilleure note : ${fmtN20(r[1] / 5)}/20.` : ""}</small></span><span class="wk-go">Commencer ›</span></button>`; })()}
       <h2>${cat ? "Cas pratiques à saisir" : "Épreuve E5 : dossiers à saisir"}</h2>
       <p class="muted">${cat ? "Tu calcules et tu passes les écritures, l'appli corrige ligne par ligne. Nouveaux chiffres à chaque essai." : "Comme le jour J : une entreprise, des missions qui s'enchaînent (les montants d'une mission servent à la suivante), un chrono et une note sur 20. Tu calcules, tu passes les écritures, l'appli corrige ligne par ligne."}</p>
       ${list.length ? `<div class="ex-grid">${list.map(dosCard).join("")}</div>` : ""}
@@ -6043,13 +6094,28 @@ function startEx(gids, mode, minutes) {
   go("exrun");
 }
 let exTick = null;
-function exLeft() { const left = Math.max(0, X.end - Date.now()); const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60; return m + ":" + String(s).padStart(2, "0"); }
+function exLeft() { const left = Math.max(0, X.end - Date.now()); const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60; return m >= 60 ? Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0") + ":" + String(s).padStart(2, "0") : m + ":" + String(s).padStart(2, "0"); }
 function readUser() {
   const it = X.list[X.i];
   const f = [...document.querySelectorAll("[data-fi]")].map(e => e.value);
   const rows = [...document.querySelectorAll("tr[data-row]")].map(tr => ({ acc: tr.querySelector("[data-a]").value, d: tr.querySelector("[data-d]").value, c: tr.querySelector("[data-c]").value }));
   const tx = document.querySelector("[data-tx]");
   it.user = { f, rows, t: tx ? tx.value : "" };
+  if (X.exam) e5Save();
+}
+/* L'examen blanc survit à une fermeture de l'appli : copie sur l'appareil */
+const E5K = "gl-e5-encours";
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && view === "exrun" && X && X.exam && !X.done) try { readUser(); } catch (e) {} });
+function e5Save() { try { if (X && X.exam && !X.done) localStorage.setItem(E5K, JSON.stringify(X)); } catch (e) {} }
+function e5Load() { try { const o = JSON.parse(localStorage.getItem(E5K) || "null"); return o && o.exam && !o.done && o.end > Date.now() - 864e5 ? o : null; } catch (e) { return null; } }
+function e5Drop() { try { localStorage.removeItem(E5K); } catch (e) {} }
+function e5Resume() {
+  const o = e5Load(); if (!o) return;
+  if (exTick) { clearInterval(exTick); exTick = null; }
+  X = o; X.xp0 = S.xp;
+  if (X.end <= Date.now()) { finishE5(); return; }
+  exTick = setInterval(() => { const t = document.getElementById("exTimer"); const left = Math.max(0, X.end - Date.now()); if (t) { t.textContent = exLeft(); t.classList.toggle("low", left < 300000); } if (left <= 0) finishE5(); }, 1000);
+  go("exrun");
 }
 function grade(it) {
   if (it.kind === "txt") { const ck = it.ck || []; it.res = { fr: [], lr: [], extra: [], score: it.crit.length ? ck.filter(Boolean).length / it.crit.length : 0, txt: true }; return it.res; }
@@ -6153,10 +6219,11 @@ function vExRun() {
     : (it.res ? `<div class="row"><button class="btn primary" data-act="exAgain">Nouvel exercice du même type</button><button class="btn" data-act="exHome">Tous les exercices</button></div>` : `<div class="row"><button class="btn primary" data-act="exCheck">Vérifier</button><button class="btn" data-act="exShow">Voir le corrigé sans répondre</button></div>`);
   return `<section class="runner ex-runner">
     <div class="runner-top"><span class="progress-text">${dos ? `Mission ${X.i + 1} / ${X.list.length}` : e5 ? `Exercice ${X.i + 1} / ${X.list.length}` : "Exercice"}</span>${head}</div>
-    ${dos ? `<div class="dos-steps">${X.list.map((m, k) => `<button class="dos-step${k === X.i ? " on" : ""}${m.user ? " done" : ""}" data-act="dosGo" data-i="${k}" aria-label="Mission ${k + 1}">${k + 1}</button>`).join("")}</div>
-    <details class="dos-ctx"${X.i === 0 ? " open" : ""}><summary><b>${h(X.d.ent)}</b> : présentation du dossier</summary>${X.d.ctx}</details>` : ""}
+    ${dos ? `<div class="dos-steps">${X.list.map((m, k) => `${m.dfirst && X.exam ? `<span class="dos-dn">D${m.dn}</span>` : ""}<button class="dos-step${k === X.i ? " on" : ""}${m.user ? " done" : ""}" data-act="dosGo" data-i="${k}" aria-label="${m.dlab ? h(m.dlab) + ", " : ""}mission ${k + 1}">${k + 1}</button>`).join("")}</div>
+    <details class="dos-ctx"${X.i === 0 ? " open" : ""}><summary><b>${h(X.d.ent)}</b> : ${X.exam ? "présentation du sujet" : "présentation du dossier"}</summary>${X.d.ctx}</details>
+    ${X.exam && it.dctx ? `<details class="dos-ctx"${it.dfirst ? " open" : ""}><summary><b>${h(it.dlab)}</b> : contexte</summary>${it.dctx}</details>` : ""}` : ""}
     <div class="qcard">
-      <span class="eyebrow">${dos ? `Mission ${X.i + 1} · ${it.pts} point${it.pts > 1 ? "s" : ""} : ` : ""}${h(it.title)}</span>
+      <span class="eyebrow">${X.exam && it.dn ? `Dossier ${it.dn} · ` : ""}${dos ? `Mission ${X.i + 1} · ${it.pts} point${it.pts > 1 ? "s" : ""} : ` : ""}${h(it.title)}</span>
       <div class="ex-enonce">${it.enonce}</div>
       ${exInputs(it, !!it.res && !e5)}
       ${showCorr ? `<div class="feedback"><span class="verdict ${it.res.score >= 0.999 ? "ok" : "ko"}">${Math.round(it.res.score * 100)} % juste</span><div class="ex-corr">${it.corr}</div></div>` : ""}
@@ -6168,9 +6235,10 @@ function finishE5() {
   if (!X || (X.mode !== "e5" && X.mode !== "dos") || X.done) return;
   if (view === "exrun") readUser();
   X.done = true; if (exTick) { clearInterval(exTick); exTick = null; }
+  if (X.exam) e5Drop();
   if (X.mode === "dos") {
     X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [], t: "" }; grade(it); });
-    dosRecord(true); S.xp += Math.round(dosNote() * 2); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak();
+    dosRecord(true); S.xp += Math.round(dosNote() * (X.exam ? 6 : 2)); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak();
   } else X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [] }; grade(it); recordEx(it); });
   touch(); go("exres");
 }
@@ -6182,10 +6250,10 @@ function dosRecord(first) {
 const fmtN20 = n => (Math.round(n * 4) / 4).toLocaleString("fr-FR");
 function vDosRes() {
   const note = dosNote();
-  const rows = X.list.map((it, k) => `<tr><td>${k + 1}. ${h(it.title)}</td><td class="num" id="dosPts${k}">${fmtN20(it.pts * it.res.score)} / ${it.pts}</td></tr>`).join("");
+  const rows = (X.exam ? EXAM5.map((id, n) => { const ms = X.list.filter(m => m.dn === n + 1), p = ms.reduce((a, m) => a + m.pts * m.res.score, 0), t = ms.reduce((a, m) => a + m.pts, 0); return `<tr class="total"><td>Dossier ${n + 1} · ${h(DOSSID[id].title)}</td><td class="num">${fmtN20(p)} / ${t}</td></tr>`; }).join("") : "") + X.list.map((it, k) => `<tr><td>${X.exam ? "D" + it.dn + " · " : ""}${k + 1}. ${h(it.title)}</td><td class="num" id="dosPts${k}">${fmtN20(it.pts * it.res.score)} / ${it.pts}</td></tr>`).join("");
   const det = X.list.map((it, k) => `<details class="lib-cat"${it.res.score < 0.999 ? " open" : ""}><summary><span class="code">${k + 1}</span><h3>${h(it.title)}</h3><span class="ep" id="dosEp${k}">${fmtN20(it.pts * it.res.score)} / ${it.pts}</span></summary><div class="ex-detail"><div class="ex-enonce">${it.enonce}</div>${exInputs(it, true)}${it.corr ? `<div class="ex-corr">${it.corr}</div>` : ""}</div></details>`).join("");
   return `<section class="runner">
-    <div><span class="eyebrow">Dossier E5 corrigé : ${h(X.d.ent)}</span><h1>${h(X.d.title)}</h1></div>
+    <div><span class="eyebrow">${X.exam ? "Examen blanc corrigé" : "Dossier E5 corrigé"} : ${h(X.d.ent)}</span><h1>${h(X.d.title)}</h1></div>
     <div class="score-line"><span class="score" id="dosNote">${fmtN20(note)}<small> /20</small></span><span class="muted">+${S.xp - X.xp0} XP</span></div>
     <div class="table-wrap"><table class="ledger"><thead><tr><th>Mission</th><th class="num">Points</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="muted">Montants et lignes d'écriture sont corrigés automatiquement. Pour l'analyse rédigée, coche toi-même les critères remplis. À l'examen, la démarche et la présentation comptent aussi : pose toujours tes calculs.</p>
@@ -6248,6 +6316,9 @@ document.addEventListener("click", e => {
     case "exPrev": readUser(); X.i--; render(); window.scrollTo({ top: 0 }); break;
     case "exFinishE5": finishE5(); break;
     case "dosStart": startDos(b.dataset.did); window.scrollTo({ top: 0 }); break;
+    case "exam5": startExamE5(); window.scrollTo({ top: 0 }); break;
+    case "exam5Resume": e5Resume(); window.scrollTo({ top: 0 }); break;
+    case "exam5Drop": e5Drop(); render(); break;
     case "dosGo": readUser(); X.i = +b.dataset.i; render(); window.scrollTo({ top: 0 }); break;
     case "dosCk": { const it = X.list[+b.dataset.m]; if (!it) break; it.ck = it.ck || []; it.ck[+b.dataset.j] = b.checked; grade(it); dosRecord(false); touch();
       const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
