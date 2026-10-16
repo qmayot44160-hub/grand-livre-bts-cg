@@ -3,9 +3,12 @@
 (function () {
   var ME = __GL_ME__;
   window.GL_NAME = ME.name;
-  function toLogin() { location.replace("/"); }
+  async function dropCache() { try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {} }
+  async function toLogin() { await dropCache(); location.replace("/"); }
   async function api(method, url, body, signal) {
-    var r = await fetch(url, { method: method, credentials: "same-origin", signal: signal, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+    var r;
+    try { r = await fetch(url, { method: method, credentials: "same-origin", signal: signal, keepalive: method === "PUT" && body && JSON.stringify(body).length < 60000, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }); }
+    catch (e) { if (e && e.name === "AbortError") throw e; throw { code: "unavailable", message: "Hors connexion" }; }
     if (r.status === 401) { toLogin(); throw { code: "not_granted" }; }
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok) throw { code: j.code || (r.status === 429 ? "rate_limited" : r.status === 413 ? "resource_exhausted" : r.status >= 500 ? "unavailable" : "failed"), message: j.error || "" };
@@ -80,7 +83,7 @@
   }
 
   /* Menu « compte » dans la barre du haut : installer l'appli, retour à la page de connexion */
-  async function logout() { try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} toLogin(); }
+  async function logout() { try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} await toLogin(); }
   function addLogout() {
     var top = document.querySelector(".top-inner");
     if (!top || top.querySelector(".gl-menu")) return;

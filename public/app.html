@@ -1,11 +1,14 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
+<!doctype html><html lang="fr"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"></head><body><script>/* Grand Livre en ligne : remplace les fonctions de Claude (progression, identité, correction)
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__;
   window.GL_NAME = ME.name;
-  function toLogin() { location.replace("/"); }
+  async function dropCache() { try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {} }
+  async function toLogin() { await dropCache(); location.replace("/"); }
   async function api(method, url, body, signal) {
-    var r = await fetch(url, { method: method, credentials: "same-origin", signal: signal, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+    var r;
+    try { r = await fetch(url, { method: method, credentials: "same-origin", signal: signal, keepalive: method === "PUT" && body && JSON.stringify(body).length < 60000, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }); }
+    catch (e) { if (e && e.name === "AbortError") throw e; throw { code: "unavailable", message: "Hors connexion" }; }
     if (r.status === 401) { toLogin(); throw { code: "not_granted" }; }
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok) throw { code: j.code || (r.status === 429 ? "rate_limited" : r.status === 413 ? "resource_exhausted" : r.status >= 500 ? "unavailable" : "failed"), message: j.error || "" };
@@ -80,7 +83,7 @@
   }
 
   /* Menu « compte » dans la barre du haut : installer l'appli, retour à la page de connexion */
-  async function logout() { try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} toLogin(); }
+  async function logout() { try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} await toLogin(); }
   function addLogout() {
     var top = document.querySelector(".top-inner");
     if (!top || top.querySelector(".gl-menu")) return;
@@ -160,21 +163,21 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #12142a; --sheet: #1a1d37; --ink: #e8eaf8; --muted: #a3a8c9; --rule: #2a2e50; --rule-strong: #3b4068;
+    --paper: #12142a; --sheet: #1a1d37; --ink: #e8eaf8; --muted: #b0b5d6; --rule: #2a2e50; --rule-strong: #3b4068;
     --accent: #9eacff; --accent-soft: #242a55; --accent-ink: #11132a; --ok: #72d6a0; --ok-bg: #163426; --bad: #ff9ba3; --bad-bg: #3b1c25;
     --gold: #f2c95c; --hl: rgba(255, 219, 77, .15); --hl-edge: #e3c240; --hl-band: rgba(227, 194, 64, .32); --card-line: #2b3459; --card-head: #d06a7c; --on-tint: #12142a;
-    --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark;
+    --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark; --ldm: 0;
   }
 }
 :root[data-theme="dark"] {
-  --paper: #12142a; --sheet: #1a1d37; --ink: #e8eaf8; --muted: #a3a8c9; --rule: #2a2e50; --rule-strong: #3b4068;
+  --paper: #12142a; --sheet: #1a1d37; --ink: #e8eaf8; --muted: #b0b5d6; --rule: #2a2e50; --rule-strong: #3b4068;
   --accent: #9eacff; --accent-soft: #242a55; --accent-ink: #11132a; --ok: #72d6a0; --ok-bg: #163426; --bad: #ff9ba3; --bad-bg: #3b1c25;
   --gold: #f2c95c; --hl: rgba(255, 219, 77, .15); --hl-edge: #e3c240; --hl-band: rgba(227, 194, 64, .32); --card-line: #2b3459; --card-head: #d06a7c; --on-tint: #12142a;
-  --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark;
+  --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark; --ldm: 0;
 }
 /* Couleur de matière : chaque élément teinté reçoit --h (teinte) et --s (saturation) */
 .tinted, [style*="--h"] {
-  --c: hsl(var(--h, 228) var(--s, 60%) var(--l-strong));
+  --c: hsl(var(--h, 228) var(--s, 60%) calc(var(--l-strong) - var(--ld, 0%) * var(--ldm, 1)));
   --c-soft: hsl(var(--h, 228) calc(var(--s, 60%) + 10%) var(--l-soft));
   --c-mid: hsl(var(--h, 228) var(--s, 60%) var(--l-mid));
 }
@@ -1017,7 +1020,7 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .pf-seg { display: inline-flex; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 3px; gap: 2px; flex-wrap: wrap; }
 .pf-seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: .88rem; padding: 8px 14px; border-radius: 9px; cursor: pointer; min-height: 38px; }
 .pf-seg button[aria-pressed="true"] { background: var(--sheet); color: var(--accent); box-shadow: 0 1px 3px rgba(20, 24, 60, .15); }
-.pf-in { font: inherit; padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); color: var(--ink); min-height: 40px; }
+.pf-in { font: inherit; padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); color: var(--ink); min-height: 40px; max-width: 100%; box-sizing: border-box; }
 :root[data-theme="dark"] .pf-in { color-scheme: dark; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pf-in { color-scheme: dark; } }
 @media (max-width: 760px) {
@@ -1155,6 +1158,12 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Sauvegarde et hors connexion */
+.bk-confirm { background: color-mix(in srgb, var(--gold) 12%, var(--sheet)); }
+.bk-err { margin: 0; padding: 10px 16px; color: var(--bad); background: var(--bad-bg); }
+.file-btn { cursor: pointer; }
+.is-offline .who::after { content: "Hors ligne"; margin-left: 6px; font-size: .7rem; font-weight: 700; color: var(--muted); border: 1px solid var(--rule-strong); border-radius: 999px; padding: 1px 6px; }
+
 /* Effets : tampon, XP, niveau, visite, réponses, anneaux */
 .fx-stamp { position: fixed; inset: 0; z-index: 210; display: grid; place-items: center; pointer-events: none; }
 .fx-stamp span { display: grid; justify-items: center; gap: 2px; padding: 10px 26px 12px; border: 5px solid #c23a46; border-radius: 14px; color: #c23a46; background: color-mix(in srgb, var(--sheet) 70%, transparent); transform: rotate(-12deg); text-transform: uppercase; box-shadow: inset 0 0 0 2px color-mix(in srgb, #c23a46 35%, transparent); animation: stampIn .5s cubic-bezier(.2, 1.4, .4, 1) both, stampOut .35s ease-in 1.2s forwards; mix-blend-mode: multiply; }
@@ -2571,12 +2580,15 @@ async function flush() {
   try { await ref.set(JSON.parse(JSON.stringify(S))); tries = 0; syncMode = "sync"; }
   catch (e) {
     const code = e && e.code;
-    if (code === "unavailable" || code === "resource_exhausted") { dirty = true; tries++; }
+    if (!code || code === "unavailable" || code === "resource_exhausted" || code === "rate_limited" || !navigator.onLine) { dirty = true; tries++; }
     else { ref = null; syncMode = "local"; }
   }
   writing = false; renderTop();
-  if (dirty && ref && tries < 4) saveTimer = setTimeout(flush, 2500 + Math.random() * 2000);
+  if (dirty && ref && navigator.onLine) saveTimer = setTimeout(flush, Math.min(60000, 2500 * Math.pow(2, Math.min(tries, 5))) + Math.random() * 2000);
 }
+window.addEventListener("online", () => { renderTop(); if (!ref) initSync(); else if (dirty) { tries = 0; flush(); } });
+window.addEventListener("offline", () => renderTop());
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && ref && dirty) { clearTimeout(saveTimer); flush(); } });
 async function initSync() {
   try {
     if (!window.claude || typeof window.claude.use !== "function") return;
@@ -2826,7 +2838,8 @@ const ICON = {
   read: SVG('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>')
 };
 const HUE = { p1: [220, 64], p2: [170, 62], p3: [265, 50], p4: [335, 58], p5: [28, 78], p6: [132, 46], p7: [228, 20], ma: [5, 62], ce: [194, 70], cg: [300, 38], an: [42, 78], me: [214, 24] };
-const hueStyle = cat => { const x = HUE[cat] || [228, 40]; return `--h:${x[0]};--s:${x[1]}%`; };
+const LD = { p2: 10, p6: 7, ce: 7, an: 8, p5: 3 };
+const hueStyle = cat => { const x = HUE[cat] || [228, 40]; return `--ld:${LD[cat] || 0}%;--h:${x[0]};--s:${x[1]}%`; };
 const EPTEXT = {
   p1: "Évalué à l'écrit en E5 et à l'oral en E6.", p2: "Évalué à l'écrit en E5 et à l'oral en E6.", p3: "Évalué à l'écrit en E5 et à l'oral en E6.", p4: "Évalué à l'écrit en E5 et à l'oral en E6.",
   p5: "Évalué à l'oral en E7.", p6: "Évalué à l'oral en E7.", p7: "Présent dans toutes les épreuves professionnelles, de E5 à E8.",
@@ -2872,7 +2885,8 @@ function renderTop() {
   const cur = navOf(view);
   document.querySelectorAll(".nav-btn").forEach(b => b.setAttribute("aria-current", b.dataset.nav === cur ? "page" : "false"));
   const s = document.getElementById("syncNote");
-  if (s) s.textContent = syncMode === "sync" ? "Ta progression est enregistrée sur ton compte." : "Ta progression est enregistrée sur cet appareil.";
+  if (s) s.textContent = !navigator.onLine ? "Hors connexion : ta progression est gardée sur cet appareil et sera envoyée au retour du réseau." : syncMode === "sync" ? (dirty ? "Enregistrement sur ton compte…" : "Ta progression est enregistrée sur ton compte.") : "Ta progression est enregistrée sur cet appareil.";
+  document.documentElement.classList.toggle("is-offline", !navigator.onLine);
 }
 function migrateXp() {
   if (S.xpv >= 2) return; S.xpv = 2;
@@ -3257,6 +3271,18 @@ function seg(k, opts) {
   const v = P()[k];
   return `<div class="pf-seg" role="group">${opts.map(([val, lab]) => `<button type="button" data-act="pref" data-k="${k}" data-v="${val}" aria-pressed="${String(v) === String(val)}">${lab}</button>`).join("")}</div>`;
 }
+let BK = { pending: null, when: "", err: "" };
+function bkData() { return JSON.stringify({ app: "grand-livre-bts-cg", at: new Date().toISOString(), data: S }); }
+function bkCheck(txt) {
+  let o; try { o = JSON.parse(txt); } catch (e) { return null; }
+  const d = o && o.app === "grand-livre-bts-cg" ? o.data : o;
+  if (!d || d.v !== 1 || typeof d.q !== "object" || typeof d.c !== "object" || typeof d.xp !== "number") return null;
+  return { d, at: o.at || (d.u ? new Date(d.u).toISOString() : "") };
+}
+function bkApply(d) {
+  try { localStorage.setItem("gl-backup-prev", JSON.stringify(S)); } catch (e) {}
+  S = JSON.parse(JSON.stringify(d)); normS(); S.u = Date.now(); renderTop.xp = S.xp; dirty = true; touch(); render();
+}
 function vProfil() {
   const p = P(), L = levelOf(S.xp), span = L.next ? L.next - L.floor : 1, prog = L.next ? Math.round((S.xp - L.floor) / span * 100) : 100;
   const tl = totalLessons(), known = FS.filter(x => S.c[x.id] && S.c[x.id][0] >= 3).length, seen = FS.filter(x => S.c[x.id]).length;
@@ -3320,10 +3346,19 @@ function vProfil() {
         <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : bonne réponse, tampon, passage de niveau.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
-        <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
-        <div class="pf-row"><div><b>Date des premiers écrits</b><span>Mets celle de ta convocation : le compte à rebours s'y adapte.</span></div><input id="pfDate" class="pf-in" type="date" value="${h(btsState().date)}"></div>
+        <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" aria-label="Prénom affiché" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
+        <div class="pf-row"><div><b>Date des premiers écrits</b><span>Mets celle de ta convocation : le compte à rebours s'y adapte.</span></div><input id="pfDate" class="pf-in" type="date" aria-label="Date des premiers écrits" value="${h(btsState().date)}"></div>
       </div>
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
+    </section>
+    <section class="stack"><h2>Sauvegarde de ma progression</h2>
+      <div class="pf-set">
+        <div class="pf-row"><div><b>Exporter</b><span>Un fichier avec toute ta progression (réponses, cartes, leçons, XP, réglages). Garde-le en lieu sûr.</span></div><div class="row"><button class="btn small" data-act="bkExport">${ICON.archive}Télécharger</button><button class="btn small" data-act="bkCopy">Copier</button></div></div>
+        <div class="pf-row"><div><b>Importer</b><span>Remet une sauvegarde à la place de ta progression actuelle. Une copie de l'actuelle est gardée sur cet appareil au cas où.</span></div><label class="btn small file-btn">Choisir un fichier<input type="file" accept=".json,application/json" id="bkFile" hidden></label></div>
+        ${BK.pending ? `<div class="pf-row bk-confirm" role="alert"><div><b>Remplacer ta progression ?</b><span>Sauvegarde du ${h(BK.when)} : ${BK.pending.xp || 0} XP, ${Object.keys(BK.pending.q || {}).length} questions travaillées. Actuellement : ${S.xp} XP, ${Object.keys(S.q || {}).length} questions.</span></div><div class="row"><button class="btn small" data-act="bkCancel">Annuler</button><button class="btn small primary" data-act="bkApply">Remplacer</button></div></div>` : ""}
+        ${BK.err ? `<p class="bk-err" role="alert">${h(BK.err)}</p>` : ""}
+        ${(() => { try { return localStorage.getItem("gl-backup-prev") ? `<div class="pf-row"><div><b>Annuler le dernier import</b><span>Revenir à la progression d'avant l'import.</span></div><button class="btn small" data-act="bkUndo">Revenir en arrière</button></div>` : ""; } catch (e) { return ""; } })()}
+      </div>
     </section>`;
 }
 function ctlSection(cat) {
@@ -4024,6 +4059,10 @@ function bindFusion() {
   document.querySelectorAll("textarea[data-gstep]").forEach(t => t.addEventListener("input", () => { const st = caseState(GC.id); st.notes[t.dataset.gstep] = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(touch, 900); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
+  const bf = document.getElementById("bkFile");
+  if (bf) bf.addEventListener("change", () => { const f = bf.files && bf.files[0]; if (!f) return;
+    if (f.size > 20e6) { BK = { pending: null, when: "", err: "Fichier trop gros pour être une sauvegarde du Grand Livre." }; render(); return; }
+    f.text().then(t => { const r = bkCheck(t); BK = r ? { pending: r.d, when: r.at ? new Date(r.at).toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "date inconnue", err: "" } : { pending: null, when: "", err: "Ce fichier n'est pas une sauvegarde du Grand Livre." }; render(); }); });
   const pd = document.getElementById("pfDate");
   if (pd) pd.addEventListener("change", () => { if (pd.value) { btsState().date = pd.value; touch(); render(); } });
   const pn = document.getElementById("pfName");
@@ -5824,6 +5863,11 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "bkExport": { try { const blob = new Blob([bkData()], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "grand-livre-progression-" + new Date().toISOString().slice(0, 10) + ".json"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast("Sauvegarde téléchargée"); } catch (e) { toast("Téléchargement impossible ici : utilise « Copier »."); } break; }
+    case "bkCopy": { const t = bkData(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast("Sauvegarde copiée : colle-la dans une note ou un mail")).catch(() => toast("Copie impossible sur cet appareil")); break; }
+    case "bkCancel": BK = { pending: null, when: "", err: "" }; render(); break;
+    case "bkApply": { const d = BK.pending; BK = { pending: null, when: "", err: "" }; if (d) { bkApply(d); toast("Progression restaurée"); } break; }
+    case "bkUndo": { try { const p = JSON.parse(localStorage.getItem("gl-backup-prev") || "null"); if (p && p.v === 1) { localStorage.removeItem("gl-backup-prev"); S = p; normS(); S.u = Date.now(); renderTop.xp = S.xp; dirty = true; touch(); render(); toast("Progression d'avant l'import remise"); } } catch (e) {} break; }
     case "lvlClose": document.querySelectorAll(".fx-lvl").forEach(x => x.remove()); break;
     case "tourNext": tourI++; if (tourI >= TOUR.length) tourEnd(); else tourShow(); break;
     case "tourEnd": tourEnd(); break;

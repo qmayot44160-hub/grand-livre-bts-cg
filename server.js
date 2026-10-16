@@ -28,6 +28,34 @@ const PUB = path.join(__dirname, "public");
 const APP_HTML = fs.readFileSync(path.join(PUB, "app.html"), "utf8");
 const LOGIN_HTML = fs.readFileSync(path.join(PUB, "login.html"), "utf8");
 const ADMIN_HTML = fs.readFileSync(path.join(PUB, "admin.html"), "utf8");
+const zlib = require("zlib");
+const APP_VER = crypto.createHash("sha1").update(APP_HTML).digest("hex").slice(0, 12);
+/* Page de l'appli par élève : construite une fois, compressée une fois, puis resservie (ou 304 si rien n'a changé). */
+const appCache = new Map();
+function appFor(u) {
+  const me = { id: u.id, name: u.name, ai: !!AI_KEY }, key = JSON.stringify(me);
+  let c = appCache.get(u.id);
+  if (c && c.key === key) { appCache.delete(u.id); appCache.set(u.id, c); return c; }
+  const build = () => Buffer.from(APP_HTML
+    .replace("__GL_ME__", JSON.stringify(me).replace(/</g, "\\u003c"))
+    .split("grand-livre-btscg-v1").join("grand-livre-btscg-v1-" + u.id)
+    .split('"gl-recent"').join('"gl-recent-' + u.id + '"'), "utf8");
+  c = { key, build, etag: '"' + APP_VER + "-" + crypto.createHash("sha1").update(key).digest("hex").slice(0, 10) + '"' };
+  appCache.set(u.id, c);
+  if (appCache.size > 60) appCache.delete(appCache.keys().next().value);
+  return c;
+}
+function sendApp(req, res, c) {
+  res.setHeader("Cache-Control", "private, no-cache");
+  res.setHeader("ETag", c.etag);
+  res.setHeader("Vary", "Accept-Encoding, Cookie");
+  if (req.headers["if-none-match"] === c.etag) return res.status(304).end();
+  const ae = String(req.headers["accept-encoding"] || "");
+  res.type("html");
+  if (/\bbr\b/.test(ae)) { c.br = c.br || zlib.brotliCompressSync(c.build(), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }); res.setHeader("Content-Encoding", "br"); return res.end(c.br); }
+  if (/\bgzip\b/.test(ae)) { c.gz = c.gz || zlib.gzipSync(c.build(), { level: 7 }); res.setHeader("Content-Encoding", "gzip"); return res.end(c.gz); }
+  res.end(c.build());
+}
 
 /* ---------- Sessions signées (cookie httpOnly) ---------- */
 const b64 = s => Buffer.from(s).toString("base64url");
@@ -72,14 +100,9 @@ app.use((req, res, next) => { res.setHeader("X-Content-Type-Options", "nosniff")
 app.get("/", async (req, res, next) => {
   try {
     const u = await currentUser(req);
-    res.setHeader("Cache-Control", "no-store");
+    if (!u) res.setHeader("Cache-Control", "no-store");
     if (!u) return res.type("html").send(LOGIN_HTML.replace("__SIGNUP_CODE__", REGISTRATION === "code" ? "1" : "0").replace("<!--VERIFY-->", VERIFY_TAG));
-    const me = { id: u.id, name: u.name, ai: !!AI_KEY };
-    const html = APP_HTML
-      .replace("__GL_ME__", JSON.stringify(me).replace(/</g, "\\u003c"))
-      .split("grand-livre-btscg-v1").join("grand-livre-btscg-v1-" + u.id)
-      .split('"gl-recent"').join('"gl-recent-' + u.id + '"');
-    res.type("html").send(html);
+    sendApp(req, res, appFor(u));
   } catch (e) { next(e); }
 });
 app.get("/admin", (req, res) => { res.setHeader("Cache-Control", "no-store"); res.type("html").send(ADMIN_HTML); });
