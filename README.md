@@ -17,18 +17,11 @@ Chaque envoi sur la branche `main` redéploie le site automatiquement.
 ## Sauvegardes et tâche planifiée
 Le serveur fait lui-même une copie complète de la base chaque jour (table `backups`, 7 dernières gardées), visible et téléchargeable dans `/admin` › « Sauvegardes de la base ».
 
-Pour que les rappels et la sauvegarde tournent même quand le site est en veille, ajoute un service planifié :
-1. Variables du service du site : `CRON_KEY` = une longue chaîne au hasard.
-2. Dans le projet : **+ New → Empty Service**, nomme-le `cron`.
-3. Variables du service `cron` (remplace `grand-livre-bts-cg` par le nom exact du service du site) :
-   - `CRON_KEY = ${{grand-livre-bts-cg.CRON_KEY}}`
-   - `SITE = ${{grand-livre-bts-cg.RAILWAY_PUBLIC_DOMAIN}}`
-4. Dans ses **Settings** :
-   - **Source → Connect Image** : `curlimages/curl:8.10.1`
-   - **Deploy → Custom Start Command** :
-     `sh -c 'curl -fsS -X POST -H "x-cron-key: $CRON_KEY" "https://$SITE/api/cron/tick"'`
-   - **Deploy → Cron Schedule** : `*/30 * * * *` (toutes les 30 minutes, heure UTC)
-5. **Deploy**. Dans `/admin`, la section Sauvegardes affiche « Tâche planifiée Railway branchée ».
+Une tâche planifiée Railway appelle aussi le site toutes les 30 minutes (rappels + sauvegarde, même si le site était en veille) :
+- service `cron` : une *Railway Function* (Bun) qui fait `POST https://$SITE/api/cron/tick` avec l'en-tête `x-cron-key: $CRON_KEY` ;
+- variables du service `cron` : `CRON_KEY = ${{grand-livre-bts-cg.CRON_KEY}}`, `SITE = ${{grand-livre-bts-cg.RAILWAY_PUBLIC_DOMAIN}}` ;
+- variable du site : `CRON_KEY` (longue chaîne au hasard) ;
+- Cron Schedule `*/30 * * * *`, redémarrage : jamais.
 
 Pense aussi à activer les sauvegardes de la base PostgreSQL : service Postgres › **Backups** (si ton offre Railway le propose).
 
