@@ -2931,7 +2931,7 @@ function suggestEx(cat) {
 }
 function todayCount(cats) { const d = dueCards(cats); return Math.min(30, d.reviews.length + Math.min(15, d.fresh.length)); }
 function exCount() { return Object.keys(S.x || {}).length + Object.values(S.an || {}).filter(x => x && (x.d || x.r || (x.g && x.g.length))).length + Object.values(S.gc || {}).filter(x => x && x.step > 0).length; }
-function planLeft() { const dy = dayLog(); return dy.l === 0 || dy.e === 0 || (dy.c < 10 && (todayCount() > 0 || dueQs().length > 0)); }
+function planLeft() { const dy = dayLog(); return dy.l === 0 || (!(dy.x || 0) && !(dy.w || 0)) || (dy.c < 10 && (todayCount() > 0 || dueQs().length > 0)); }
 function weekAcq() {
   const d0 = dayNum() - 6; let n = 0, soon = 0;
   QS.forEach(x => { const o = (S.qd || {})[x.id]; if (!o || !o.ok.length) return; const st = qState(x.id);
@@ -2950,10 +2950,10 @@ function vHome() {
     { done: dy.c >= 10 || (!todayN && !dqN), title: "Revoir tes cartes et tes acquis",
       text: todayN ? `${todayN} cartes t'attendent, environ ${Math.max(3, Math.round(todayN / 3))} minutes. Dix suffisent pour valider l'étape.${dqN ? ` Puis ${dqN} question${dqN > 1 ? "s" : ""} à revérifier.` : ""}` : dqN ? `${dqN} question${dqN > 1 ? "s" : ""} à revérifier pour qu'elles deviennent acquises.` : "Rien à revoir aujourd'hui.",
       btn: todayN ? `<button class="btn" data-act="today">Réviser</button>` : `<button class="btn" data-act="dueQuiz" ${dqN ? "" : "disabled"}>Revérifier</button>` },
-    wk0 ? { done: dy.e > 0, title: "Retravailler un point faible",
+    wk0 ? { done: (dy.w || 0) > 0 || (dy.x || 0) > 0, title: "Retravailler un point faible",
       text: `${h(chLabel(wk0.k))} : ${Math.round(wk0.ok / wk0.n * 100)} % de réussite. Un quiz qui commence par tes erreurs.`,
       btn: `<button class="btn" data-act="wkTrain" data-k="${h(wk0.k)}">Lancer</button>` } :
-    { done: dy.e > 0, title: "Faire un exercice",
+    { done: (dy.x || 0) > 0, title: "Faire un exercice",
       text: g ? `Annale ${h(g.a.ep)} ${g.a.year}, ${h(g.a.cas)} : ${h(g.t.charAt(0).toLowerCase() + g.t.slice(1))}${g.pts ? ` (${g.pts} points)` : ""}.` : `Un quiz de 10 questions en ${h(CAT[lcat].name.toLowerCase())}, corrigé au fur et à mesure.`,
       btn: g ? `<button class="btn" data-act="annOpen" data-id="${g.id}">Ouvrir</button>` : `<button class="btn" data-act="quickQuiz" data-cat="${lcat}">Lancer</button>` }
   ];
@@ -3110,7 +3110,7 @@ function pick(pos) {
 }
 function next() {
   if (R.i < R.list.length - 1) { R.i++; render(); window.scrollTo({ top: 0 }); }
-  else if (R.mode === "quiz") { dayLog().e++; touch(); go("result"); }
+  else if (R.mode === "quiz") { const dl = dayLog(); dl.e++; if (R.wk) dl.w = (dl.w || 0) + 1; touch(); go("result"); }
   else finishExam();
 }
 function finishExam() {
@@ -4885,7 +4885,7 @@ async function annCorrect() {
     if (!res || typeof res !== "object") throw { code: "invalid_json" };
     const out = { note: typeof res.note === "number" ? Math.max(0, Math.min(res.note, res.sur || x.pts || 20)) : null, sur: res.sur || x.pts || 20, fiabilite: res.fiabilite, resume: String(res.resume || ""), reussi: (res.reussi || []).map(String).slice(0, 12), erreurs: (res.erreurs || []).slice(0, 20).map(e => ({ point: String(e.point || ""), probleme: String(e.probleme || ""), correction: String(e.correction || ""), gravite: e.gravite === "majeure" ? "majeure" : "mineure" })), a_revoir: (res.a_revoir || []).map(String).filter(t => NOTIONS[t]).slice(0, 8), conseil: String(res.conseil || ""), at: Date.now() };
     const first = !st.d; st.r = out; st.d = 1;
-    if (first) { S.xp += 15; dayLog().e++; bumpStreak(); }
+    if (first) { S.xp += 15; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); }
     touch(); toast(first ? "Copie corrigée : +15 XP" : "Copie corrigée");
   } catch (e) {
     const code = e && e.code;
@@ -5587,7 +5587,7 @@ function recordEx(it) {
   const r = S.x[it.gid] || [0, 0, 0];
   const sc = Math.round(it.res.score * 100);
   S.x[it.gid] = [r[0] + 1, Math.max(r[1], sc), sc];
-  S.xp += it.res.score >= .5 ? Math.round(15 * it.res.score) : 0; dayLog().e++; bumpStreak();
+  S.xp += it.res.score >= .5 ? Math.round(15 * it.res.score) : 0; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak();
 }
 function exInputs(it, locked) {
   const res = it.res;
@@ -5679,7 +5679,7 @@ function finishE5() {
   X.done = true; if (exTick) { clearInterval(exTick); exTick = null; }
   if (X.mode === "dos") {
     X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [], t: "" }; grade(it); });
-    dosRecord(true); S.xp += Math.round(dosNote() * 2); dayLog().e++; bumpStreak();
+    dosRecord(true); S.xp += Math.round(dosNote() * 2); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak();
   } else X.list.forEach(it => { if (!it.user) it.user = { f: [], rows: [] }; grade(it); recordEx(it); });
   touch(); go("exres");
 }
@@ -5762,7 +5762,7 @@ document.addEventListener("click", e => {
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": RD = { id: b.dataset.rid }; go("redac"); break;
     case "rdShow": RD.text = document.getElementById("rdText").value; RD.shown = true; render(); break;
-    case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++; bumpStreak(); touch(); go("ex"); break; }
+    case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); touch(); go("ex"); break; }
     case "coursCat": openMat(cat, "lecons"); break;
     case "fiche": openFiche(b.dataset.id); break;
     case "annOpen": annSaveNow(); openAnn(b.dataset.id); break;
@@ -5774,9 +5774,9 @@ document.addEventListener("click", e => {
     case "annTimer": annSaveNow(); annTimerToggle(); break;
     case "annPhotoDel": { annSaveNow(); const k = b.dataset.kind; if (ANP[k]) ANP[k].splice(+b.dataset.i, 1); render(); break; }
     case "agSet": { annSaveNow(); const st = annState(AX.id), x = ANNEXID[AX.id]; st.g = st.g || []; st.g[+b.dataset.i] = +b.dataset.v;
-      if (x.w.every((_, i) => st.g[i] != null) && !st.d) { st.d = 1; S.xp += 5; dayLog().e++; bumpStreak(); toast("Exercice fait : +5 XP"); }
+      if (x.w.every((_, i) => st.g[i] != null) && !st.d) { st.d = 1; S.xp += 5; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice fait : +5 XP"); }
       touch(); const y = window.scrollY; render(); window.scrollTo({ top: y }); break; }
-    case "annDone": { annSaveNow(); const st = annState(AX.id); if (!st.d) { st.d = 1; S.xp += 5; dayLog().e++; bumpStreak(); toast("Exercice fait : +5 XP"); } else st.d = 0; touch(); render(); break; }
+    case "annDone": { annSaveNow(); const st = annState(AX.id); if (!st.d) { st.d = 1; S.xp += 5; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice fait : +5 XP"); } else st.d = 0; touch(); render(); break; }
     case "gsOpen": gsOpen(); break;
     case "gsClose": gsClose(); break;
     case "gsCat": { GS.cat = b.dataset.cat || ""; GS.act = -1; gsRender(); const gi = document.getElementById("gsInput"); if (gi) gi.focus(); break; }
@@ -5787,7 +5787,7 @@ document.addEventListener("click", e => {
     case "chCards": { const l = FCH[b.dataset.ch] || []; if (l.length) startCards(shuffle(l)); else toast("Pas encore de cartes pour cette fiche"); break; }
     case "gcase": openCase(b.dataset.id); break;
     case "gSelf": { const st = caseState(GC.id); st.ok[+b.dataset.i] = b.dataset.v === "1"; touch(); render(); break; }
-    case "gReveal": { const st = caseState(GC.id), k = GCID[GC.id], i = +b.dataset.i; const was = st.step; { const ck = stepCheck(k.id + "|" + k.steps[i].name, st.notes[i]); if (ck) st.ok[i] = ck.ok; } st.step = Math.max(st.step, i + 1); if (st.step >= k.steps.length && was < k.steps.length) { S.xp += 10; dayLog().e++; bumpStreak(); toast("Exercice terminé : +10 XP"); } touch(); render(); requestAnimationFrame(() => { const t = document.getElementById("gs" + (i + 1)); if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }); break; }
+    case "gReveal": { const st = caseState(GC.id), k = GCID[GC.id], i = +b.dataset.i; const was = st.step; { const ck = stepCheck(k.id + "|" + k.steps[i].name, st.notes[i]); if (ck) st.ok[i] = ck.ok; } st.step = Math.max(st.step, i + 1); if (st.step >= k.steps.length && was < k.steps.length) { S.xp += 10; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice terminé : +10 XP"); } touch(); render(); requestAnimationFrame(() => { const t = document.getElementById("gs" + (i + 1)); if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }); break; }
     case "gReset": { S.gc[GC.id] = { step: 0, notes: {}, ok: {} }; touch(); render(); window.scrollTo({ top: 0 }); break; }
     case "defi": startDefi(cat ? [cat] : (DF && DF.cats) || null); break;
     case "dPick": defiPick(+b.dataset.pos); break;
@@ -5834,7 +5834,7 @@ document.addEventListener("click", e => {
     case "wkClose": closeSheet(); break;
     case "wkFiche": closeSheet(); openFiche(b.dataset.id); break;
     case "wkErr": { const k = b.dataset.k; EF = { cat: "", ks: k === "*" ? weakChaps(5).map(o => o.k) : [k], st: "all" }; closeSheet(); go("erreurs"); break; }
-    case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
+    case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); R.wk = true; break; }
     case "goErr": EF = { cat: "", ks: null, st: "todo" }; go("erreurs"); break;
     case "ebCat": EF.cat = b.dataset.cat; EF.ks = null; render(); break;
     case "ebSt": EF.st = b.dataset.v; render(); break;
