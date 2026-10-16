@@ -3357,6 +3357,7 @@ function vResult() {
       ${x.pick !== null ? `<p class="y">Ta réponse : ${h(x.it.o[x.order[x.pick]])}</p>` : `<p class="y">Pas de réponse</p>`}
       <p class="a">Bonne réponse : ${h(x.it.o[0])}</p>
       <p class="e">${h(x.it.e)}</p>
+      <button class="rep-btn" data-act="report" data-t="q" data-id="${h(x.it.id)}" data-l="${h(String(x.it.q).slice(0, 140))}">Signaler une erreur</button>
     </div>`).join("");
   return `<section class="runner">
     <div><span class="eyebrow">${R.ctrl ? "Contrôle de chapitre" : R.mode === "exam" ? "QCM chronométré" : "Bilan du quiz"}</span><h1>${R.ctrl ? h(chLabel(R.ctrl)) : R.mode === "exam" ? "Ta copie est corrigée" : "Ton grand livre de la session"}</h1></div>
