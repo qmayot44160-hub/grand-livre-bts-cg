@@ -278,7 +278,7 @@ $("f").addEventListener("submit", async function (e) {
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok) return fail(j.error || "Une erreur est survenue. Réessaie.");
     try { localStorage.setItem("gl-last-name", name); if (mode === "signup") localStorage.setItem("gl-from-trial", "1"); } catch (x) {}
-    location.replace("/");
+    location.replace(/[?&]next=admin\b/.test(location.search) ? "/admin" : "/");
   } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); }
 });
 if (last) setMode("login");

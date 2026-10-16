@@ -61,20 +61,27 @@ function sendApp(req, res, c) {
 /* ---------- Sessions signées (cookie httpOnly) ---------- */
 const b64 = s => Buffer.from(s).toString("base64url");
 const sign = s => crypto.createHmac("sha256", SECRET).update(s).digest("base64url");
-function makeToken(uid) { const p = b64(JSON.stringify({ uid, exp: Math.floor(Date.now() / 1000) + MAX_AGE })); return p + "." + sign(p); }
+function makeToken(uid, sv) { const p = b64(JSON.stringify({ uid, sv: sv || 0, exp: Math.floor(Date.now() / 1000) + MAX_AGE })); return p + "." + sign(p); }
 function readToken(t) {
   if (!t || t.indexOf(".") < 0) return null;
   const [p, s] = t.split(".");
   const good = sign(p);
   if (s.length !== good.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(good))) return null;
-  try { const o = JSON.parse(Buffer.from(p, "base64url").toString()); return o.exp > Date.now() / 1000 ? o.uid : null; } catch (e) { return null; }
+  try { const o = JSON.parse(Buffer.from(p, "base64url").toString()); return o.exp > Date.now() / 1000 ? { uid: o.uid, sv: o.sv || 0 } : null; } catch (e) { return null; }
 }
 function cookies(req) { const o = {}; (req.headers.cookie || "").split(";").forEach(c => { const i = c.indexOf("="); if (i > 0) o[c.slice(0, i).trim()] = decodeURIComponent(c.slice(i + 1).trim()); }); return o; }
-function setSession(res, uid) {
-  res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(makeToken(uid))}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}${PROD ? "; Secure" : ""}`);
+function setSession(res, uid, sv) {
+  res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(makeToken(uid, sv))}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}${PROD ? "; Secure" : ""}`);
 }
 function clearSession(res) { res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${PROD ? "; Secure" : ""}`); }
-async function currentUser(req) { const uid = readToken(cookies(req)[COOKIE]); return uid ? store.userById(uid) : null; }
+/* Une session n'est valable que si le compte n'est pas suspendu et que son numéro de session (sv) n'a pas changé :
+   « Déconnecter partout » ou un nouveau mot de passe incrémentent sv et invalident tous les anciens cookies. */
+async function currentUser(req) {
+  const t = readToken(cookies(req)[COOKIE]); if (!t) return null;
+  const u = await store.userById(t.uid);
+  if (!u || u.blocked || (u.sv || 0) !== t.sv) return null;
+  return u;
+}
 function auth(req, res, next) {
   currentUser(req).then(u => { if (!u) return res.status(401).json({ error: "Connecte-toi d'abord." }); req.user = u; next(); }).catch(next);
 }
@@ -123,12 +130,15 @@ async function isAdminUser(req) {
 function notFound(res) { res.status(404).type("html").send('<!doctype html><meta charset="utf-8"><title>Introuvable</title><p style="font-family:system-ui;padding:32px">Page introuvable. <a href="/">Retour au Grand Livre</a></p>'); }
 app.get("/admin", async (req, res, next) => {
   try {
+    if (ADMIN_USERS.length && !(await currentUser(req).catch(() => null))) { res.setHeader("Cache-Control", "no-store"); return res.redirect("/?next=admin#login"); }
     if (!(await isAdminUser(req))) return notFound(res);
-    res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Robots-Tag", "noindex"); res.type("html").send(ADMIN_HTML);
+    res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Robots-Tag", "noindex"); res.type("html").send(ADMIN_HTML.split("__ADMIN_NAME__").join(esc(((await currentUser(req).catch(() => null)) || {}).name || "")));
   } catch (e) { next(e); }
 });
 app.use("/api/admin", (req, res, next) => { isAdminUser(req).then(ok => ok ? next() : res.status(404).json({ error: "Introuvable." })).catch(next); });
 app.use((req, res, next) => /^\/(app|login|admin)\.html$/.test(req.path) ? res.status(404).end() : next());
+/* Les pages HTML ne passent jamais par les fichiers statiques (sinon /admin.html ou /app.html contourneraient la connexion). */
+app.use((req, res, next) => (/\.html?$/i.test(req.path) ? notFound(res) : next()));
 app.use(express.static(PUB, { index: false, extensions: [], setHeaders: (res, p) => { if (/sw\.js$/.test(p)) res.setHeader("Cache-Control", "no-cache"); } }));
 
 /* ---------- Comptes ---------- */
@@ -155,7 +165,8 @@ app.post("/api/login", async (req, res, next) => {
     if (limited("li:" + req.ip, 20, 900e3) || limited("ln:" + nameKey(name), 10, 900e3)) return res.status(429).json({ error: "Trop d'essais. Attends un quart d'heure avant de réessayer." });
     const u = name ? await store.userByKey(nameKey(name)) : null;
     if (!u || !(await bcrypt.compare(pass, u.pass))) return res.status(401).json({ error: "Nom ou mot de passe incorrect." });
-    setSession(res, u.id);
+    if (u.blocked) return res.status(403).json({ error: "Ce compte est suspendu. Contacte la personne qui t'a partagé le Grand Livre." });
+    setSession(res, u.id, u.sv || 0);
     res.json({ ok: true, name: u.name });
   } catch (e) { next(e); }
 });
@@ -169,6 +180,7 @@ app.post("/api/password", auth, async (req, res, next) => {
     if (!(await bcrypt.compare(oldp, req.user.pass))) return res.status(403).json({ error: "Ancien mot de passe incorrect." });
     if (newp.length < 6 || newp.length > 100) return res.status(400).json({ error: "Le nouveau mot de passe doit faire au moins 6 caractères." });
     await store.setPass(req.user.id, await bcrypt.hash(newp, 10));
+    setSession(res, req.user.id, await store.bumpSv(req.user.id)); // déconnecte les autres appareils
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -377,22 +389,25 @@ app.post("/api/sample", auth, async (req, res, next) => {
 });
 
 /* ---------- Administration (réinitialiser un mot de passe) ---------- */
-function adminOk(req) { return ADMIN_KEY && String(req.headers["x-admin-key"] || "") === ADMIN_KEY; }
+/* Seuls les essais de clé ratés comptent : 10 erreurs en 15 minutes bloquent l'adresse IP. */
+function adBlocked(req) { const a = (attempts.get("adf:" + req.ip) || []).filter(t => Date.now() - t < 900e3); return a.length >= 10; }
+function adFail(req) { limited("adf:" + req.ip, 1e9, 900e3); }
+function adminOk(req) { const ok = !!ADMIN_KEY && String(req.headers["x-admin-key"] || "") === ADMIN_KEY; if (!ok) adFail(req); return ok; }
 app.post("/api/admin/users", async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 20, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     res.json({ users: await store.listUsers() });
   } catch (e) { next(e); }
 });
 app.post("/api/admin/errors", (req, res) => {
-  if (limited("ad:" + req.ip, 20, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+  if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
   if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
   res.json({ errors: ERRS });
 });
 app.post("/api/admin/reports", async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     if (req.body.id != null) await store.doneReport(req.body.id, req.body.done);
     res.json({ reports: await store.listReports() });
@@ -400,7 +415,7 @@ app.post("/api/admin/reports", async (req, res, next) => {
 });
 app.post("/api/admin/backups", async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     if (req.body.make) await dailyBackup(true);
     res.json({ backups: await store.listBackups(), cron: !!CRON_KEY });
@@ -408,8 +423,8 @@ app.post("/api/admin/backups", async (req, res, next) => {
 });
 app.post("/api/admin/backup-file", express.urlencoded({ extended: false }), async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).end();
-    const key = String(req.body.key || ""); if (!ADMIN_KEY || key !== ADMIN_KEY) return res.status(403).type("text").send("Clé d'administration incorrecte.");
+    if (adBlocked(req)) return res.status(429).end();
+    const key = String(req.body.key || ""); if (!ADMIN_KEY || key !== ADMIN_KEY) { adFail(req); return res.status(403).type("text").send("Clé d'administration incorrecte."); }
     if (req.body.id) { const b = await store.getBackup(req.body.id); if (!b) return res.status(404).type("text").send("Sauvegarde introuvable."); return sendBackup(res, b.day, b.blob); }
     sendBackup(res, parisNow().day + "-maintenant", await makeDump());
   } catch (e) { next(e); }
@@ -418,7 +433,7 @@ app.post("/api/admin/backup-file", express.urlencoded({ extended: false }), asyn
 let QMAP = {}; try { QMAP = JSON.parse(fs.readFileSync(path.join(__dirname, "src", "qmap.json"), "utf8")); } catch (e) {}
 app.post("/api/admin/stats", async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     const t = parisNow(), rows = await store.fullProgress();
     const act = n => rows.filter(r => r.data && Object.keys(r.data.h || {}).some(k => +k > t.dayNum - n)).length;
@@ -444,15 +459,66 @@ app.post("/api/admin/stats", async (req, res, next) => {
     });
   } catch (e) { next(e); }
 });
+/* Fiche de chaque élève : résumé calculé à partir de sa progression */
+const LV = [[0, "Stagiaire"], [300, "Assistant comptable"], [1000, "Comptable"], [2500, "Collaborateur"], [5000, "Chef de mission"], [9000, "Expert-comptable"]];
+const CATN = { p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", ma: "Maths", ce: "CEJM", cg: "Culture G.", an: "Anglais", me: "Méthodes" };
+function qSt(d, id) { const o = (d.qd || {})[id]; if (!o || !Array.isArray(o.ok) || !o.ok.length) return 1; const a = o.ok[0], b = o.ok[o.ok.length - 1]; return o.ok.length >= 3 && b - a >= 7 ? 3 : o.ok.length >= 2 && b - a >= 3 ? 2 : 1; }
+function studentSummary(r, dn, full) {
+  const d = r.data || {}, q = d.q || {}, h = d.h || {}, st = d.st || {}, xp = d.xp || 0;
+  let rep = 0, ok = 0, acq = 0, wrong = 0; const cat = {}, ch = {};
+  for (const [id, a] of Object.entries(q)) {
+    if (!Array.isArray(a)) continue; rep += a[0] || 0; ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; if (a[2] === 0) wrong++;
+    if (full) { const c = id.replace(/q\d+$/, ""), o = cat[c] || (cat[c] = { n: 0, ok: 0, acq: 0 }); o.n += a[0] || 0; o.ok += a[1] || 0; if (qSt(d, id) >= 2) o.acq++;
+      const m = QMAP[id]; if (m && m[2]) { const k = m[2], x = ch[k] || (ch[k] = { n: 0, ok: 0, c: CATN[c] || c }); x.n += a[0] || 0; x.ok += a[1] || 0; } }
+  }
+  const days = Object.keys(h).map(Number), lv = LV.filter(l => xp >= l[0]).pop();
+  const s = { id: r.id, name: r.name, created: r.created, updated: r.updated, blocked: !!r.blocked, rappels: (r.subs || 0) > 0,
+    xp, niveau: lv[1], serie: st.d >= dn - 1 ? st.n || 0 : 0, jours7: days.filter(k => k > dn - 7).length, jours30: days.filter(k => k > dn - 30).length,
+    reponses: rep, reussite: rep ? Math.round(ok / rep * 100) : null, acquises: acq, aRevoir: wrong, classement: !!(d.cl && d.cl.on) };
+  if (!full) return s;
+  s.fiches = Object.keys(d.fr || {}).length; s.lecons = Object.keys(d.l || {}).length;
+  s.cartes = Object.values(d.c || {}).filter(x => Array.isArray(x) && x[0] >= 3).length;
+  s.matieres = Object.entries(cat).map(([c, o]) => ({ c: CATN[c] || c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, acquises: o.acq })).sort((a, b) => b.reponses - a.reponses);
+  s.fragiles = Object.entries(ch).filter(([, x]) => x.n >= 4).map(([t, x]) => ({ t, c: x.c, reponses: x.n, reussite: Math.round(x.ok / x.n * 100) })).sort((a, b) => a.reussite - b.reussite).slice(0, 6);
+  s.controles = (d.packs || []).map(p => ({ c: CATN[p.cat] || p.cat, nom: p.name || p.kw || "", date: p.date || "", dernier: p.hist && p.hist.length ? p.hist[p.hist.length - 1].pc : null }));
+  s.activite = Array.from({ length: 28 }, (_, i) => h[dn - 27 + i] || 0);
+  return s;
+}
+app.post("/api/admin/students", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const dn = parisNow().dayNum, rows = await store.fullProgress();
+    if (req.body.id) { const r = rows.find(x => x.id === req.body.id); if (!r) return res.status(404).json({ error: "Élève introuvable." }); return res.json({ eleve: studentSummary(r, dn, true) }); }
+    res.json({ eleves: rows.map(r => studentSummary(r, dn, false)).sort((a, b) => (b.updated || 0) - (a.updated || 0)) });
+  } catch (e) { next(e); }
+});
+app.post("/api/admin/student-action", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const u = await store.userById(String(req.body.id || "")); if (!u) return res.status(404).json({ error: "Élève introuvable." });
+    const me = await currentUser(req).catch(() => null), self = me && me.id === u.id, act = req.body.action;
+    if (self && (act === "block" || act === "delete")) return res.status(400).json({ error: "Tu ne peux pas faire ça sur ton propre compte." });
+    if (act === "logout") await store.bumpSv(u.id);
+    else if (act === "block") await store.setBlocked(u.id, true);
+    else if (act === "unblock") await store.setBlocked(u.id, false);
+    else if (act === "password") { const p = String(req.body.password || ""); if (p.length < 6) return res.status(400).json({ error: "Mot de passe trop court (6 caractères minimum)." }); await store.setPass(u.id, await bcrypt.hash(p, 10)); await store.bumpSv(u.id); }
+    else if (act === "delete") { if (cleanName(req.body.confirm) !== u.name) return res.status(400).json({ error: "Recopie exactement le nom de l'élève pour confirmer." }); await store.deleteUser(u.id); }
+    else return res.status(400).json({ error: "Action inconnue." });
+    CLASS.at = 0; console.log("Admin :", act, u.name);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
 app.post("/api/admin/reset", async (req, res, next) => {
   try {
-    if (limited("ad:" + req.ip, 20, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     const u = await store.userByKey(nameKey(cleanName(req.body.name)));
     if (!u) return res.status(404).json({ error: "Aucun élève à ce nom." });
     const p = String(req.body.password || "");
     if (p.length < 6) return res.status(400).json({ error: "Mot de passe trop court (6 caractères minimum)." });
-    await store.setPass(u.id, await bcrypt.hash(p, 10));
+    await store.setPass(u.id, await bcrypt.hash(p, 10)); await store.bumpSv(u.id);
     res.json({ ok: true, name: u.name });
   } catch (e) { next(e); }
 });

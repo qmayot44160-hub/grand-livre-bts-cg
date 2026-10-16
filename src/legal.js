@@ -74,7 +74,7 @@ ${ai ? `<li><b>La correction de copie</b>, si tu l'utilises : le texte et les ph
 <h2>Cookies et stockage sur ton appareil</h2>
 <p>Le site utilise un seul cookie, <code>gl_s</code>, qui garde ta session ouverte. Il est indispensable au fonctionnement et dispensé de consentement (article 82 de la loi Informatique et Libertés). Le site enregistre aussi ta progression et tes préférences dans le stockage de ton navigateur, pour fonctionner hors connexion. Aucun traceur publicitaire ni de mesure d'audience : c'est pour cela qu'il n'y a pas de bandeau cookies.</p>
 <h2>Destinataires et hébergement</h2>
-<p>Seul l'éditeur a accès aux données, pour faire fonctionner le site. Elles sont hébergées par Railway Corporation (États-Unis), sur des serveurs situés à Amsterdam (Pays-Bas, Union européenne).${ai ? " Les copies envoyées à la correction passent par Anthropic, comme indiqué plus haut." : ""}</p>
+<p>Seul l'éditeur a accès aux données, pour faire fonctionner le site et accompagner la classe : il peut voir ta progression (niveau, réussite par matière, activité) et suspendre un compte qui ne respecte pas les conditions d'utilisation. Elles sont hébergées par Railway Corporation (États-Unis), sur des serveurs situés à Amsterdam (Pays-Bas, Union européenne).${ai ? " Les copies envoyées à la correction passent par Anthropic, comme indiqué plus haut." : ""}</p>
 <h2>Durée de conservation</h2>
 <p>Tant que ton compte existe. Quand tu supprimes ton compte, ton nom, ton mot de passe chiffré, ta progression et tes rappels sont effacés immédiatement. Ils peuvent subsister au plus 7 jours dans les sauvegardes de sécurité de la base, qui sont ensuite écrasées. Les comptes inactifs depuis plus de deux ans pourront être supprimés.</p>
 <h2>Tes droits</h2>

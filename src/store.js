@@ -23,6 +23,8 @@ function makePg(url) {
         PRIMARY KEY (user_id, day))`);
       await q(`CREATE TABLE IF NOT EXISTS reports (
         id BIGSERIAL PRIMARY KEY, user_name TEXT, kind TEXT, item TEXT, label TEXT, choice TEXT, comment TEXT, created BIGINT NOT NULL, done BOOLEAN NOT NULL DEFAULT FALSE)`);
+      await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE`);
+      await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sv INTEGER NOT NULL DEFAULT 0`);
       await q(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)`);
       await q(`CREATE TABLE IF NOT EXISTS backups (id BIGSERIAL PRIMARY KEY, day TEXT NOT NULL, created BIGINT NOT NULL, size INTEGER NOT NULL, blob TEXT NOT NULL)`);
       await q(`CREATE TABLE IF NOT EXISTS push_subs (
@@ -37,7 +39,9 @@ function makePg(url) {
       const p = await q("SELECT user_id, data, updated FROM progress");
       return { users: u.rows, progress: p.rows };
     },
-    async fullProgress() { const r = await q("SELECT u.id, u.name, u.created, p.data, p.updated FROM users u LEFT JOIN progress p ON p.user_id=u.id"); return r.rows; },
+    async fullProgress() { const r = await q("SELECT u.id, u.name, u.created, u.blocked, p.data, p.updated, (SELECT COUNT(*)::int FROM push_subs s WHERE s.user_id=u.id) AS subs FROM users u LEFT JOIN progress p ON p.user_id=u.id"); return r.rows; },
+    async setBlocked(id, b) { await q("UPDATE users SET blocked=$2, sv=sv+1 WHERE id=$1", [id, !!b]); },
+    async bumpSv(id) { const r = await q("UPDATE users SET sv=sv+1 WHERE id=$1 RETURNING sv", [id]); return r.rows[0] ? r.rows[0].sv : 0; },
     async saveBackup(day, blob) { await q("INSERT INTO backups(day, created, size, blob) VALUES($1,$2,$3,$4)", [day, Date.now(), blob.length, blob]); await q("DELETE FROM backups WHERE id NOT IN (SELECT id FROM backups ORDER BY created DESC LIMIT 7)"); },
     async listBackups() { const r = await q("SELECT id, day, created, size FROM backups ORDER BY created DESC"); return r.rows; },
     async getBackup(id) { const r = await q("SELECT day, blob FROM backups WHERE id=$1", [id]); return r.rows[0] || null; },
@@ -80,7 +84,9 @@ function makeFile(dir) {
     kind: "fichier " + file,
     async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; d.reports = d.reports || []; d.backups = d.backups || []; },
     async dumpAll() { return { users: Object.values(d.users), progress: Object.entries(d.progress).map(([user_id, x]) => ({ user_id, data: x.data, updated: x.updated })) }; },
-    async fullProgress() { return Object.values(d.users).map(u => ({ id: u.id, name: u.name, created: u.created, data: d.progress[u.id] ? d.progress[u.id].data : null, updated: d.progress[u.id] ? d.progress[u.id].updated : null })); },
+    async setBlocked(id, b) { const u = d.users[id]; if (u) { u.blocked = !!b; u.sv = (u.sv || 0) + 1; save(); } },
+    async bumpSv(id) { const u = d.users[id]; if (!u) return 0; u.sv = (u.sv || 0) + 1; save(); return u.sv; },
+    async fullProgress() { return Object.values(d.users).map(u => ({ id: u.id, name: u.name, created: u.created, blocked: !!u.blocked, subs: Object.values(d.subs).filter(x => x.user_id === u.id).length, data: d.progress[u.id] ? d.progress[u.id].data : null, updated: d.progress[u.id] ? d.progress[u.id].updated : null })); },
     async saveBackup(day, blob) { d.backups.unshift({ id: Date.now(), day, created: Date.now(), size: blob.length, blob }); d.backups = d.backups.slice(0, 7); save(); },
     async listBackups() { return d.backups.map(({ id, day, created, size }) => ({ id, day, created, size })); },
     async getBackup(id) { return d.backups.find(b => String(b.id) === String(id)) || null; },

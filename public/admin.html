@@ -2,173 +2,327 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Grand Livre · Administration</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GL Admin</title>
 <meta name="robots" content="noindex">
+<link rel="manifest" href="/admin.webmanifest">
+<meta name="theme-color" content="#161a36">
+<link rel="apple-touch-icon" href="/admin-192.png">
+<link rel="icon" href="/admin-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GL Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--accent:#2c43c6;--ok:#1d7a4b;--bad:#b02f3a}
-@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--accent:#9eacff;--ok:#72d6a0;--bad:#ff9ba3;color-scheme:dark}}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:24px 16px}
-main{max-width:900px;margin:0 auto;display:grid;gap:18px}
-h1{margin:0;font-size:1.5rem}
-.card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:18px;display:grid;gap:12px}
-label{display:grid;gap:5px;font-weight:600;font-size:.92rem}
-input{font:inherit;padding:10px;border:1px solid var(--rule);border-radius:9px;background:var(--paper);color:var(--ink)}
-button{font:600 .95rem system-ui;border:0;border-radius:9px;padding:10px 14px;background:var(--accent);color:#fff;cursor:pointer;justify-self:start}
-.msg{font-size:.92rem}.ok{color:var(--ok)}.bad{color:var(--bad)}
-.tbl{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.9rem}
-td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule)}
-th{color:var(--muted);font-weight:600}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.kpi{border:1px solid var(--rule);border-radius:11px;padding:10px 12px}.kpi b{display:block;font-size:1.5rem;line-height:1.2}.kpi span{color:var(--muted);font-size:.85rem}
-.bars{display:flex;align-items:flex-end;gap:3px;height:80px;border-bottom:1px solid var(--rule)}.bars i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
-.meter{height:8px;border-radius:5px;background:var(--rule);overflow:hidden;min-width:80px}.meter i{display:block;height:100%;background:var(--accent)}
-h3{margin:6px 0 0;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px}
+:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--accent:#2c43c6;--accent-ink:#fff;--ok:#1d7a4b;--bad:#b02f3a;--warn:#9a6400;--gold:#ffc94d;--top:#161a36;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#b0b5d6;--rule:#2a2e50;--accent:#9eacff;--accent-ink:#12142a;--ok:#72d6a0;--bad:#ff9ba3;--warn:#ffc94d;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+header.top{position:sticky;top:0;z-index:5;background:var(--top);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+header.top img{width:30px;height:30px;border-radius:8px}
+header.top h1{font-size:1.05rem;margin:0;flex:1;line-height:1.2}header.top h1 small{display:block;font-weight:500;opacity:.75;font-size:.78rem}
+.icon-btn{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:1.1rem}
+main{max-width:820px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-inset-bottom));display:grid;gap:14px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:14px;display:grid;gap:10px;min-width:0}
+h2{font-size:1.15rem;margin:4px 0 0}h3{font-size:.98rem;margin:4px 0 0}
+.muted{color:var(--muted)}.small{font-size:.86rem}
+.btn{border:1px solid var(--rule);background:var(--sheet);border-radius:11px;padding:10px 14px;font-weight:600;cursor:pointer;min-height:44px}
+.btn.primary{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
+.btn:disabled{opacity:.5}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input.in{width:100%;padding:11px 12px;border:1px solid var(--rule);border-radius:11px;background:var(--paper);min-height:44px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.kpi{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;background:var(--sheet)}.kpi b{display:block;font-size:1.45rem;line-height:1.15}.kpi span{color:var(--muted);font-size:.82rem}
+.bars{display:flex;align-items:flex-end;gap:3px;height:70px;border-bottom:1px solid var(--rule)}.bars i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px}
+.meter{height:8px;border-radius:5px;background:var(--rule);overflow:hidden;flex:1;min-width:60px}.meter i{display:block;height:100%;background:var(--accent)}
+.mrow{display:grid;grid-template-columns:minmax(70px,auto) 1fr auto;gap:10px;align-items:center;font-size:.9rem;padding:4px 0}
+.list{display:grid;gap:8px}
+.stu{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:12px;cursor:pointer}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.stu b{display:block}.stu .sub{color:var(--muted);font-size:.84rem}
+.stu .rt{text-align:right;font-size:.84rem;color:var(--muted)}.stu .rt b{color:var(--ink);font-size:1rem}
+.pill{display:inline-block;border-radius:99px;padding:2px 9px;font-size:.75rem;font-weight:700;border:1px solid var(--rule);margin-left:4px;vertical-align:1px}
+.pill.bad{color:var(--bad);border-color:currentColor}.pill.ok{color:var(--ok);border-color:currentColor}.pill.warn{color:var(--warn);border-color:currentColor}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--rule);background:var(--sheet);border-radius:99px;padding:7px 12px;font-weight:600;font-size:.88rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:transparent}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--sheet);border-top:1px solid var(--rule);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs button{border:0;background:none;padding:6px 2px;border-radius:12px;display:grid;justify-items:center;gap:2px;font-size:.74rem;font-weight:600;color:var(--muted);cursor:pointer;position:relative}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current="page"]{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+nav.tabs .badge{position:absolute;top:2px;left:calc(50% + 6px);background:var(--bad);color:#fff;border-radius:99px;font-size:.68rem;padding:0 6px;line-height:1.5}
+.sheet{position:fixed;inset:0;z-index:20;background:var(--paper);overflow-y:auto;padding:0 0 calc(30px + env(safe-area-inset-bottom))}
+.sheet header{position:sticky;top:0;background:var(--paper);border-bottom:1px solid var(--rule);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;z-index:2}
+.sheet header h2{margin:0;flex:1;font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet .inner{max-width:820px;margin:0 auto;padding:14px 16px;display:grid;gap:14px}
+.back{border:1px solid var(--rule);background:var(--sheet);border-radius:10px;min-width:44px;height:40px;font-weight:700;cursor:pointer}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.88rem}td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--rule);vertical-align:top}th{color:var(--muted);font-weight:600}
+.rep{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;display:grid;gap:4px;background:var(--sheet)}.rep.done{opacity:.55}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;font-weight:600;z-index:40;max-width:90vw}
+.lock{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.lock .card{max-width:420px;width:100%}
+.lock img{width:64px;height:64px;border-radius:16px}
+.err{color:var(--bad);font-weight:600;font-size:.92rem}
+.danger-zone{border-color:color-mix(in srgb,var(--bad) 35%,var(--rule))}
+.empty{color:var(--muted);text-align:center;padding:20px 8px}
+label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem}
 </style>
 </head>
 <body>
-<main>
-  <h1>Administration du Grand Livre</h1>
-  <div class="card">
-    <label for="key">Clé d'administration (variable ADMIN_KEY sur Railway)<input id="key" type="password" autocomplete="off"></label>
-    <button id="list" type="button">Voir les élèves inscrits</button>
-    <div class="tbl" id="users"></div>
-  </div>
-  <div class="card">
-    <strong>Statistiques de la classe</strong>
-    <p class="msg" style="margin:0;color:var(--muted)">Activité et réussite de tous les inscrits, sans détail nominatif des réponses.</p>
-    <button id="stats" type="button">Voir les statistiques</button>
-    <div id="statBox"></div>
-  </div>
-  <div class="card">
-    <strong>Erreurs signalées par les élèves</strong>
-    <p class="msg" style="margin:0;color:var(--muted)">Questions, cartes, fiches ou leçons que les élèves pensent fausses. Transmets-les à Claude pour correction, puis coche « Traité ».</p>
-    <button id="reps" type="button">Voir les signalements</button>
-    <div class="tbl" id="repList"></div>
-  </div>
-  <div class="card">
-    <strong>Bugs remontés par l'appli</strong>
-    <p class="msg" style="margin:0;color:var(--muted)">Rapports anonymes envoyés quand l'appli plante chez un élève (effacés au redémarrage du serveur).</p>
-    <button id="errs" type="button">Voir les bugs</button>
-    <div class="tbl" id="errList"></div>
-  </div>
-  <div class="card">
-    <strong>Sauvegardes de la base</strong>
-    <p class="msg" style="margin:0;color:var(--muted)">Une copie complète (comptes et progressions) est faite chaque jour et les 7 dernières sont gardées. Télécharge-en une de temps en temps pour l'avoir aussi chez toi.</p>
-    <div class="row"><button id="bks" type="button">Voir les sauvegardes</button><button id="bkNow" type="button">Faire une sauvegarde maintenant</button><button id="bkDl" type="button">Télécharger l'état actuel</button></div>
-    <div class="tbl" id="bkList"></div>
-  </div>
-  <div class="card">
-    <strong>Réinitialiser le mot de passe d'un élève</strong>
-    <label for="who">Nom de l'élève (tel qu'il l'a tapé)<input id="who" autocomplete="off"></label>
-    <label for="np">Nouveau mot de passe provisoire<input id="np" autocomplete="off"></label>
-    <button id="reset" type="button">Réinitialiser</button>
-    <div class="msg" id="msg" role="status"></div>
-  </div>
-</main>
+<div class="lock" id="lock">
+  <form class="card" id="lockForm" autocomplete="off">
+    <img src="/admin-192.png" alt="">
+    <h2>Administration du Grand Livre</h2>
+    <p class="muted small" style="margin:0">Connecté en tant que <b>__ADMIN_NAME__</b>. Tape la clé d'administration (variable ADMIN_KEY sur Railway).</p>
+    <input class="in" id="key" type="password" autocomplete="current-password" placeholder="Clé d'administration" aria-label="Clé d'administration">
+    <label class="chk"><input type="checkbox" id="remember" checked> Se souvenir sur cet appareil</label>
+    <div class="err" id="lockErr" role="alert" hidden></div>
+    <button class="btn primary" type="submit">Ouvrir</button>
+    <p class="muted small" style="margin:0">Sur ton téléphone : menu du navigateur › « Ajouter à l'écran d'accueil » pour avoir l'appli « GL Admin ».</p>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="top"><img src="/admin-192.png" alt=""><h1>GL Admin<small id="subtitle">__ADMIN_NAME__</small></h1><button class="icon-btn" id="refresh" aria-label="Actualiser">↻</button></header>
+  <main id="view"></main>
+  <nav class="tabs" aria-label="Sections">
+    <button data-tab="classe" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Classe</button>
+    <button data-tab="eleves"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>Élèves</button>
+    <button data-tab="signal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>Signalements<span class="badge" id="repBadge" hidden></span></button>
+    <button data-tab="systeme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Système</button>
+  </nav>
+</div>
+
 <script>
-var $ = function (i) { return document.getElementById(i); };
-async function call(url, body) {
-  var r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": $("key").value }, body: JSON.stringify(body || {}) });
-  var j = await r.json().catch(function () { return {}; });
-  if (!r.ok) throw new Error(j.error || "Erreur");
-  return j;
-}
-function d(t) { return t ? new Date(Number(t)).toLocaleDateString("fr-FR") : "—"; }
-$("list").onclick = async function () {
-  try {
-    var j = await call("/api/admin/users");
-    var tb = document.createElement("table");
-    tb.innerHTML = "<thead><tr><th>Élève</th><th>Inscrit le</th><th>Dernière activité</th></tr></thead>";
-    var body = document.createElement("tbody");
-    j.users.forEach(function (u) { var tr = document.createElement("tr"); [u.name, d(u.created), d(u.updated)].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }); body.appendChild(tr); });
-    tb.appendChild(body); $("users").replaceChildren(tb);
-    if (!j.users.length) $("users").textContent = "Aucun élève inscrit pour l'instant.";
-  } catch (e) { $("users").textContent = e.message; }
-};
-var KIND = { q: "Quiz", c: "Carte", l: "Leçon", f: "Fiche", o: "Oral" };
-async function showReps(body) {
-  try {
-    var j = await call("/api/admin/reports", body || {});
-    if (!j.reports.length) { $("repList").textContent = "Aucun signalement pour l'instant."; return; }
-    var tb = document.createElement("table");
-    tb.innerHTML = "<thead><tr><th>Date</th><th>Type</th><th>Contenu</th><th>Problème</th><th>Élève</th><th></th></tr></thead>";
-    var tbody = document.createElement("tbody");
-    j.reports.forEach(function (r) {
-      var tr = document.createElement("tr"); if (r.done) tr.style.opacity = ".5";
-      [new Date(Number(r.created)).toLocaleDateString("fr-FR"), (KIND[r.kind] || r.kind) + " " + r.item, r.label, r.choice + (r.comment ? "\n" + r.comment : ""), r.user_name].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; td.style.whiteSpace = "pre-wrap"; tr.appendChild(td); });
-      var td = document.createElement("td"), b = document.createElement("button"); b.type = "button"; b.textContent = r.done ? "Rouvrir" : "Traité"; b.style.padding = "6px 10px";
-      b.onclick = function () { showReps({ id: r.id, done: !r.done }); }; td.appendChild(b); tr.appendChild(td); tbody.appendChild(tr);
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  var KEY = "", TAB = "classe", FILTER = "tous", SEARCH = "", CACHE = {};
+  var LS = "gl-admin-key";
+  try { KEY = localStorage.getItem(LS) || ""; } catch (e) {}
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+
+  /* ---------- outils ---------- */
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k]; if (v == null || v === false) return;
+      if (k === "text") e.textContent = v; else if (k === "cls") e.className = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "style") e.style.cssText = v; else e.setAttribute(k, v === true ? "" : v);
     });
-    tb.appendChild(tbody); $("repList").replaceChildren(tb);
-  } catch (e) { $("repList").textContent = e.message; }
-}
-$("reps").onclick = function () { showReps(); };
-$("errs").onclick = async function () {
-  try {
-    var j = await call("/api/admin/errors");
-    if (!j.errors.length) { $("errList").textContent = "Aucun bug remonté depuis le dernier redémarrage."; return; }
-    var tb = document.createElement("table");
-    tb.innerHTML = "<thead><tr><th>Dernière fois</th><th>Fois</th><th>Page</th><th>Erreur</th></tr></thead>";
-    var body = document.createElement("tbody");
-    j.errors.forEach(function (e) { var tr = document.createElement("tr"); [new Date(e.at).toLocaleString("fr-FR"), e.n, e.p, e.m + (e.s ? "\n" + e.s.split("\n").slice(0, 2).join("\n") : "")].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; td.style.whiteSpace = "pre-wrap"; tr.appendChild(td); }); body.appendChild(tr); });
-    tb.appendChild(body); $("errList").replaceChildren(tb);
-  } catch (e) { $("errList").textContent = e.message; }
-};
-function cell(tr, v) { var td = document.createElement("td"); if (v instanceof Node) td.appendChild(v); else td.textContent = v; tr.appendChild(td); return td; }
-function table(head, rows) {
-  var tb = document.createElement("table"), th = document.createElement("thead"), hr = document.createElement("tr");
-  head.forEach(function (h) { var x = document.createElement("th"); x.textContent = h; hr.appendChild(x); }); th.appendChild(hr); tb.appendChild(th);
-  var body = document.createElement("tbody"); rows.forEach(function (r) { var tr = document.createElement("tr"); r.forEach(function (v) { cell(tr, v); }); body.appendChild(tr); }); tb.appendChild(body);
-  var w = document.createElement("div"); w.className = "tbl"; w.appendChild(tb); return w;
-}
-function meter(p) { var m = document.createElement("div"); m.className = "meter"; m.title = p + " %"; var i = document.createElement("i"); i.style.width = p + "%"; m.appendChild(i); return m; }
-function h3(t) { var h = document.createElement("h3"); h.textContent = t; return h; }
-$("stats").onclick = async function () {
-  var box = $("statBox");
-  try {
-    var j = await call("/api/admin/stats"), out = [];
-    var k = document.createElement("div"); k.className = "kpis";
-    [[j.eleves, "élèves inscrits"], [j.actifs.jour, "actifs aujourd'hui"], [j.actifs.semaine, "actifs sur 7 jours"], [j.actifs.mois, "actifs sur 30 jours"], [j.classement, "dans le classement"], [j.signalements, "signalements à traiter"]].forEach(function (x) {
-      var d = document.createElement("div"); d.className = "kpi"; var b = document.createElement("b"); b.textContent = x[0]; var s = document.createElement("span"); s.textContent = x[1]; d.append(b, s); k.appendChild(d);
-    });
-    out.push(k, h3("Élèves actifs par jour (4 dernières semaines)"));
-    var bars = document.createElement("div"); bars.className = "bars"; var mx = Math.max.apply(null, j.jours.map(function (x) { return x.n; }).concat(1));
-    j.jours.forEach(function (x) { var i = document.createElement("i"); i.style.height = (x.n / mx * 100) + "%"; i.title = new Date(x.dn * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) + " : " + x.n + " élève" + (x.n > 1 ? "s" : ""); bars.appendChild(i); });
-    out.push(bars, h3("Par matière (réponses aux quiz)"));
-    out.push(table(["Matière", "Élèves", "Réponses", "Réussite"], j.matieres.map(function (m) { var w = document.createElement("div"); w.style.cssText = "display:flex;gap:8px;align-items:center"; w.append(meter(m.reussite), document.createTextNode(m.reussite + " %")); return [m.c.toUpperCase(), m.eleves, m.reponses, w]; })));
-    out.push(h3("Questions les plus ratées"));
-    if (!j.ratees.length) { var p = document.createElement("p"); p.className = "msg"; p.textContent = "Pas encore assez de réponses."; out.push(p); }
-    else out.push(table(["Question", "Chapitre", "Élèves qui l'ont ratée", "Réussite"], j.ratees.map(function (r) { return [(r.q || r.id) + " (" + r.c + ")", r.ch || "—", r.eleves, r.reussite + " %"]; })));
-    var n = document.createElement("p"); n.className = "msg"; n.style.color = "var(--muted)"; n.textContent = "Astuce : une question ratée par beaucoup d'élèves est soit un point à retravailler en classe, soit une question mal formulée ; dans le doute, transmets-la à Claude.";
-    out.push(n); box.replaceChildren.apply(box, out);
-  } catch (e) { box.textContent = e.message; }
-};
-function dlBackup(id) {
-  var f = document.createElement("form"); f.method = "POST"; f.action = "/api/admin/backup-file"; f.hidden = true;
-  [["key", $("key").value], ["id", id || ""]].forEach(function (x) { var i = document.createElement("input"); i.type = "hidden"; i.name = x[0]; i.value = x[1]; f.appendChild(i); });
-  document.body.appendChild(f); f.submit(); setTimeout(function () { f.remove(); }, 1000);
-}
-async function showBk(make) {
-  try {
-    var j = await call("/api/admin/backups", make ? { make: true } : {});
-    var rows = j.backups.map(function (b) { var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "Télécharger"; bt.style.padding = "6px 10px"; bt.onclick = function () { dlBackup(b.id); }; return [b.day, new Date(Number(b.created)).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), Math.max(1, Math.round(b.size * 0.75 / 1024)) + " Ko (compressé)", bt]; });
-    var info = document.createElement("p"); info.className = "msg"; info.style.margin = "0";
-    info.textContent = j.cron ? "Tâche planifiée Railway branchée (CRON_KEY définie)." : "Sauvegarde faite par le serveur lui-même ; la tâche planifiée Railway (CRON_KEY) n'est pas encore branchée.";
-    $("bkList").replaceChildren(info, rows.length ? table(["Jour", "Heure", "Taille", ""], rows) : document.createTextNode("Aucune sauvegarde pour l'instant."));
-  } catch (e) { $("bkList").textContent = e.message; }
-}
-$("bks").onclick = function () { showBk(false); };
-$("bkNow").onclick = function () { showBk(true); };
-$("bkDl").onclick = function () { dlBackup(""); };
-$("reset").onclick = async function () {
-  var m = $("msg");
-  try { var j = await call("/api/admin/reset", { name: $("who").value, password: $("np").value }); m.className = "msg ok"; m.textContent = "Mot de passe de " + j.name + " réinitialisé. Donne-lui le mot de passe provisoire."; }
-  catch (e) { m.className = "msg bad"; m.textContent = e.message; }
-};
+    (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c))); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { cls: "toast", role: "status", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  async function call(url, body) {
+    var r = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "x-admin-key": KEY }, body: JSON.stringify(body || {}) });
+    var j = await r.json().catch(function () { return {}; });
+    if (r.status === 403 && /Clé/.test(j.error || "")) { lockScreen(j.error); throw new Error(j.error); }
+    if (r.status === 404 && url.indexOf("/api/admin") === 0 && !(body && body.id)) { location.replace("/admin"); throw new Error("Session expirée"); }
+    if (!r.ok) throw new Error(j.error || "Erreur " + r.status);
+    return j;
+  }
+  function ago(t) {
+    if (!t) return "jamais";
+    var m = Math.round((Date.now() - Number(t)) / 60000);
+    if (m < 2) return "à l'instant"; if (m < 60) return "il y a " + m + " min";
+    var h = Math.round(m / 60); if (h < 24) return "il y a " + h + " h";
+    var d = Math.round(h / 24); if (d < 31) return "il y a " + d + " j";
+    return new Date(Number(t)).toLocaleDateString("fr-FR");
+  }
+  function day(t) { return t ? new Date(Number(t)).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—"; }
+  function ini(n) { return String(n || "?").trim().split(/\s+/).map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase(); }
+  function meter(p) { var m = el("div", { cls: "meter", title: p + " %" }); m.append(el("i", { style: "width:" + Math.max(0, Math.min(100, p)) + "%" })); return m; }
+  function kpis(items) { return el("div", { cls: "kpis" }, items.map(function (x) { return el("div", { cls: "kpi" }, [el("b", { text: x[0] }), el("span", { text: x[1] })]); })); }
+  function bars(vals, labelOf) {
+    var mx = Math.max.apply(null, vals.concat([1])), b = el("div", { cls: "bars", role: "img", "aria-label": "Activité des 4 dernières semaines" });
+    vals.forEach(function (v, i) { b.append(el("i", { style: "height:" + (v / mx * 100) + "%", title: labelOf(i, v) })); });
+    return b;
+  }
+  function busy(v) { var m = $("view"); if (v) m.replaceChildren(el("p", { cls: "empty", text: "Chargement…" })); }
+  function setView(nodes) { $("view").replaceChildren.apply($("view"), nodes); }
+  function errView(e) { setView([el("div", { cls: "card" }, [el("p", { cls: "err", text: e.message })])]); }
+
+  /* ---------- verrou ---------- */
+  function lockScreen(msg) {
+    $("app").hidden = true; $("lock").hidden = false;
+    if (msg) { $("lockErr").textContent = msg; $("lockErr").hidden = false; try { localStorage.removeItem(LS); } catch (e) {} }
+    setTimeout(function () { $("key").focus(); }, 50);
+  }
+  $("lockForm").addEventListener("submit", async function (ev) {
+    ev.preventDefault(); KEY = $("key").value.trim(); $("lockErr").hidden = true;
+    try {
+      await call("/api/admin/stats");
+      try { if ($("remember").checked) localStorage.setItem(LS, KEY); else localStorage.removeItem(LS); } catch (e) {}
+      $("key").value = ""; openApp();
+    } catch (e) { $("lockErr").textContent = e.message; $("lockErr").hidden = false; }
+  });
+  function openApp() { $("lock").hidden = true; $("app").hidden = false; show(TAB); refreshBadge(); }
+
+  /* ---------- onglets ---------- */
+  document.querySelectorAll("nav.tabs button").forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.tab); }); });
+  $("refresh").addEventListener("click", function () { CACHE = {}; show(TAB); refreshBadge(); });
+  function show(t) {
+    TAB = t; window.scrollTo(0, 0);
+    document.querySelectorAll("nav.tabs button").forEach(function (b) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    ({ classe: vClasse, eleves: vEleves, signal: vSignal, systeme: vSysteme })[t]();
+  }
+  async function refreshBadge() {
+    try { var j = await call("/api/admin/reports"); var n = j.reports.filter(function (r) { return !r.done; }).length; $("repBadge").hidden = !n; $("repBadge").textContent = n; } catch (e) {}
+  }
+
+  /* ---------- Classe ---------- */
+  async function vClasse() {
+    busy(true);
+    try {
+      var j = await call("/api/admin/stats");
+      var out = [el("h2", { text: "La classe" }), kpis([[j.eleves, "élèves inscrits"], [j.actifs.jour, "actifs aujourd'hui"], [j.actifs.semaine, "actifs sur 7 jours"], [j.actifs.mois, "actifs sur 30 jours"], [j.classement, "dans le classement"], [j.signalements, "signalements à traiter"]])];
+      out.push(el("div", { cls: "card" }, [el("h3", { text: "Élèves actifs par jour" }), bars(j.jours.map(function (x) { return x.n; }), function (i, v) { return new Date(j.jours[i].dn * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) + " : " + v; }), el("p", { cls: "muted small", style: "margin:0", text: "4 dernières semaines, de gauche à droite." })]));
+      var mat = el("div", { cls: "card" }, [el("h3", { text: "Réussite par matière" })]);
+      if (!j.matieres.length) mat.append(el("p", { cls: "empty", text: "Pas encore de réponses." }));
+      j.matieres.forEach(function (m) { mat.append(el("div", { cls: "mrow" }, [el("b", { text: m.c.toUpperCase() }), meter(m.reussite), el("span", { cls: "muted", text: m.reussite + " % · " + m.reponses + " rép." })])); });
+      out.push(mat);
+      var rat = el("div", { cls: "card" }, [el("h3", { text: "Questions les plus ratées" })]);
+      if (!j.ratees.length) rat.append(el("p", { cls: "empty", text: "Pas encore assez de réponses." }));
+      j.ratees.forEach(function (r) { rat.append(el("div", { cls: "rep" }, [el("b", { text: r.q || r.id }), el("span", { cls: "muted small", text: r.c + (r.ch ? " · " + r.ch : "") }), el("span", { cls: "small", text: r.eleves + (r.eleves > 1 ? " élèves l'ont ratée" : " élève l'a ratée") + " · réussite " + r.reussite + " %" })])); });
+      out.push(rat); setView(out);
+    } catch (e) { errView(e); }
+  }
+
+  /* ---------- Élèves ---------- */
+  var FILTERS = [["tous", "Tous"], ["actifs", "Actifs 7 j"], ["inactifs", "Inactifs"], ["fragiles", "En difficulté"], ["suspendus", "Suspendus"]];
+  function keep(s) {
+    if (SEARCH && s.name.toLowerCase().indexOf(SEARCH) < 0) return false;
+    if (FILTER === "actifs") return s.jours7 > 0; if (FILTER === "inactifs") return !s.jours7;
+    if (FILTER === "fragiles") return s.reponses >= 20 && s.reussite < 55; if (FILTER === "suspendus") return s.blocked;
+    return true;
+  }
+  async function vEleves() {
+    busy(true);
+    try {
+      var j = CACHE.eleves || (CACHE.eleves = await call("/api/admin/students"));
+      var list = el("div", { cls: "list" });
+      function draw() {
+        var rows = j.eleves.filter(keep);
+        list.replaceChildren.apply(list, rows.length ? rows.map(stuCard) : [el("p", { cls: "empty", text: "Aucun élève ici." })]);
+      }
+      var chips = el("div", { cls: "chips", role: "group", "aria-label": "Filtrer" }, FILTERS.map(function (f) {
+        return el("button", { cls: "chip", "aria-pressed": String(FILTER === f[0]), text: f[1], onclick: function (ev) { FILTER = f[0]; chips.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", "false"); }); ev.currentTarget.setAttribute("aria-pressed", "true"); draw(); } });
+      }));
+      var search = el("input", { cls: "in", type: "search", placeholder: "Rechercher un élève", "aria-label": "Rechercher un élève", value: SEARCH, oninput: function (ev) { SEARCH = ev.target.value.trim().toLowerCase(); draw(); } });
+      var act = j.eleves.filter(function (s) { return s.jours7 > 0; }).length;
+      setView([el("h2", { text: "Élèves (" + j.eleves.length + ")" }), el("p", { cls: "muted small", style: "margin:-6px 0 0", text: act + " actif" + (act > 1 ? "s" : "") + " cette semaine · touche un élève pour voir sa fiche." }), search, chips, list]);
+      draw();
+    } catch (e) { errView(e); }
+  }
+  function stuCard(s) {
+    var badges = [];
+    if (s.blocked) badges.push(el("span", { cls: "pill bad", text: "Suspendu" }));
+    else if (s.reponses >= 20 && s.reussite < 55) badges.push(el("span", { cls: "pill warn", text: "En difficulté" }));
+    if (s.serie >= 3) badges.push(el("span", { cls: "pill ok", text: "🔥 " + s.serie + " j" }));
+    return el("button", { cls: "stu", onclick: function () { openStudent(s.id, s.name); } }, [
+      el("span", { cls: "av", "aria-hidden": "true", text: ini(s.name) }),
+      el("span", null, [el("b", null, [s.name].concat(badges)), el("span", { cls: "sub", text: s.niveau + " · " + s.xp + " XP · vu " + ago(s.updated) })]),
+      el("span", { cls: "rt" }, [el("b", { text: s.reussite == null ? "—" : s.reussite + " %" }), el("br"), s.acquises + (s.acquises > 1 ? " acquises" : " acquise")])
+    ]);
+  }
+
+  async function openStudent(id, name) {
+    var sh = el("div", { cls: "sheet", role: "dialog", "aria-modal": "true", "aria-label": "Fiche de " + name });
+    var inner = el("div", { cls: "inner" }, [el("p", { cls: "empty", text: "Chargement…" })]);
+    var close = function () { sh.remove(); document.body.style.overflow = ""; if (history.state && history.state.stu) history.back(); };
+    sh.append(el("header", null, [el("button", { cls: "back", "aria-label": "Retour", text: "←", onclick: close }), el("h2", { text: name })]), inner);
+    document.body.append(sh); document.body.style.overflow = "hidden";
+    history.pushState({ stu: id }, ""); window.onpopstate = function () { if (document.body.contains(sh)) { sh.remove(); document.body.style.overflow = ""; } };
+    try {
+      var s = (await call("/api/admin/students", { id: id })).eleve;
+      var out = [];
+      out.push(el("div", { cls: "row" }, [el("span", { cls: "av", text: ini(s.name) }), el("div", null, [el("b", null, [s.name, s.blocked ? el("span", { cls: "pill bad", text: "Suspendu" }) : null]), el("div", { cls: "muted small", text: "Inscrit le " + day(s.created) + " · dernière activité " + ago(s.updated) })])]));
+      out.push(kpis([[s.niveau, s.xp + " XP"], [s.serie + " j", "série en cours"], [s.jours7 + " / 7", "jours actifs cette semaine"], [s.jours30, "jours actifs sur 30"], [s.reussite == null ? "—" : s.reussite + " %", s.reponses + " réponses aux quiz"], [s.acquises, "questions acquises"], [s.aRevoir, "dans le cahier d'erreurs"], [s.fiches + " · " + s.lecons, "fiches · leçons lues"]]));
+      out.push(el("div", { cls: "card" }, [el("h3", { text: "Activité (4 semaines)" }), bars(s.activite, function (i, v) { return v + " session" + (v > 1 ? "s" : ""); })]));
+      var mat = el("div", { cls: "card" }, [el("h3", { text: "Par matière" })]);
+      if (!s.matieres.length) mat.append(el("p", { cls: "empty", text: "Pas encore de quiz." }));
+      s.matieres.forEach(function (m) { mat.append(el("div", { cls: "mrow" }, [el("b", { text: m.c }), meter(m.reussite), el("span", { cls: "muted", text: m.reussite + " % · " + m.acquises + " acq." })])); });
+      out.push(mat);
+      if (s.fragiles.length) out.push(el("div", { cls: "card" }, [el("h3", { text: "Chapitres les plus fragiles" })].concat(s.fragiles.map(function (f) { return el("div", { cls: "mrow" }, [el("b", { text: f.c }), el("span", { text: f.t }), el("span", { cls: "muted", text: f.reussite + " %" })]); }))));
+      if (s.controles.length) out.push(el("div", { cls: "card" }, [el("h3", { text: "Contrôles préparés" })].concat(s.controles.map(function (c) { return el("div", { cls: "mrow" }, [el("b", { text: c.c }), el("span", { text: (c.nom || "Contrôle") + (c.date ? " · " + new Date(c.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "") }), el("span", { cls: "muted", text: c.dernier == null ? "pas de blanc" : "blanc " + c.dernier + " %" })]); }))));
+      out.push(el("p", { cls: "muted small", style: "margin:0", text: (s.classement ? "Participe au classement" : "Ne participe pas au classement") + " · rappels " + (s.rappels ? "activés" : "désactivés") + "." }));
+      out.push(actions(s, function () { CACHE = {}; close(); show("eleves"); }));
+      inner.replaceChildren.apply(inner, out);
+    } catch (e) { inner.replaceChildren(el("p", { cls: "err", text: e.message })); }
+  }
+  function actions(s, done) {
+    var msg = el("div", { cls: "small", role: "status" });
+    async function run(body, ok) { msg.className = "small"; msg.textContent = "…"; try { await call("/api/admin/student-action", Object.assign({ id: s.id }, body)); toast(ok); done(); } catch (e) { msg.className = "err"; msg.textContent = e.message; } }
+    var pw = el("input", { cls: "in", type: "text", placeholder: "Nouveau mot de passe provisoire", autocomplete: "off", "aria-label": "Nouveau mot de passe" });
+    var conf = el("input", { cls: "in", type: "text", placeholder: "Recopie « " + s.name + " » pour confirmer", autocomplete: "off", "aria-label": "Confirmation de suppression" });
+    return el("div", { cls: "card danger-zone" }, [
+      el("h3", { text: "Gérer le compte" }),
+      el("div", { cls: "row" }, [
+        el("button", { cls: "btn", text: "Déconnecter partout", onclick: function () { if (confirm("Déconnecter " + s.name + " de tous ses appareils ? Il devra se reconnecter.")) run({ action: "logout" }, s.name + " est déconnecté partout"); } }),
+        s.blocked
+          ? el("button", { cls: "btn primary", text: "Réactiver le compte", onclick: function () { run({ action: "unblock" }, s.name + " peut de nouveau se connecter"); } })
+          : el("button", { cls: "btn danger", text: "Suspendre le compte", onclick: function () { if (confirm("Suspendre " + s.name + " ? Il est déconnecté tout de suite et ne peut plus se connecter. Sa progression est gardée.")) run({ action: "block" }, s.name + " est suspendu"); } })
+      ]),
+      el("p", { cls: "muted small", style: "margin:0", text: "Suspendre bloque l'accès sans rien effacer ; tu peux réactiver quand tu veux." }),
+      el("h3", { text: "Mot de passe oublié" }), pw,
+      el("button", { cls: "btn", text: "Remplacer le mot de passe", onclick: function () { run({ action: "password", password: pw.value }, "Mot de passe remplacé : donne-le à " + s.name); } }),
+      el("h3", { text: "Supprimer le compte" }),
+      el("p", { cls: "muted small", style: "margin:0", text: "Efface définitivement le compte et toute sa progression." }), conf,
+      el("button", { cls: "btn danger", text: "Supprimer définitivement", onclick: function () { run({ action: "delete", confirm: conf.value }, "Compte de " + s.name + " supprimé"); } }),
+      msg
+    ]);
+  }
+
+  /* ---------- Signalements ---------- */
+  var KIND = { q: "Quiz", c: "Carte", l: "Leçon", f: "Fiche", o: "Oral" };
+  async function vSignal(body) {
+    busy(!body);
+    try {
+      var j = await call("/api/admin/reports", body || {}), open = j.reports.filter(function (r) { return !r.done; }).length;
+      $("repBadge").hidden = !open; $("repBadge").textContent = open;
+      var out = [el("h2", { text: "Signalements" }), el("p", { cls: "muted small", style: "margin:-6px 0 0", text: "Erreurs repérées par les élèves dans le contenu. Transmets-les à Claude pour correction, puis marque-les comme traitées." })];
+      if (!j.reports.length) out.push(el("p", { cls: "empty", text: "Aucun signalement pour l'instant." }));
+      j.reports.forEach(function (r) {
+        out.push(el("div", { cls: "rep" + (r.done ? " done" : "") }, [
+          el("span", { cls: "muted small", text: (KIND[r.kind] || r.kind) + " " + r.item + " · " + r.user_name + " · " + day(r.created) }),
+          el("b", { text: r.label }), el("span", { text: r.choice }), r.comment ? el("span", { cls: "muted", style: "white-space:pre-wrap", text: r.comment }) : null,
+          el("div", { cls: "row" }, [el("button", { cls: "btn" + (r.done ? "" : " primary"), text: r.done ? "Rouvrir" : "Marquer traité", onclick: function () { vSignal({ id: r.id, done: !r.done }); } })])
+        ]));
+      });
+      setView(out);
+    } catch (e) { errView(e); }
+  }
+
+  /* ---------- Système ---------- */
+  function dlBackup(id) {
+    var f = el("form", { method: "POST", action: "/api/admin/backup-file", hidden: true }, [el("input", { type: "hidden", name: "key", value: KEY }), el("input", { type: "hidden", name: "id", value: id || "" })]);
+    document.body.append(f); f.submit(); setTimeout(function () { f.remove(); }, 1500);
+  }
+  async function vSysteme(make) {
+    busy(!make);
+    try {
+      var b = await call("/api/admin/backups", make ? { make: true } : {}), e = await call("/api/admin/errors");
+      var bk = el("div", { cls: "card" }, [el("h3", { text: "Sauvegardes de la base" }),
+        el("p", { cls: "muted small", style: "margin:0", text: "Une copie complète chaque jour, les 7 dernières gardées. " + (b.cron ? "Tâche planifiée Railway branchée." : "Tâche planifiée Railway non branchée.") })]);
+      b.backups.forEach(function (x) { bk.append(el("div", { cls: "mrow" }, [el("b", { text: x.day }), el("span", { cls: "muted", text: new Date(Number(x.created)).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · " + Math.max(1, Math.round(x.size * 0.75 / 1024)) + " Ko" }), el("button", { cls: "btn", text: "Télécharger", onclick: function () { dlBackup(x.id); } })])); });
+      if (!b.backups.length) bk.append(el("p", { cls: "empty", text: "Aucune sauvegarde pour l'instant." }));
+      bk.append(el("div", { cls: "row" }, [el("button", { cls: "btn primary", text: "Sauvegarder maintenant", onclick: function () { vSysteme(true); toast("Sauvegarde faite"); } }), el("button", { cls: "btn", text: "Télécharger l'état actuel", onclick: function () { dlBackup(""); } })]));
+      var bugs = el("div", { cls: "card" }, [el("h3", { text: "Bugs remontés par l'appli" }), el("p", { cls: "muted small", style: "margin:0", text: "Rapports anonymes, effacés au redémarrage du serveur." })]);
+      if (!e.errors.length) bugs.append(el("p", { cls: "empty", text: "Aucun bug depuis le dernier redémarrage. 🎉" }));
+      e.errors.forEach(function (x) { bugs.append(el("div", { cls: "rep" }, [el("span", { cls: "muted small", text: new Date(x.at).toLocaleString("fr-FR") + " · " + x.n + " fois · " + x.p }), el("span", { style: "white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.82rem", text: x.m + (x.s ? "\n" + x.s.split("\n").slice(0, 2).join("\n") : "") })])); });
+      var me = el("div", { cls: "card" }, [el("h3", { text: "Cet appareil" }),
+        el("div", { cls: "row" }, [
+          el("button", { cls: "btn", text: "Oublier la clé", onclick: function () { try { localStorage.removeItem(LS); } catch (x) {} KEY = ""; lockScreen(); } }),
+          el("a", { cls: "btn", href: "/", style: "text-decoration:none;display:inline-flex;align-items:center", text: "Ouvrir le Grand Livre" })
+        ])]);
+      setView([el("h2", { text: "Système" }), bk, bugs, me]);
+    } catch (x) { errView(x); }
+  }
+
+  if (KEY) call("/api/admin/stats").then(openApp).catch(function (e) { $("lockErr").textContent = e.message; $("lockErr").hidden = false; }); else lockScreen();
+})();
 </script>
 </body>
 </html>
