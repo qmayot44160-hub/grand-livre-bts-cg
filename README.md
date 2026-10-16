@@ -20,13 +20,15 @@ Le serveur fait lui-même une copie complète de la base chaque jour (table `bac
 Pour que les rappels et la sauvegarde tournent même quand le site est en veille, ajoute un service planifié :
 1. Variables du service du site : `CRON_KEY` = une longue chaîne au hasard.
 2. Dans le projet : **+ New → Empty Service**, nomme-le `cron`.
-3. Dans ses **Settings** :
-   - **Source → Image** : `curlimages/curl:8.10.1`
+3. Variables du service `cron` (remplace `grand-livre-bts-cg` par le nom exact du service du site) :
+   - `CRON_KEY = ${{grand-livre-bts-cg.CRON_KEY}}`
+   - `SITE = ${{grand-livre-bts-cg.RAILWAY_PUBLIC_DOMAIN}}`
+4. Dans ses **Settings** :
+   - **Source → Connect Image** : `curlimages/curl:8.10.1`
    - **Deploy → Custom Start Command** :
-     `curl -fsS -X POST -H "x-cron-key: ${{grand-livre-bts-cg.CRON_KEY}}" https://${{grand-livre-bts-cg.RAILWAY_PUBLIC_DOMAIN}}/api/cron/tick`
-     (remplace `grand-livre-bts-cg` par le nom exact du service du site)
+     `sh -c 'curl -fsS -X POST -H "x-cron-key: $CRON_KEY" "https://$SITE/api/cron/tick"'`
    - **Deploy → Cron Schedule** : `*/30 * * * *` (toutes les 30 minutes, heure UTC)
-4. **Deploy**. Dans `/admin`, la section Sauvegardes affiche « Tâche planifiée Railway branchée ».
+5. **Deploy**. Dans `/admin`, la section Sauvegardes affiche « Tâche planifiée Railway branchée ».
 
 Pense aussi à activer les sauvegardes de la base PostgreSQL : service Postgres › **Backups** (si ton offre Railway le propose).
 
