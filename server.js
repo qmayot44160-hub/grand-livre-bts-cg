@@ -112,7 +112,22 @@ app.get("/essai", async (req, res, next) => {
 const LEGAL = require("./src/legal");
 app.get("/mentions-legales", (req, res) => { res.setHeader("Cache-Control", "public, max-age=3600"); res.type("html").send(LEGAL.mentions({ contact: CONTACT })); });
 app.get("/confidentialite", (req, res) => { res.setHeader("Cache-Control", "public, max-age=3600"); res.type("html").send(LEGAL.privacy({ contact: CONTACT, ai: !!AI_KEY })); });
-app.get("/admin", (req, res) => { res.setHeader("Cache-Control", "no-store"); res.type("html").send(ADMIN_HTML); });
+/* Administration : réservée aux comptes listés dans ADMIN_USERS (noms séparés par des virgules).
+   Pour tous les autres (visiteurs, élèves), /admin et /api/admin/* répondent « page introuvable ». */
+const ADMIN_USERS = (process.env.ADMIN_USERS || "").split(",").map(x => nameKey(x)).filter(Boolean);
+async function isAdminUser(req) {
+  if (!ADMIN_USERS.length) return true; // pas encore configuré : seule la clé ADMIN_KEY protège
+  const u = await currentUser(req).catch(() => null);
+  return !!(u && ADMIN_USERS.includes(u.name_key || nameKey(u.name)));
+}
+function notFound(res) { res.status(404).type("html").send('<!doctype html><meta charset="utf-8"><title>Introuvable</title><p style="font-family:system-ui;padding:32px">Page introuvable. <a href="/">Retour au Grand Livre</a></p>'); }
+app.get("/admin", async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req))) return notFound(res);
+    res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Robots-Tag", "noindex"); res.type("html").send(ADMIN_HTML);
+  } catch (e) { next(e); }
+});
+app.use("/api/admin", (req, res, next) => { isAdminUser(req).then(ok => ok ? next() : res.status(404).json({ error: "Introuvable." })).catch(next); });
 app.use((req, res, next) => /^\/(app|login|admin)\.html$/.test(req.path) ? res.status(404).end() : next());
 app.use(express.static(PUB, { index: false, extensions: [], setHeaders: (res, p) => { if (/sw\.js$/.test(p)) res.setHeader("Cache-Control", "no-cache"); } }));
 
