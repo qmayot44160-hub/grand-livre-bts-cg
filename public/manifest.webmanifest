@@ -3,6 +3,7 @@
   "short_name": "Grand Livre",
   "description": "Le classeur de révision du BTS Comptabilité et Gestion.",
   "lang": "fr",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
