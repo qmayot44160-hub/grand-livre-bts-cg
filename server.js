@@ -130,9 +130,12 @@ async function isAdminUser(req) {
 function notFound(res) { res.status(404).type("html").send('<!doctype html><meta charset="utf-8"><title>Introuvable</title><p style="font-family:system-ui;padding:32px">Page introuvable. <a href="/">Retour au Grand Livre</a></p>'); }
 app.get("/admin", async (req, res, next) => {
   try {
-    if (ADMIN_USERS.length && !(await currentUser(req).catch(() => null))) { res.setHeader("Cache-Control", "no-store"); return res.redirect("/?next=admin#login"); }
+    res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Robots-Tag", "noindex");
+    const u = await currentUser(req).catch(() => null);
+    /* Pas connecté (ex. appli installée qui a sa propre mémoire de connexion) : formulaire de connexion propre à GL Admin. */
+    if (ADMIN_USERS.length && !u) return res.type("html").send(ADMIN_HTML.split("__ADMIN_NAME__").join("").replace('data-mode="key"', 'data-mode="login"'));
     if (!(await isAdminUser(req))) return notFound(res);
-    res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Robots-Tag", "noindex"); res.type("html").send(ADMIN_HTML.split("__ADMIN_NAME__").join(esc(((await currentUser(req).catch(() => null)) || {}).name || "")));
+    res.type("html").send(ADMIN_HTML.split("__ADMIN_NAME__").join(esc((u || {}).name || "")));
   } catch (e) { next(e); }
 });
 app.use("/api/admin", (req, res, next) => { isAdminUser(req).then(ok => ok ? next() : res.status(404).json({ error: "Introuvable." })).catch(next); });

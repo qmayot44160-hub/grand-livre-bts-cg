@@ -22,7 +22,7 @@ const offline = () => new Response(
 
 self.addEventListener("fetch", e => {
   const req = e.request, url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/") || url.pathname === "/admin") return;
+  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin")) return;
 
   if (req.mode === "navigate") {
     /* Page de l'appli : réseau d'abord, mais pas plus de 3,5 s d'attente si une copie existe. */

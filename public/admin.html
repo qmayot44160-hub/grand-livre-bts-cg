@@ -70,7 +70,18 @@ nav.tabs .badge{position:absolute;top:2px;left:calc(50% + 6px);background:var(--
 label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem}
 </style>
 </head>
-<body>
+<body data-mode="key">
+<div class="lock" id="signin" hidden>
+  <form class="card" id="signForm">
+    <img src="/admin-192.png" alt="">
+    <h2>GL Admin</h2>
+    <p class="muted small" style="margin:0">Connecte-toi avec ton compte du Grand Livre.</p>
+    <input class="in" id="sName" autocomplete="username" placeholder="Nom d'utilisateur" aria-label="Nom d'utilisateur" autocapitalize="none">
+    <input class="in" id="sPw" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
+    <div class="err" id="signErr" role="alert" hidden></div>
+    <button class="btn primary" type="submit">Se connecter</button>
+  </form>
+</div>
 <div class="lock" id="lock">
   <form class="card" id="lockForm" autocomplete="off">
     <img src="/admin-192.png" alt="">
@@ -314,6 +325,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem}
       e.errors.forEach(function (x) { bugs.append(el("div", { cls: "rep" }, [el("span", { cls: "muted small", text: new Date(x.at).toLocaleString("fr-FR") + " · " + x.n + " fois · " + x.p }), el("span", { style: "white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.82rem", text: x.m + (x.s ? "\n" + x.s.split("\n").slice(0, 2).join("\n") : "") })])); });
       var me = el("div", { cls: "card" }, [el("h3", { text: "Cet appareil" }),
         el("div", { cls: "row" }, [
+          el("button", { cls: "btn", text: "Se déconnecter", onclick: async function () { try { localStorage.removeItem(LS); } catch (x) {} await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(function () {}); location.replace("/admin"); } }),
           el("button", { cls: "btn", text: "Oublier la clé", onclick: function () { try { localStorage.removeItem(LS); } catch (x) {} KEY = ""; lockScreen(); } }),
           el("a", { cls: "btn", href: "/", style: "text-decoration:none;display:inline-flex;align-items:center", text: "Ouvrir le Grand Livre" })
         ])]);
@@ -321,6 +333,19 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem}
     } catch (x) { errView(x); }
   }
 
+  if (document.body.dataset.mode === "login") {
+    $("lock").hidden = true; $("signin").hidden = false;
+    $("signForm").addEventListener("submit", async function (ev) {
+      ev.preventDefault(); $("signErr").hidden = true;
+      try {
+        var r = await fetch("/api/login", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: $("sName").value.trim(), password: $("sPw").value }) });
+        var j = await r.json().catch(function () { return {}; });
+        if (!r.ok) throw new Error(j.error || "Connexion impossible.");
+        location.replace("/admin");
+      } catch (e) { $("signErr").textContent = e.message; $("signErr").hidden = false; }
+    });
+    return;
+  }
   if (KEY) call("/api/admin/stats").then(openApp).catch(function (e) { $("lockErr").textContent = e.message; $("lockErr").hidden = false; }); else lockScreen();
 })();
 </script>
