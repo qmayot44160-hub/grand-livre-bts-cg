@@ -1,6 +1,6 @@
 /* Service worker du Grand Livre : la dernière version en ligne quand le réseau répond vite,
    sinon la copie gardée sur l'appareil (réseau lent ou hors connexion). */
-const CACHE = "grand-livre-v2";
+const CACHE = "grand-livre-v3";
 const SHELL = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/install.js"];
 const SLOW_MS = 3500;
 
@@ -44,5 +44,22 @@ self.addEventListener("fetch", e => {
     const net = fetch(req).then(res => save(req, res));
     if (cached) { e.waitUntil(net.catch(() => {})); return cached; }
     return net.catch(() => new Response("", { status: 504 }));
+  }));
+});
+
+/* Rappels quotidiens */
+self.addEventListener("push", e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Grand Livre", {
+    body: d.body || "Ta séance du jour t'attend.", tag: d.tag || "gl-daily", renotify: false,
+    icon: "/icon-192.png", badge: "/icon-192.png", data: { url: d.url || "/" }, lang: "fr"
+  }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) if (new URL(c.url).origin === location.origin && "focus" in c) return c.focus();
+    return self.clients.openWindow(url);
   }));
 });

@@ -21,7 +21,21 @@ function makePg(url) {
       await q(`CREATE TABLE IF NOT EXISTS ai_usage (
         user_id TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (user_id, day))`);
+      await q(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)`);
+      await q(`CREATE TABLE IF NOT EXISTS push_subs (
+        endpoint TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        sub JSONB NOT NULL, hour INTEGER NOT NULL DEFAULT 18, last_day TEXT, created BIGINT NOT NULL)`);
     },
+    async getSetting(k) { const r = await q("SELECT v FROM settings WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
+    async setSetting(k, v) { await q("INSERT INTO settings(k,v) VALUES($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, v]); },
+    async deleteUser(id) { await q("DELETE FROM ai_usage WHERE user_id=$1", [id]); await q("DELETE FROM push_subs WHERE user_id=$1", [id]); await q("DELETE FROM progress WHERE user_id=$1", [id]); await q("DELETE FROM users WHERE id=$1", [id]); },
+    async addSub(uid, sub, hour) { await q(`INSERT INTO push_subs(endpoint,user_id,sub,hour,created) VALUES($1,$2,$3,$4,$5)
+      ON CONFLICT (endpoint) DO UPDATE SET user_id=EXCLUDED.user_id, sub=EXCLUDED.sub, hour=EXCLUDED.hour`, [sub.endpoint, uid, sub, hour, Date.now()]); },
+    async delSub(endpoint) { await q("DELETE FROM push_subs WHERE endpoint=$1", [endpoint]); },
+    async subsFull(uid) { const r = await q("SELECT endpoint, sub FROM push_subs WHERE user_id=$1", [uid]); return r.rows; },
+    async subsOf(uid) { const r = await q("SELECT endpoint, hour FROM push_subs WHERE user_id=$1", [uid]); return r.rows; },
+    async dueSubs(hour, day) { const r = await q("SELECT endpoint, user_id, sub FROM push_subs WHERE hour=$1 AND (last_day IS NULL OR last_day<>$2)", [hour, day]); return r.rows; },
+    async markSub(endpoint, day) { await q("UPDATE push_subs SET last_day=$2 WHERE endpoint=$1", [endpoint, day]); },
     async userByKey(key) { const r = await q("SELECT * FROM users WHERE name_key=$1", [key]); return r.rows[0] || null; },
     async userById(id) { const r = await q("SELECT * FROM users WHERE id=$1", [id]); return r.rows[0] || null; },
     async createUser(u) { await q("INSERT INTO users(id,name,name_key,pass,created) VALUES($1,$2,$3,$4,$5)", [u.id, u.name, u.name_key, u.pass, u.created]); },
@@ -43,11 +57,20 @@ function makePg(url) {
 
 function makeFile(dir) {
   const file = path.join(dir, "db.json");
-  let d = { users: {}, progress: {}, ai: {} };
+  let d = { users: {}, progress: {}, ai: {}, settings: {}, subs: {} };
   const save = () => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file + ".tmp", JSON.stringify(d)); fs.renameSync(file + ".tmp", file); };
   return {
     kind: "fichier " + file,
-    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } },
+    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; },
+    async getSetting(k) { return d.settings[k] == null ? null : d.settings[k]; },
+    async setSetting(k, v) { d.settings[k] = v; save(); },
+    async deleteUser(id) { delete d.users[id]; delete d.progress[id]; Object.keys(d.ai).forEach(k => { if (k.startsWith(id + "|")) delete d.ai[k]; }); Object.keys(d.subs).forEach(k => { if (d.subs[k].user_id === id) delete d.subs[k]; }); save(); },
+    async addSub(uid, sub, hour) { d.subs[sub.endpoint] = { endpoint: sub.endpoint, user_id: uid, sub, hour, last_day: null, created: Date.now() }; save(); },
+    async delSub(endpoint) { delete d.subs[endpoint]; save(); },
+    async subsFull(uid) { return Object.values(d.subs).filter(x => x.user_id === uid); },
+    async subsOf(uid) { return Object.values(d.subs).filter(x => x.user_id === uid).map(x => ({ endpoint: x.endpoint, hour: x.hour })); },
+    async dueSubs(hour, day) { return Object.values(d.subs).filter(x => x.hour === hour && x.last_day !== day); },
+    async markSub(endpoint, day) { if (d.subs[endpoint]) { d.subs[endpoint].last_day = day; save(); } },
     async userByKey(key) { return Object.values(d.users).find(u => u.name_key === key) || null; },
     async userById(id) { return d.users[id] || null; },
     async createUser(u) { if (Object.values(d.users).some(x => x.name_key === u.name_key)) { const e = new Error("dup"); e.code = "23505"; throw e; } d.users[u.id] = u; save(); },

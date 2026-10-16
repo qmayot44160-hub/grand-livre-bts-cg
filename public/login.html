@@ -135,6 +135,10 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-m
   .wl span{font-size:.88rem;line-height:1.4}
   .wbtns{position:sticky;bottom:0;padding:12px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--paper) 22%);z-index:2}
 }
+.try{display:inline-block;font-weight:600;color:var(--accent,#2c43c6);text-decoration:none;padding:8px 2px}.try:hover{text-decoration:underline}
+.try-row{margin:10px 0 0;text-align:center}.is-new:not(.form-open) .try-row{display:none}
+.legal-ok{margin:10px 0 0;font-size:.82rem;color:var(--muted,#565c82);line-height:1.45}.legal-ok a,.legal a{color:var(--accent,#2c43c6)}
+.legal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-size:.82rem;margin-top:6px}
 </style>
 </head>
 <body>
@@ -171,6 +175,7 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-m
         <li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span><div><b>Ta progression sauvegardée</b><span>XP, séries et chapitres validés, sur tous tes appareils.</span></div></li>
       </ul>
       <div class="wbtns"><button type="button" class="go" id="wSignup">Créer mon compte</button><button type="button" class="alt" id="wLogin">J'ai déjà un compte</button></div>
+      <a class="try" href="/essai">Essayer d'abord sans compte →</a>
     </div>
     <div>
       <h2 id="title">Content de te revoir</h2>
@@ -200,13 +205,16 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-m
           <input id="code" autocomplete="off"></span></label>
         <div class="err" id="err" role="alert" hidden></div>
         <button class="go" id="go" type="submit"><span id="goTxt">Se connecter</span></button>
+        <p class="legal-ok" id="legalOk" hidden>En créant ton compte, tu acceptes les <a href="/mentions-legales">conditions d'utilisation</a> et la <a href="/confidentialite">politique de confidentialité</a>.</p>
       </form>
+      <p class="try-row"><a class="try" href="/essai">Essayer sans compte</a></p>
       <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg><span>Ta progression (leçons, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</span></p>
     </div>
     <div class="foot">
       <div id="glInstallSlot"></div>
       <div class="theme"><span>Apparence</span><div class="seg" role="group" aria-label="Apparence"><button type="button" data-t="light">☀︎ Jour</button><button type="button" data-t="dark">☾ Nuit</button><button type="button" data-t="auto">Auto</button></div></div>
       <p class="note"><span>Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</span></p>
+      <nav class="legal" aria-label="Pages légales"><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></nav>
     </div>
   </section>
 </main>
@@ -234,6 +242,7 @@ function setMode(m) {
   $("title").textContent = m === "login" ? (back ? "Bon retour, " + last.split(" ")[0] + " !" : "Content de te revoir") : "Crée ton compte";
   $("subtitle").textContent = m === "login" ? (back ? "Entre ton mot de passe pour reprendre là où tu t'étais arrêté." : "Connecte-toi pour reprendre là où tu t'étais arrêté.") : "Choisis ton nom et un mot de passe : ton compte est prêt en 10 secondes.";
   $("notme").hidden = !back;
+  $("legalOk").hidden = m !== "signup";
   $("err").hidden = true;
   (m === "signup" || !$("name").value ? $("name") : $("pw")).focus({ preventScroll: true });
 }
@@ -268,11 +277,12 @@ $("f").addEventListener("submit", async function (e) {
     var r = await fetch(mode === "login" ? "/api/login" : "/api/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, password: pw, code: $("code").value }) });
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok) return fail(j.error || "Une erreur est survenue. Réessaie.");
-    try { localStorage.setItem("gl-last-name", name); } catch (x) {}
+    try { localStorage.setItem("gl-last-name", name); if (mode === "signup") localStorage.setItem("gl-from-trial", "1"); } catch (x) {}
     location.replace("/");
   } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); }
 });
 if (last) setMode("login");
+if (location.hash === "#signup" || location.hash === "#login") openForm(location.hash.slice(1));
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
 </script>
 <script src="/install.js"></script>

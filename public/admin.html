@@ -33,6 +33,12 @@ th{color:var(--muted);font-weight:600}
     <div class="tbl" id="users"></div>
   </div>
   <div class="card">
+    <strong>Bugs remontés par l'appli</strong>
+    <p class="msg" style="margin:0;color:var(--muted)">Rapports anonymes envoyés quand l'appli plante chez un élève (effacés au redémarrage du serveur).</p>
+    <button id="errs" type="button">Voir les bugs</button>
+    <div class="tbl" id="errList"></div>
+  </div>
+  <div class="card">
     <strong>Réinitialiser le mot de passe d'un élève</strong>
     <label for="who">Nom de l'élève (tel qu'il l'a tapé)<input id="who" autocomplete="off"></label>
     <label for="np">Nouveau mot de passe provisoire<input id="np" autocomplete="off"></label>
@@ -59,6 +65,17 @@ $("list").onclick = async function () {
     tb.appendChild(body); $("users").replaceChildren(tb);
     if (!j.users.length) $("users").textContent = "Aucun élève inscrit pour l'instant.";
   } catch (e) { $("users").textContent = e.message; }
+};
+$("errs").onclick = async function () {
+  try {
+    var j = await call("/api/admin/errors");
+    if (!j.errors.length) { $("errList").textContent = "Aucun bug remonté depuis le dernier redémarrage."; return; }
+    var tb = document.createElement("table");
+    tb.innerHTML = "<thead><tr><th>Dernière fois</th><th>Fois</th><th>Page</th><th>Erreur</th></tr></thead>";
+    var body = document.createElement("tbody");
+    j.errors.forEach(function (e) { var tr = document.createElement("tr"); [new Date(e.at).toLocaleString("fr-FR"), e.n, e.p, e.m + (e.s ? "\n" + e.s.split("\n").slice(0, 2).join("\n") : "")].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; td.style.whiteSpace = "pre-wrap"; tr.appendChild(td); }); body.appendChild(tr); });
+    tb.appendChild(body); $("errList").replaceChildren(tb);
+  } catch (e) { $("errList").textContent = e.message; }
 };
 $("reset").onclick = async function () {
   var m = $("msg");
