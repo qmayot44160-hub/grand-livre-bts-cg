@@ -2,9 +2,11 @@
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__, GUEST = !!ME.guest;
-  window.GL_NAME = ME.name;
+  window.GL_NAME = ME.name; window.GL_GUEST = GUEST;
   /* Clés du stockage local : celle de ce compte (réécrite par le serveur) et celle de l'essai sans compte. */
   var UK = "grand-livre-btscg-v1", GK = "grand-livre-btscg-" + "v1-guest";
+  /* Essai : sur un appareil partagé, un essai abandonné depuis plus de 2 jours repart de zéro */
+  if (GUEST) try { var gd = JSON.parse(localStorage.getItem(GK) || "null"); if (gd && gd.u && Date.now() - gd.u > 2 * 864e5) localStorage.removeItem(GK); } catch (e) {}
   /* Juste après une inscription : la progression faite en essai passe sur le nouveau compte. */
   if (!GUEST) try {
     if (localStorage.getItem("gl-from-trial") === "1") {
@@ -112,9 +114,10 @@
     var d = document.createElement("section");
     d.className = "panel gl-account";
     if (GUEST) {
-      d.innerHTML = '<div class="gl-acc-row"><div><b>Mode essai</b><p class="muted" style="margin:.2em 0 0">Ta progression reste sur cet appareil. Crée ton compte pour la garder et la retrouver partout : tout ce que tu as fait pendant l\'essai est repris.</p></div>' +
-        '<div class="gl-acc-btns"><a class="btn primary" href="/#signup">Créer mon compte</a><a class="btn" href="/#login">J\'ai déjà un compte</a></div></div>' +
+      d.innerHTML = '<div class="gl-acc-row"><div><b>Mode essai</b><p class="muted" style="margin:.2em 0 0">L\'essai ouvre P1 et la CEJM. Ta progression reste sur cet appareil (effacée après 2 jours sans visite). Crée ton compte pour tout débloquer : ce que tu as fait pendant l\'essai est repris.</p></div>' +
+        '<div class="gl-acc-btns"><a class="btn primary" href="/#signup">Créer mon compte</a><a class="btn" href="/#login">J\'ai déjà un compte</a><button class="btn" type="button" data-gl="reset">Effacer l\'essai</button></div></div>' +
         '<p class="gl-legal"><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></p>';
+      d.addEventListener("click", function (e) { var b = e.target.closest('[data-gl="reset"]'); if (!b) return; try { localStorage.removeItem(UK); } catch (x) {} location.reload(); });
       return d;
     }
     d.innerHTML = '<div class="gl-acc-row"><div><b>Mon compte</b><p class="muted" style="margin:.2em 0 0">Compte : <b class="gl-name"></b>. Ta progression est enregistrée sur ce compte et te suit sur tous tes appareils.</p></div>' +
@@ -169,7 +172,7 @@
     var gb = function () {
       if (document.querySelector(".gl-trial")) return;
       var t = document.createElement("div"); t.className = "gl-trial"; t.setAttribute("role", "note");
-      t.innerHTML = '<span><b>Mode essai</b> · ta progression reste sur cet appareil.</span><a href="/#signup">Créer mon compte</a>';
+      t.innerHTML = '<span><b>Mode essai</b> · P1 et CEJM ouverts, progression gardée sur cet appareil.</span><a href="/#signup">Créer mon compte</a>';
       document.body.insertBefore(t, document.body.firstChild);
     };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", gb); else gb();
@@ -1253,6 +1256,11 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Mode essai : matières fermées */
+.gl-locked { opacity: .55; position: relative; }
+.divider.gl-locked::after, .qf.gl-locked::after { content: "🔒"; position: absolute; right: 8px; top: 8px; font-size: .8rem; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 999px; padding: 2px 6px; }
+.wk-box a.btn { text-decoration: none; } .wk-box a.btn.primary { color: var(--accent-ink); }
+
 /* Classe */
 .cl-defi { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--sheet)), var(--sheet)); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; }
 .cl-defi > div { display: grid; gap: 3px; flex: 1; min-width: 220px; }
@@ -2765,6 +2773,11 @@ const QS = [], FS = [];
   for (let i = QS.length - 1; i >= 0; i--) if (HQ.has(QS[i].id)) QS.splice(i, 1);
   for (let i = FS.length - 1; i >= 0; i--) if (HF.has(FS[i].id)) FS.splice(i, 1);
 })();
+/* Mode essai sans compte (site) : seules quelques matières sont ouvertes */
+const GUEST_CATS = ["p1", "ce", "me"];
+const isGuest = () => !!window.GL_GUEST;
+const lockedCat = c => isGuest() && !!c && !GUEST_CATS.includes(c);
+if (isGuest()) { for (let i = QS.length - 1; i >= 0; i--) if (lockedCat(QS[i].c)) QS.splice(i, 1); for (let i = FS.length - 1; i >= 0; i--) if (lockedCat(FS[i].c)) FS.splice(i, 1); }
 const QBY = {}, FBY = {};
 CATS.forEach(c => { QBY[c.id] = QS.filter(x => x.c === c.id); FBY[c.id] = FS.filter(x => x.c === c.id); });
 
@@ -2862,7 +2875,7 @@ function validCount(cat) { const l = cat ? ctlChaps(cat) : CATS.flatMap(c => ctl
 function dayLabel(dn) { const t = new Date(Date.now() + (dn - dayNum()) * 86400000); return t.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); }
 function startCtl(k) {
   const pool = QCH[k] || []; if (pool.length < 4 || chapStatus(k).today) return;
-  const items = shuffle(pool).slice(0, 10); startRun(items, "exam");
+  const items = shuffle(pool).slice(0, 10); startRun(items, "exam"); if (!R) return;
   R.ctrl = k; R.end = Date.now() + items.length * 75 * 1000; render();
 }
 function mastery(cat) {
@@ -3274,6 +3287,7 @@ function vQuizSetup() {
   </section>`;
 }
 function startRun(items, mode) {
+  if (isGuest()) { items = items.filter(x => !lockedCat(x.c)); if (!items.length) { R = null; lockSheet(); return; } }
   if (examTick) { clearInterval(examTick); examTick = null; }
   R = { mode, list: items.map(it => ({ it, order: shuffle([0, 1, 2, 3]), pick: null })), i: 0, start: Date.now(), xp0: S.xp };
   if (mode === "exam") {
@@ -3358,7 +3372,7 @@ function defiItems() {
 }
 const defiDone = () => S.dw && S.dw.w === weekId();
 function startDefiWeek() {
-  startRun(defiItems(), "exam"); R.dw = true; R.t0 = Date.now(); R.end = Date.now() + 10 * 45 * 1000;
+  startRun(defiItems(), "exam"); if (!R) return; R.dw = true; R.t0 = Date.now(); R.end = Date.now() + 10 * 45 * 1000;
   render();
 }
 let CL = { data: null, at: 0, err: "", tab: "sem", busy: false };
@@ -3556,6 +3570,19 @@ function reportSheet(t, id, label) {
   });
   document.body.appendChild(el);
   const f = el.querySelector("input"); if (f) f.focus();
+}
+function lockSheet(c) {
+  closeSheet();
+  const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  const n = CATS.filter(x => !GUEST_CATS.includes(x.id)).length;
+  el.innerHTML = `<div class="wk-box" role="dialog" aria-modal="true" aria-labelledby="lkT">
+    <button class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
+    <span class="eyebrow">${c && CAT[c] ? h(CAT[c].code + " · " + CAT[c].name) : "Contenu réservé"}</span><h2 id="lkT">Disponible avec un compte</h2>
+    <p class="muted">L'essai ouvre <b>P1 Opérations commerciales</b> et la <b>CEJM</b>. Crée ton compte, c'est gratuit et prêt en 10 secondes, pour débloquer les ${n} autres matières et leurs exercices, le classement et les rappels. Ce que tu as fait pendant l'essai est gardé.</p>
+    <div class="row"><button class="btn" data-act="wkClose">Plus tard</button><a class="btn primary" href="/#signup">Créer mon compte</a></div>
+  </div>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  document.body.appendChild(el);
 }
 function closeSheet() { const x = document.getElementById("wkSheet"); if (x) x.remove(); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
@@ -3789,7 +3816,8 @@ function vExamSetup() {
 }
 function startExam() {
   let items = [];
-  Object.entries(EXAM_PLAN).forEach(([k, n]) => { items = items.concat(shuffle(QBY[k]).slice(0, n)); });
+  if (isGuest()) items = shuffle(QS).slice(0, 20);
+  else Object.entries(EXAM_PLAN).forEach(([k, n]) => { items = items.concat(shuffle(QBY[k]).slice(0, n)); });
   startRun(shuffle(items), "exam");
 }
 
@@ -3845,9 +3873,9 @@ function nextLesson() {
 }
 function nextOf(cid, k) { if (k < nLessons(cid)) return { cid, k: k + 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i >= 0 && i < s.length - 1 ? { cid: s[i + 1], k: 1 } : null; }
 function prevOf(cid, k) { if (k > 1) return { cid, k: k - 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i > 0 ? { cid: s[i - 1], k: nLessons(s[i - 1]) } : null; }
-function openLesson(cid, k) { if (!COURS[cid]) return; k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
+function openLesson(cid, k) { if (!COURS[cid]) return; { const m = CMETA(cid); if (m && lockedCat(m.cat)) return lockSheet(m.cat); } k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
 function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
-function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
+function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (lockedCat(cat)) return lockSheet(cat); if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
 
 /* Rendu du markdown des cours */
 const CALLOUTS = [[/^(À retenir|L'essentiel)/i, "retain"], [/^(Exemple|Cas chiffré|En pratique)/i, "example"], [/^(Attention|Piège|Erreur|Erreurs fréquentes)/i, "warn"], [/^(Idée clé|À savoir|Nuance|Correction)/i, "key"], [/^(Méthode|Le jour de l'épreuve|Astuce|Conseil|À l'oral|Ce qui fait la différence)/i, "method"]];
@@ -4055,7 +4083,12 @@ function vLesson() {
   </div>`;
 }
 
+function markLocked() {
+  if (!isGuest()) return;
+  document.querySelectorAll("#view [data-cat]").forEach(e => { if (lockedCat(e.dataset.cat)) { e.classList.add("gl-locked"); const q = e.closest(".qf"); if (q) q.classList.add("gl-locked"); } });
+}
 function bindView() {
+  markLocked();
   const cs = document.getElementById("coursSearch");
   if (cs) { cs.value = coursQuery; cs.addEventListener("input", e => { coursQuery = e.target.value; renderHits(); }); renderHits(); }
   const fs = document.getElementById("ficheSearch");
@@ -4112,6 +4145,7 @@ function blocksHTML(list) {
 /* Lecteur de fiche */
 function openFiche(id) {
   if (!CHID[id]) return;
+  if (lockedCat(CHID[id].cat)) return lockSheet(CHID[id].cat);
   FC = { id }; S.fr = S.fr || {};
   if (!S.fr[id]) { S.fr[id] = 1; bumpStreak(); }
   clearTimeout(openFiche.t);
@@ -4198,7 +4232,7 @@ function chText(x) {
 }
 
 /* Exercices guidés, étape par étape */
-function openCase(id) { if (!GCID[id]) return; GC = { id }; go("gcase"); }
+function openCase(id) { if (!GCID[id]) return; if (lockedCat(GCID[id].cat)) return lockSheet(GCID[id].cat); GC = { id }; go("gcase"); }
 function caseState(id) { S.gc = S.gc || {}; const st = S.gc[id] || (S.gc[id] = { step: 0, notes: {} }); st.ok = st.ok || {}; return st; }
 /* Vérification automatique des étapes chiffrées : on compare le résultat du corrigé (dernier « = nombre ») aux nombres de la réponse */
 const NUM_RE = /-?\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:,\d+)?|-?\d+(?:[.,]\d+)?/g;
@@ -5115,7 +5149,7 @@ function sitForm(x, i) {
   </div>`;
 }
 function oralStart(only) {
-  const pool = only ? ORAL.filter(x => x.c === only || x.c === "me") : ORAL.filter(x => OF.e === "mix" || x.e === OF.e);
+  const pool = (only ? ORAL.filter(x => x.c === only || x.c === "me") : ORAL.filter(x => OF.e === "mix" || x.e === OF.e)).filter(x => !lockedCat(x.c));
   const gen = shuffle(pool.filter(x => x.c === "me")).slice(0, 1), rest = shuffle(pool.filter(x => x.c !== "me"));
   const list = gen.concat(rest).slice(0, OF.n).map(q => ({ q, ck: {}, done: false }));
   OR = { list, i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: only ? "sit" : OF.e };
@@ -5219,6 +5253,7 @@ function vExHome() {
 }
 function openAnn(id) {
   const x = ANNEXID[id]; if (!x) return;
+  if (lockedCat(annCat(x))) return lockSheet(annCat(x));
   if (ANP.id !== id) ANP = { id, copy: [], ref: [] };
   AX = { id }; annErr = ""; go("annex");
 }
@@ -5938,6 +5973,7 @@ function accDatalist() { return `<datalist id="pcgList">${ACC_LIST.map(([n, l]) 
 
 function startDos(id) {
   const d = DOSSID[id]; if (!d) return;
+  if (d.cats.some(lockedCat)) return lockSheet(d.cats.find(lockedCat));
   if (exTick) { clearInterval(exTick); exTick = null; }
   const o = d.make();
   X = { mode: "dos", d: { id: d.id, title: d.title, ent: d.ent, ctx: o.ctx }, list: o.missions.map((m, k) => Object.assign({ gid: d.id + "-m" + (k + 1), cat: d.cats[0], user: null, res: null }, m)), i: 0, xp0: S.xp };
@@ -5997,6 +6033,7 @@ let X = null; // session d'exercices
 const parseNum = s => { if (s == null) return NaN; const t = String(s).replace(/[\s  €%]/g, "").replace(",", "."); return t === "" || t === "-" ? NaN : Number(t); };
 function makeInst(gid) { const g = GEN[gid]; const o = g.make(); return Object.assign({ gid, cat: g.cat, title: g.title, user: null, res: null }, o); }
 function startEx(gids, mode, minutes) {
+  if (isGuest()) { const g = gids.map(id => GENS.find(x => x.id === id)).find(x => x && lockedCat(x.cat)); if (g) return lockSheet(g.cat); }
   if (exTick) { clearInterval(exTick); exTick = null; }
   X = { mode, list: gids.map(makeInst), i: 0, xp0: S.xp };
   if (mode === "e5") {
@@ -6194,6 +6231,7 @@ document.addEventListener("click", e => {
   if (nb) { const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, cat = b.dataset.cat;
+  if (cat && lockedCat(cat) && !/^(toggle|annEp|annTag|pref|orF)/.test(a)) { lockSheet(cat); return; }
   switch (a) {
     case "quizCat": quizSel = [cat]; go("quiz"); break;
     case "cardsCat": cardSel = [cat]; go("cards"); break;
@@ -6214,7 +6252,7 @@ document.addEventListener("click", e => {
     case "dosCk": { const it = X.list[+b.dataset.m]; if (!it) break; it.ck = it.ck || []; it.ck[+b.dataset.j] = b.checked; grade(it); dosRecord(false); touch();
       const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
-    case "exRedac": RD = { id: b.dataset.rid }; go("redac"); break;
+    case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
     case "rdShow": RD.text = document.getElementById("rdText").value; RD.shown = true; render(); break;
     case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); touch(); go("ex"); break; }
     case "coursCat": openMat(cat, "lecons"); break;
@@ -6317,7 +6355,7 @@ document.addEventListener("click", e => {
     case "wkClose": closeSheet(); break;
     case "wkFiche": closeSheet(); openFiche(b.dataset.id); break;
     case "wkErr": { const k = b.dataset.k; EF = { cat: "", ks: k === "*" ? weakChaps(5).map(o => o.k) : [k], st: "all" }; closeSheet(); go("erreurs"); break; }
-    case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); R.wk = true; break; }
+    case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); if (R) R.wk = true; break; }
     case "goErr": EF = { cat: "", ks: null, st: "todo" }; go("erreurs"); break;
     case "ebCat": EF.cat = b.dataset.cat; EF.ks = null; render(); break;
     case "ebSt": EF.st = b.dataset.v; render(); break;

@@ -2,9 +2,11 @@
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__, GUEST = !!ME.guest;
-  window.GL_NAME = ME.name;
+  window.GL_NAME = ME.name; window.GL_GUEST = GUEST;
   /* Clés du stockage local : celle de ce compte (réécrite par le serveur) et celle de l'essai sans compte. */
   var UK = "grand-livre-btscg-v1", GK = "grand-livre-btscg-" + "v1-guest";
+  /* Essai : sur un appareil partagé, un essai abandonné depuis plus de 2 jours repart de zéro */
+  if (GUEST) try { var gd = JSON.parse(localStorage.getItem(GK) || "null"); if (gd && gd.u && Date.now() - gd.u > 2 * 864e5) localStorage.removeItem(GK); } catch (e) {}
   /* Juste après une inscription : la progression faite en essai passe sur le nouveau compte. */
   if (!GUEST) try {
     if (localStorage.getItem("gl-from-trial") === "1") {
@@ -112,9 +114,10 @@
     var d = document.createElement("section");
     d.className = "panel gl-account";
     if (GUEST) {
-      d.innerHTML = '<div class="gl-acc-row"><div><b>Mode essai</b><p class="muted" style="margin:.2em 0 0">Ta progression reste sur cet appareil. Crée ton compte pour la garder et la retrouver partout : tout ce que tu as fait pendant l\'essai est repris.</p></div>' +
-        '<div class="gl-acc-btns"><a class="btn primary" href="/#signup">Créer mon compte</a><a class="btn" href="/#login">J\'ai déjà un compte</a></div></div>' +
+      d.innerHTML = '<div class="gl-acc-row"><div><b>Mode essai</b><p class="muted" style="margin:.2em 0 0">L\'essai ouvre P1 et la CEJM. Ta progression reste sur cet appareil (effacée après 2 jours sans visite). Crée ton compte pour tout débloquer : ce que tu as fait pendant l\'essai est repris.</p></div>' +
+        '<div class="gl-acc-btns"><a class="btn primary" href="/#signup">Créer mon compte</a><a class="btn" href="/#login">J\'ai déjà un compte</a><button class="btn" type="button" data-gl="reset">Effacer l\'essai</button></div></div>' +
         '<p class="gl-legal"><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></p>';
+      d.addEventListener("click", function (e) { var b = e.target.closest('[data-gl="reset"]'); if (!b) return; try { localStorage.removeItem(UK); } catch (x) {} location.reload(); });
       return d;
     }
     d.innerHTML = '<div class="gl-acc-row"><div><b>Mon compte</b><p class="muted" style="margin:.2em 0 0">Compte : <b class="gl-name"></b>. Ta progression est enregistrée sur ce compte et te suit sur tous tes appareils.</p></div>' +
@@ -169,7 +172,7 @@
     var gb = function () {
       if (document.querySelector(".gl-trial")) return;
       var t = document.createElement("div"); t.className = "gl-trial"; t.setAttribute("role", "note");
-      t.innerHTML = '<span><b>Mode essai</b> · ta progression reste sur cet appareil.</span><a href="/#signup">Créer mon compte</a>';
+      t.innerHTML = '<span><b>Mode essai</b> · P1 et CEJM ouverts, progression gardée sur cet appareil.</span><a href="/#signup">Créer mon compte</a>';
       document.body.insertBefore(t, document.body.firstChild);
     };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", gb); else gb();
