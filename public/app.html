@@ -1256,6 +1256,10 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+.rd-corr { display: grid; gap: 8px; padding-left: 20px; margin: 8px 0; } .rd-corr li { display: grid; gap: 2px; } .rd-corr small { color: var(--muted); font-size: .88rem; }
+.rd-r { color: var(--bad); } .rd-d { color: var(--ok); } .rd-z { color: var(--muted); }
+select[data-fi] { width: 100%; max-width: 100%; }
+
 /* Examen blanc E5 */
 .e5-cta { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: #fff; cursor: pointer; border: 0; border-radius: 16px; padding: 16px 18px; background: linear-gradient(135deg, #2c43c6, #5b6cff); box-shadow: 0 10px 26px rgba(44, 67, 198, .28); margin-bottom: 14px; }
 .e5-cta > span:nth-child(2) { flex: 1; display: grid; gap: 3px; } .e5-cta small { opacity: .9; font-size: .88rem; } .e5-cta .wk-go { color: #fff; font-weight: 700; }
@@ -5693,6 +5697,46 @@ const GENS = [
     return { enonce: `<p>Tables : CLIENT(<u>numClient</u>, nom, ville, plafond) et FACTURE(<u>numFacture</u>, dateFact, montantHT, payee, #numClient). Pour chaque besoin, choisis la requête correcte.</p>`, fields,
       corr: pick.map((t, i) => `<p><b>${i + 1}.</b> <code>${h(t.ok)}</code><br><small>${h(t.why)}</small></p>`).join("") };
  } },
+ { id: "p3rd", cat: "p3", title: "Réintégration ou déduction ? Dis pourquoi", make() {
+    const R = "Réintégration", D = "Déduction", Z = "Ni l'un ni l'autre", K = [R, D, Z];
+    const W = { nd: "Charge non déductible par nature (la loi l'exclut)", so: "Dépense somptuaire", ex: "Seule la part au-delà d'une limite fiscale", av: "Elle donne déjà un avantage fiscal à part (réduction d'impôt)", is: "L'impôt sur les bénéfices n'est pas déductible de lui-même", dbl: "Éviter une double imposition", ex2: "Produit exonéré ou non imposable", ok: "Charge déductible : engagée dans l'intérêt de l'entreprise", okp: "Produit imposable normalement" };
+    const P = [
+      [R, "nd", "Amende pour excès de vitesse d'un salarié avec un véhicule de l'entreprise", "Les amendes et pénalités sanctionnant une infraction ne sont jamais déductibles."],
+      [R, "nd", "Majoration pour retard de paiement de la TVA infligée par l'administration fiscale", "Pénalité fiscale : sanction, donc non déductible."],
+      [R, "nd", "Taxes annuelles sur les véhicules de tourisme utilisés par l'entreprise", "Le CGI interdit leur déduction : on les réintègre en totalité."],
+      [R, "is", "Impôt sur les sociétés comptabilisé en charge (compte 695)", "Le résultat fiscal se calcule avant IS : l'IS ne peut pas réduire sa propre base."],
+      [R, "so", "Location d'un yacht pour inviter des clients", "Dépense somptuaire (yacht, chasse, pêche, résidence de plaisance) : non déductible même si elle a un but commercial."],
+      [R, "so", "Frais d'une partie de chasse offerte à des clients", "Dépense somptuaire : non déductible."],
+      [R, "ex", "Amortissement d'une voiture de tourisme dont le prix dépasse le plafond fiscal", "Seule la fraction d'amortissement calculée au-delà du plafond fiscal est réintégrée."],
+      [R, "ex", "Intérêts versés sur le compte courant d'un associé au-delà du taux maximal fiscal", "Seule la part des intérêts au-delà du taux fiscal est réintégrée."],
+      [R, "av", "Don à une association reconnue d'intérêt général", "Le don ouvre droit à une réduction d'impôt mécénat : on le réintègre pour ne pas cumuler deux avantages."],
+      [R, "nd", "Dotation à une provision pour une amende probable", "Une provision pour une charge non déductible (amende) n'est pas déductible non plus."],
+      [R, "ex", "Quote-part de frais et charges de 5 % sur des dividendes reçus d'une filiale (régime mère-fille)", "Les dividendes sont déduits, mais 5 % sont réintégrés au titre des frais : c'est la quote-part de frais et charges."],
+      [D, "dbl", "Reprise d'une provision qui avait été réintégrée l'année de sa dotation", "La dotation a déjà été taxée : on déduit la reprise pour ne pas imposer deux fois la même somme."],
+      [D, "ex2", "Dividendes reçus d'une filiale détenue à 40 % (régime mère-fille)", "Régime mère-fille : les dividendes sont exonérés, on les déduit (en réintégrant ensuite 5 % de quote-part de frais)."],
+      [D, "dbl", "Dégrèvement obtenu sur des taxes annuelles sur les véhicules qui avaient été réintégrées", "La taxe avait été réintégrée l'année de son paiement : son remboursement n'est pas imposable, on le déduit."],
+      [D, "ex2", "Remboursement par l'administration d'une partie de l'impôt sur les sociétés comptabilisé en produit", "L'IS n'est pas déductible, donc son remboursement n'est pas imposable : on le déduit."],
+      [Z, "ok", "Cotisation foncière des entreprises (CFE)", "Impôt déductible : charge normale de l'exercice."],
+      [Z, "ok", "Intérêts d'un emprunt bancaire pour financer une machine", "Charge financière engagée dans l'intérêt de l'entreprise : déductible."],
+      [Z, "ok", "Dotation aux amortissements d'un camion de livraison", "Véhicule utilitaire : pas de plafond, amortissement entièrement déductible."],
+      [Z, "ok", "Pénalité de retard versée à un client prévue au contrat de vente", "Pénalité contractuelle (entre entreprises) et non sanction légale : déductible."],
+      [Z, "ok", "Cadeaux de fin d'année offerts aux clients, d'une valeur modérée", "Dépense commerciale dans l'intérêt de l'entreprise : déductible."],
+      [Z, "ok", "Dotation à une provision pour créance douteuse justifiée", "Provision précise, justifiée et pour une perte probable : déductible."],
+      [Z, "ok", "Cotisations patronales de sécurité sociale", "Charge sociale déductible."],
+      [Z, "ok", "Taxe d'apprentissage", "Taxe déductible."],
+      [Z, "okp", "Escomptes obtenus des fournisseurs", "Produit financier imposable normalement : aucune correction."]
+    ];
+    const pick = [...shuffle(P.filter(x => x[0] === R)).slice(0, 3), ...shuffle(P.filter(x => x[0] === D)).slice(0, 1), ...shuffle(P.filter(x => x[0] === Z)).slice(0, 2)];
+    const list = shuffle(pick), whyAll = Object.values(W);
+    const fields = [];
+    list.forEach((x, i) => {
+      fields.push({ label: `${i + 1}. ${x[2]}`, ans: x[0], opts: K });
+      const wrong = shuffle(whyAll.filter(w => w !== W[x[1]])).slice(0, 3);
+      fields.push({ label: `Pourquoi ? (${i + 1})`, ans: W[x[1]], opts: shuffle([W[x[1]], ...wrong]) });
+    });
+    return { enonce: `<p>Pour passer du résultat comptable au résultat fiscal (tableau 2058-A), indique pour chaque élément s'il faut le <b>réintégrer</b>, le <b>déduire</b> ou ne rien faire, puis choisis la bonne justification.</p><p class="muted">Rappel : on réintègre une charge comptabilisée que le fisc refuse, on déduit un produit comptabilisé que le fisc n'impose pas (ou déjà imposé).</p>`, fields,
+      corr: `<ol class="rd-corr">${list.map(x => `<li><span>${x[2]}</span><b class="rd-${x[0] === R ? "r" : x[0] === D ? "d" : "z"}">${x[0]}</b><small>${x[3]}</small></li>`).join("")}</ol>` + `<p><b>Méthode pour le contrôle</b> : 1) est-ce une charge ou un produit ? 2) Charge : le fisc l'accepte-t-il (intérêt de l'entreprise, justifiée, pas exclue par la loi) ? Si non, réintégration. 3) Produit : est-il exonéré ou déjà taxé ? Si oui, déduction. 4) Sinon : aucune correction.</p>` };
+  } },
  { id: "p4hs", cat: "p4", title: "Heures supplémentaires", make() {
     const th = ri(1240, 2600, 5) / 100, h = ri(38, 48), a = Math.min(Math.max(h - 35, 0), 8), b = Math.max(h - 43, 0), ma = r2(a * th * 1.25), mb = r2(b * th * 1.5);
     return { enonce: `<p>Un salarié à temps plein (35 h), payé ${fmt(th)} € brut de l'heure, travaille ${h} heures dans la semaine. Aucun accord ne modifie les majorations légales.</p>`,
