@@ -1256,6 +1256,27 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Packs contrôle */
+.pk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.pk-card { display: grid; gap: 6px; text-align: left; font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 14px; padding: 12px 14px; cursor: pointer; }
+.pk-card:hover { border-color: var(--c, var(--accent)); } .pk-card .tabcode { justify-self: start; border-radius: 8px; }
+.pk-card small { color: var(--muted); } .pk-meta { display: flex; flex-wrap: wrap; gap: 6px; } .pk-meta:empty { display: none; }
+.pk-build { display: grid; gap: 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; scroll-margin-top: 90px; }
+.pk-build h3 { margin: 0; } .pk-build .label { font-weight: 700; font-size: .9rem; margin-bottom: 6px; }
+.pk-chs { display: grid; gap: 6px; } .pk-chs label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; cursor: pointer; }
+.pk-chs label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.pk-f { display: grid; gap: 4px; } .pk-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 10px; }
+.pk-prev { padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, var(--paper)); font-size: .92rem; }
+.pk-page { display: grid; gap: 16px; }
+.pk-hero { display: grid; gap: 6px; } .pk-hero h1 { margin: 4px 0 0; } .pk-hero .tabcode { justify-self: start; border-radius: 8px; } .pk-hero p { margin: 0; }
+.pk-ready { display: grid; gap: 6px; margin-top: 6px; } .pk-ready .meter { height: 10px; }
+.pk-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pk-steps li { display: grid; gap: 10px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; }
+.pk-steps li > div:first-child { display: grid; gap: 2px; } .pk-steps li b { display: inline-flex; align-items: center; gap: 8px; } .pk-steps li b .svg { color: var(--c, var(--accent)); }
+.pk-steps li span { color: var(--muted); font-size: .9rem; } .pk-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.pk-exam { border-color: color-mix(in srgb, var(--c, var(--accent)) 50%, var(--rule)) !important; background: color-mix(in srgb, var(--c, var(--accent)) 6%, var(--sheet)) !important; }
+@media (max-width: 640px) { .pk-row { grid-template-columns: minmax(0, 1fr); } }
+
 .rd-corr { display: grid; gap: 8px; padding-left: 20px; margin: 8px 0; } .rd-corr li { display: grid; gap: 2px; } .rd-corr small { color: var(--muted); font-size: .88rem; }
 .rd-r { color: var(--bad); } .rd-d { color: var(--ok); } .rd-z { color: var(--muted); }
 select[data-fi] { width: 100%; max-width: 100%; }
@@ -1391,7 +1412,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .ag-res { display: grid; gap: 6px; }
 
 /* Onglets de la page S'entraîner */
-.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .ex-tab:hover { border-color: var(--accent); }
 .ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -3147,7 +3168,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { classe: vClasse, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { pack: vPack, classe: vClasse, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -3239,6 +3260,7 @@ function vHome() {
     <ol class="steps">${steps.map((s, i) => `<li class="step${s.done ? " done" : ""}"><span class="num">${s.done ? ICON.check : i + 1}</span><div><b>${s.title}</b><p>${s.text}</p></div>${s.btn}</li>`).join("")}</ol>
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
+  ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
   ${classeCard()}
   <section class="stack">
     <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
@@ -3444,6 +3466,7 @@ function finishExam() {
   if (examTick) { clearInterval(examTick); examTick = null; }
   R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0, x.pick !== null ? x.it.o[x.order[x.pick]] : ""));
   if (R.ctrl) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, pc = Math.round(good / R.list.length * 100); S.ctl = S.ctl || {}; (S.ctl[R.ctrl] = S.ctl[R.ctrl] || []).push({ d: dayNum(), pc }); if (S.ctl[R.ctrl].length > 20) S.ctl[R.ctrl].shift(); R.ctlRes = chapStatus(R.ctrl); if (R.ctlRes.ok && pc >= 80) S.xp += 40; }
+  if (R.pack != null && S.packs && S.packs[R.pack]) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, p = S.packs[R.pack]; p.hist = p.hist || []; p.hist.push({ d: Date.now(), pc: Math.round(good / R.list.length * 100) }); if (p.hist.length > 20) p.hist.shift(); }
   if (R.dw && !defiDone()) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length; S.dw = { w: weekId(), sc: good, t: Math.round((Date.now() - (R.t0 || Date.now())) / 1000) }; CL.at = 0; }
   dayLog().e++; touch(); go("result");
 }
@@ -3466,6 +3489,7 @@ function vResult() {
     </div>`).join("");
   return `<section class="runner">
     <div><span class="eyebrow">${R.ctrl ? "Contrôle de chapitre" : R.mode === "exam" ? "QCM chronométré" : "Bilan du quiz"}</span><h1>${R.ctrl ? h(chLabel(R.ctrl)) : R.mode === "exam" ? "Ta copie est corrigée" : "Ton grand livre de la session"}</h1></div>
+    ${R.pack != null && S.packs && S.packs[R.pack] ? `<div class="ctl-ban"><b>Contrôle blanc : ${packName(S.packs[R.pack])}</b><span><button class="btn small" data-act="pkOpen" data-i="${R.pack}">Retour au pack</button></span></div>` : ""}
     ${R.dw ? `<div class="ctl-ban ${S.dw && S.dw.w === weekId() ? "ok" : ""}"><b>Défi de la semaine</b><span>Score retenu pour le classement : ${S.dw ? S.dw.sc : 0}/10 en ${fmtT(S.dw ? S.dw.t : 0)}. <button class="btn small" data-act="goClasse">Voir le classement</button></span></div>` : ""}
     ${R.ctrl && R.ctlRes ? (() => { const st = R.ctlRes, pc = pct(good.length, total); return st.ok ? `<div class="ctl-ban ok"><b>✓ Chapitre validé</b><span>Tu as réussi ce contrôle deux jours différents : c'est acquis. +40 XP. Il reviendra dans tes révisions pour vérifier que tu ne l'oublies pas.</span></div>`
       : pc >= 80 ? `<div class="ctl-ban mid"><b>Réussi : ${st.pass.length} sur 2</b><span>${st.pass.length >= 2 ? "Encore une réussite après le " + dayLabel(st.pass[0] + 3) + " pour valider." : "Repasse ce contrôle à partir du " + dayLabel(st.pass[0] + 3) + " : s'il est encore réussi, le chapitre est validé."}</span></div>`
@@ -4434,6 +4458,12 @@ function bindFusion() {
     clearTimeout(bindView.st); bindView.st = setTimeout(touch, 800);
   }));
   document.querySelectorAll("[data-orck]").forEach(cb => cb.addEventListener("change", () => { if (OR) OR.list[OR.i].ck[cb.dataset.orck] = cb.checked; }));
+  if (PB) {
+    document.querySelectorAll("[data-pbch]").forEach(cb => cb.addEventListener("change", () => { const k = cb.dataset.pbch; PB.chs = cb.checked ? PB.chs.concat(k) : PB.chs.filter(x => x !== k); const pv = document.getElementById("pbPrev"); if (pv) pv.innerHTML = packPreview(packData(PB)); const sv = document.querySelector('[data-act="pbSave"]'); if (sv) { const d = packData(PB); sv.disabled = !(d.qs.length || d.fs.length); } }));
+    const kw = document.getElementById("pbKw"); if (kw) kw.addEventListener("input", () => { PB.kw = kw.value; const d = packData(PB), pv = document.getElementById("pbPrev"); if (pv) pv.innerHTML = packPreview(d); const sv = document.querySelector('[data-act="pbSave"]'); if (sv) sv.disabled = !(d.qs.length || d.fs.length); });
+    const nm = document.getElementById("pbName"); if (nm) nm.addEventListener("input", () => { PB.name = nm.value; });
+    const dt = document.getElementById("pbDate"); if (dt) dt.addEventListener("change", () => { PB.date = dt.value; });
+  }
   const bf = document.getElementById("bkFile");
   if (bf) bf.addEventListener("change", () => { const f = bf.files && bf.files[0]; if (!f) return;
     if (f.size > 20e6) { BK = { pending: null, when: "", err: "Fichier trop gros pour être une sauvegarde du Grand Livre." }; render(); return; }
@@ -5123,7 +5153,7 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " pack" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Simulateur d'oral ---------- */
@@ -5210,6 +5240,76 @@ function oralEnd() {
     <div class="row"><button class="btn primary" data-act="orAgain">Nouvel oral blanc</button>${weak.length ? `<button class="btn" data-act="orRedo">Refaire les ${weak.length} question${weak.length > 1 ? "s" : ""} ratée${weak.length > 1 ? "s" : ""}</button>` : ""}<button class="btn" data-act="orBack">Retour</button></div>
   </section>`;
 }
+/* ---------- Packs contrôle : matière, chapitres, thème ---------- */
+const nz = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+let PB = null, PK = null;
+function kwList(kw) { return String(kw || "").split(/[,;]/).map(nz).map(x => x.trim()).filter(x => x.length >= 2).map(w => w.includes(" ") || w.length <= 5 ? w : w.slice(0, Math.max(4, w.length - 5))); }
+function kwHit(kw, ...txt) { const k = kwList(kw); if (!k.length) return true; const t = nz(txt.join(" ")); return k.some(w => t.includes(w)); }
+function packData(p) {
+  const chs = p.chs || [], inCh = k => !chs.length || chs.includes(k);
+  const qs = QS.filter(x => x.c === p.cat && inCh(chKey(x)) && kwHit(p.kw, x.q, x.e, x.o && x.o[0]));
+  const fs = FS.filter(x => x.c === p.cat && inCh(chKey(x)) && kwHit(p.kw, x.f, x.b, x.m));
+  const fiches = (chs.length ? chs : (CHBY[p.cat] || []).map(c => c.id)).filter(id => CHID[id] && (chs.length || !kwList(p.kw).length || kwHit(p.kw, CHID[id].title, CHID[id].idee)));
+  const gens = GENS.filter(g => g.cat === p.cat && (kwList(p.kw).length ? kwHit(p.kw, g.title) : true));
+  const cases = (GCBY[p.cat] || []).filter(k => inCh(k.ch) && kwHit(p.kw, k.title, k.enonce));
+  const oral = ORAL.filter(o => o.c === p.cat && kwHit(p.kw, o.q, o.pts.join(" ")));
+  return { qs, fs, fiches, gens, cases, oral };
+}
+function packName(p) { return p.name || (CAT[p.cat].code + (p.kw ? " · " + p.kw : (p.chs || []).length === 1 && CHID[p.chs[0]] ? " · " + CHID[p.chs[0]].title : "")); }
+function packReady(p, d) { d = d || packData(p); const n = d.qs.length + d.fs.length; if (!n) return 0; const ok = d.qs.filter(x => qState(x.id) >= 2).length + d.fs.filter(x => cState(x.id) >= 2).length, w = d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 1).length; return Math.min(100, Math.round((ok + w * .5) / n * 100)); }
+function daysTo(date) { if (!date) return null; const t = new Date(date + "T08:00:00"); return Math.ceil((t - new Date()) / 864e5); }
+function packHome() {
+  const packs = S.packs || [];
+  return `<section class="stack">
+    <div class="sec-head"><h2>Préparer un contrôle</h2><p>Choisis la matière, les chapitres et, si tu veux, un thème précis : l'appli te prépare un pack avec fiches, quiz, cartes, exercices et un contrôle blanc.</p></div>
+    ${packs.length ? `<div class="pk-list">${packs.map((p, i) => { const d = packData(p), r = packReady(p, d), dt = daysTo(p.date), last = (p.hist || []).slice(-1)[0];
+      return `<button class="pk-card" style="${hueStyle(p.cat)}" data-act="pkOpen" data-i="${i}"><span class="tabcode">${h(CAT[p.cat].code)}</span><b>${h(packName(p))}</b>
+        <span class="muted">${d.qs.length} questions · ${d.fs.length} cartes${d.gens.length + d.cases.length ? ` · ${d.gens.length + d.cases.length} exercices` : ""}</span>
+        <span class="pk-meta">${dt != null ? `<span class="pill ${dt <= 3 ? "ko" : ""}">${dt > 1 ? `Dans ${dt} jours` : dt === 1 ? "Demain" : dt === 0 ? "Aujourd'hui" : "Passé"}</span>` : ""}${last ? `<span class="pill">Contrôle blanc : ${last.pc} %</span>` : ""}</span>
+        <span class="meter"><i style="width:${r}%"></i></span><small>${r} % prêt</small></button>`; }).join("")}</div>` : ""}
+    ${PB ? packBuilder() : `<button class="btn primary" data-act="pkNew">+ Nouveau pack contrôle</button>`}
+  </section>`;
+}
+function packBuilder() {
+  const cats = CATS.filter(c => (QBY[c.id] || []).length && !lockedCat(c.id)), p = PB;
+  const d = p.cat ? packData(p) : null, chList = p.cat ? (CHBY[p.cat] || []).filter(c => (QCH[c.id] || []).length || FS.some(x => x.ch === c.id)) : [];
+  return `<div class="pk-build" id="pkBuild">
+    <h3>Nouveau pack</h3>
+    <div><div class="label">1. Matière</div><div class="picker">${cats.map(c => `<button class="chip" data-act="pbCat" data-c="${c.id}" aria-pressed="${p.cat === c.id}"><span class="mono">${h(c.code)}</span>${h(c.name)}</button>`).join("")}</div></div>
+    ${p.cat ? `<div><div class="label">2. Chapitres <span class="muted">(aucun coché = toute la matière)</span></div>
+      <div class="pk-chs">${chList.map(c => `<label><input type="checkbox" data-pbch="${c.id}" ${p.chs.includes(c.id) ? "checked" : ""}><span>${h(c.title)}</span></label>`).join("")}</div></div>
+    <label class="pk-f"><span class="label">3. Thème précis <span class="muted">(facultatif : un ou plusieurs mots séparés par des virgules)</span></span><input class="pf-in" id="pbKw" value="${h(p.kw)}" placeholder="Ex. : réintégration, déduction, amende"></label>
+    <div class="pk-row"><label class="pk-f"><span class="label">Nom du pack</span><input class="pf-in" id="pbName" value="${h(p.name)}" placeholder="${h(packName(p))}"></label>
+      <label class="pk-f"><span class="label">Date du contrôle <span class="muted">(facultatif)</span></span><input class="pf-in" id="pbDate" type="date" value="${h(p.date)}"></label></div>
+    <div class="pk-prev" id="pbPrev">${packPreview(d)}</div>
+    <div class="row"><button class="btn" data-act="pbCancel">Annuler</button><button class="btn primary" data-act="pbSave" ${d && (d.qs.length || d.fs.length) ? "" : "disabled"}>Créer le pack</button></div>` : ""}
+  </div>`;
+}
+function packPreview(d) {
+  if (!d) return "";
+  return `<b>Dans ce pack :</b> ${d.fiches.length} fiche${d.fiches.length > 1 ? "s" : ""} · ${d.qs.length} question${d.qs.length > 1 ? "s" : ""} · ${d.fs.length} carte${d.fs.length > 1 ? "s" : ""} · ${d.gens.length + d.cases.length} exercice${d.gens.length + d.cases.length > 1 ? "s" : ""}${d.oral.length ? ` · ${d.oral.length} question${d.oral.length > 1 ? "s" : ""} d'oral` : ""}${!d.qs.length && !d.fs.length ? `<br><span class="muted">Aucune question ne correspond : élargis les chapitres ou change le thème.</span>` : ""}`;
+}
+function vPack() {
+  const p = PK != null && (S.packs || [])[PK]; if (!p) { setExTab("ctl"); return vExHome(); }
+  const d = packData(p), r = packReady(p, d), dt = daysTo(p.date), c = CAT[p.cat];
+  const nRead = d.fiches.filter(ficheRead).length, acq = d.qs.filter(x => qState(x.id) >= 2).length, wrong = d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0).length;
+  const hist = p.hist || [];
+  return `<section class="pk-page" style="${hueStyle(p.cat)}">
+    <div class="runner-top"><button class="crumb" data-act="pkBack">${ICON.back}Contrôles</button>${dt != null ? `<span class="pill ${dt <= 3 ? "ko" : ""}">${dt > 1 ? `Contrôle dans ${dt} jours` : dt === 1 ? "Contrôle demain" : dt === 0 ? "Contrôle aujourd'hui" : "Contrôle passé"}</span>` : ""}</div>
+    <div class="pk-hero"><span class="tabcode">${h(c.code)}</span><h1>${h(packName(p))}</h1>
+      <p class="muted">${h(c.name)}${(p.chs || []).length ? " · " + p.chs.map(id => CHID[id] ? CHID[id].title : "").join(" · ") : " · toute la matière"}${p.kw ? ` · thème : « ${h(p.kw)} »` : ""}</p>
+      <div class="pk-ready"><div class="meter"><i style="width:${r}%"></i></div><span><b>${r} %</b> prêt · ${acq}/${d.qs.length} questions acquises${wrong ? ` · ${wrong} à revoir` : ""}</span></div></div>
+    <ol class="pk-steps">
+      ${d.fiches.length ? `<li><div><b>${ICON.book}Relire</b><span>${nRead} fiche${nRead > 1 ? "s" : ""} lue${nRead > 1 ? "s" : ""} sur ${d.fiches.length}</span></div><div class="pk-btns">${d.fiches.map(id => `<button class="btn small${ficheRead(id) ? "" : " primary"}" data-act="fiche" data-id="${id}">${ficheRead(id) ? "✓ " : ""}${h(CHID[id].title)}</button>`).join("")}</div></li>` : ""}
+      ${d.qs.length ? `<li><div><b>${ICON.cards}S'entraîner aux questions</b><span>${d.qs.length} questions dans ce pack</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkQuiz" data-n="10">Quiz de 10</button>${d.qs.length > 10 ? `<button class="btn small" data-act="pkQuiz" data-n="20">Quiz de 20</button>` : ""}<button class="btn small" data-act="pkQuiz" data-n="999">Toutes (${d.qs.length})</button>${wrong ? `<button class="btn small" data-act="pkWrong">Mes ${wrong} erreurs</button>` : ""}</div></li>` : ""}
+      ${d.fs.length ? `<li><div><b>${ICON.cards}Mémoriser</b><span>${d.fs.length} cartes</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkCards">Réviser les cartes</button></div></li>` : ""}
+      ${d.gens.length || d.cases.length ? `<li><div><b>${ICON.calc}Exercices</b><span>Comme au contrôle : calculs et justifications</span></div><div class="pk-btns">${d.gens.map(g => `<button class="btn small" data-act="exStart" data-gid="${g.id}">${h(g.title)}</button>`).join("")}${d.cases.map(k => `<button class="btn small" data-act="gcase" data-id="${k.id}">${h(k.title)}</button>`).join("")}</div></li>` : ""}
+      ${d.qs.length >= 5 ? `<li class="pk-exam"><div><b>${ICON.clock}Contrôle blanc</b><span>${Math.min(15, d.qs.length)} questions chronométrées, sans correction avant la fin.${hist.length ? ` Dernier : <b>${hist[hist.length - 1].pc} %</b>${hist.length > 1 ? ` (avant : ${hist[hist.length - 2].pc} %)` : ""}.` : ""}</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkExam">Lancer le contrôle blanc</button></div></li>` : ""}
+      ${d.oral.length ? `<li><div><b>${ICON.talk}À l'oral</b><span>${d.oral.length} question${d.oral.length > 1 ? "s" : ""} du jury sur ce thème</span></div><div class="pk-btns"><button class="btn small" data-act="pkOral">S'entraîner à l'oral</button></div></li>` : ""}
+    </ol>
+    <div class="row"><button class="btn small" data-act="pkEdit">Modifier le pack</button><button class="btn small" data-act="pkDel">Supprimer le pack</button></div>
+  </section>`;
+}
 function vExHome() {
   const n = todayCount(), eps = ["E5", "E4", "E3", "E1"];
   const pool = ANN.filter(a => !ANF.ep || a.ep === ANF.ep), exPool = pool.flatMap(a => a.ex);
@@ -5256,6 +5356,7 @@ function vExHome() {
       <div class="sec-head"><h2>Exercices guidés</h2><p>${GCASES.length} exercices type examen, découpés en étapes avec un corrigé pour chacune.</p></div>
       ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
     </section>` : ""}
+    ${EXT === "ctl" ? packHome() : ""}
     ${EXT === "oraux" ? oralHome() : ""}
     ${EXT === "redac" ? `<section class="stack">
       <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
@@ -6431,6 +6532,19 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "pkNew": PB = { cat: "", chs: [], kw: "", name: "", date: "", i: null }; render(); setTimeout(() => { const e = document.getElementById("pkBuild"); if (e) e.scrollIntoView({ block: "start" }); }, 30); break;
+    case "pbCat": PB.cat = b.dataset.c; PB.chs = []; render(); break;
+    case "pbCancel": PB = null; render(); break;
+    case "pbSave": { const p = { cat: PB.cat, chs: PB.chs.slice(), kw: PB.kw.trim(), name: PB.name.trim(), date: PB.date, hist: PB.i != null && S.packs[PB.i] ? S.packs[PB.i].hist || [] : [] }; S.packs = S.packs || []; if (PB.i != null) S.packs[PB.i] = p; else S.packs.push(p); PK = PB.i != null ? PB.i : S.packs.length - 1; PB = null; touch(); go("pack"); break; }
+    case "pkOpen": PK = +b.dataset.i; go("pack"); break;
+    case "pkBack": PK = null; setExTab("ctl"); go("ex"); break;
+    case "pkEdit": { const p = S.packs[PK]; PB = { cat: p.cat, chs: (p.chs || []).slice(), kw: p.kw || "", name: p.name || "", date: p.date || "", i: PK }; setExTab("ctl"); go("ex"); setTimeout(() => { const e = document.getElementById("pkBuild"); if (e) e.scrollIntoView({ block: "start" }); }, 30); break; }
+    case "pkDel": { S.packs.splice(PK, 1); PK = null; touch(); setExTab("ctl"); go("ex"); break; }
+    case "pkQuiz": { const d = packData(S.packs[PK]), n = +b.dataset.n, wr = shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), rest = shuffle(d.qs.filter(x => !wr.includes(x))); startRun(wr.concat(rest).slice(0, n), "quiz"); break; }
+    case "pkWrong": { const d = packData(S.packs[PK]); startRun(shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), "quiz"); break; }
+    case "pkCards": { const d = packData(S.packs[PK]); startCards(shuffle(d.fs).slice(0, Math.max(10, (P().clen || 30)))); break; }
+    case "pkExam": { const d = packData(S.packs[PK]), n = Math.min(15, d.qs.length); startRun(shuffle(d.qs).slice(0, n), "exam"); if (R) { R.pack = PK; R.end = Date.now() + n * 60 * 1000; render(); } break; }
+    case "pkOral": { const d = packData(S.packs[PK]); OR = { list: shuffle(d.oral).slice(0, 5).map(q => ({ q, ck: {}, done: false })), i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: "pack" }; go("oral"); break; }
     case "goClasse": go("classe"); break;
     case "clJoin": { const v = (document.getElementById("clPseudo").value || "").replace(/[<>]/g, "").trim().slice(0, 24); if (v.length < 2) { toast("Choisis un pseudo d'au moins 2 caractères"); break; } S.cl = { on: true, p: v }; CL.at = 0; touch(); render(); loadClass(true); break; }
     case "clLeave": S.cl = { on: false, p: (S.cl || {}).p || "" }; CL.data = null; touch(); render(); break;
