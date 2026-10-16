@@ -86,6 +86,9 @@
   }
   window.claude = { use: async function (n) { if (GUEST) return null; return n === "db" ? db : n === "user" ? user : n === "sample" ? sample : null; } };
 
+  /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
+  if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
+
   /* Rappels quotidiens (notifications) */
   function b64(u) { var p = "=".repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
   var PUSH = {
@@ -1249,6 +1252,41 @@ html, body { overflow-x: hidden; }
 .pf-key.alt.w i { opacity: .5; }
 .pf-note { margin: -4px 0 4px; line-height: 1.5; }
 .wk-note { margin: -4px 0 8px; }
+/* Signalement */
+.rep-btn { justify-self: start; align-self: flex-start; border: 0; background: none; font: inherit; font-size: .82rem; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; min-height: 32px; }
+.rep-btn:hover { color: var(--accent); }
+.rep-row { margin: 0; text-align: right; }
+.rep-box h2 { margin: 0; } .rep-l { font-style: italic; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.rep-ch { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+.rep-ch label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; cursor: pointer; }
+.rep-ch label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.rep-c { display: grid; gap: 4px; font-size: .9rem; font-weight: 600; }
+.rep-c textarea { font: inherit; font-weight: 400; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); color: var(--ink); resize: vertical; }
+.rep-list { display: grid; gap: 8px; } .rep-it { display: grid; gap: 2px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; }
+.rep-it small { color: var(--muted); } .rep-it span { font-size: .9rem; } .rep-it em { font-size: .88rem; color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Oraux */
+.or-set { display: grid; gap: 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; }
+.or-set .label { font-weight: 700; font-size: .9rem; margin-bottom: 6px; } .or-set .btn.primary { justify-self: start; }
+.or-hist { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .or-hist b { margin-right: 4px; }
+.or-q { font-size: 1.15rem; }
+.or-clock { display: grid; gap: 8px; justify-items: center; text-align: center; padding: 10px 0 4px; }
+.or-time { font: 800 3rem/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+.or-clock.low .or-time { color: var(--bad); animation: pop .5s ease infinite alternate; }
+.or-clock .bar { width: 100%; }
+.or-ck { display: grid; gap: 8px; } .or-ck label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; cursor: pointer; }
+.or-ck label:has(input:checked) { border-color: var(--ok); background: var(--ok-bg); } .or-ck input { margin-top: 4px; }
+.or-piege { margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 14%, transparent); }
+.or-sum { display: grid; gap: 8px; } .or-it { display: grid; gap: 3px; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--ok); border-radius: 10px; padding: 10px 12px; }
+.or-it.ko { border-left-color: var(--bad); } .or-it span { color: var(--muted); font-size: .88rem; } .or-it ul { margin: 4px 0 0; padding-left: 18px; font-size: .9rem; }
+.sit-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.sit-card { display: grid; gap: 3px; text-align: left; font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.sit-card:hover { border-color: var(--accent); } .sit-card.add { place-content: center; color: var(--accent); font-weight: 700; border-style: dashed; min-height: 72px; }
+.sit-form { display: grid; gap: 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; scroll-margin-top: 80px; }
+.sit-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 10px; } .sit-row label { display: grid; gap: 4px; font-weight: 700; font-size: .9rem; }
+.sit-f { display: grid; gap: 3px; } .sit-f span { font-size: .85rem; }
+@media (max-width: 640px) { .sit-row { grid-template-columns: minmax(0, 1fr); } .or-time { font-size: 2.6rem; } }
+
 /* Sauvegarde et hors connexion */
 .bk-confirm { background: color-mix(in srgb, var(--gold) 12%, var(--sheet)); }
 .bk-err { margin: 0; padding: 10px 16px; color: var(--bad); background: var(--bad-bg); }
@@ -1321,7 +1359,7 @@ html, body { overflow-x: hidden; }
 .ag-res { display: grid; gap: 6px; }
 
 /* Onglets de la page S'entraîner */
-.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .ex-tab:hover { border-color: var(--accent); }
 .ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -2617,6 +2655,82 @@ F.push(...[["p2", "Écarts de conversion à l'inventaire", "Perte latente : 476 
 /* P1, P5, P7 : compléments (octobre 2026) */
 Q.push(...[["p1", "Un effet remis à l'escompte s'enregistre d'abord…", ["5114 au débit, 413 au crédit", "5113 au débit, 413 au crédit", "512 au débit, 411 au crédit", "413 au débit, 5114 au crédit"], "5114 Effets à l'escompte ; 5113 Effets à l'encaissement. La banque crédite ensuite le net : 512, 6616 et 627 / 5114.", "p1c5"], ["p1", "Un effet revient impayé à l'échéance. Chez le vendeur, on débite…", ["411 du montant de l'effet, plus les frais d'impayé", "654 du montant de l'effet", "413 du montant de l'effet", "6616 des intérêts seulement"], "La créance redevient une créance ordinaire sur le client (411 / 512), frais refacturés compris.", "p1c5"], ["p1", "Un virement reçu d'un client figure sur le relevé mais pas en comptabilité. On enregistre…", ["512 au débit, 411 au crédit", "411 au débit, 512 au crédit", "aucune écriture", "627 au débit, 512 au crédit"], "On enregistre tout ce que la banque connaît et pas l'entreprise : virements reçus, prélèvements, frais.", "p1c5"], ["p1", "Un chèque remis à la banque n'est pas encore crédité sur le relevé. On…", ["ne passe aucune écriture : la banque le créditera", "l'enregistre une seconde fois en 512", "le contre-passe en 411", "le passe en 627"], "Il figure déjà en comptabilité ; le décalage disparaîtra sur le relevé suivant. On le note seulement dans l'état de rapprochement.", "p1c5"], ["p1", "Une facture d'honoraires d'avocat de 1 000 € HT (TVA 20 %) s'enregistre chez l'entreprise…", ["6226 : 1 000 ; 44566 : 200 / 401 : 1 200", "607 : 1 000 ; 44566 : 200 / 401 : 1 200", "6226 : 1 200 / 401 : 1 200", "6226 : 1 000 ; 44562 : 200 / 404 : 1 200"], "Honoraires : 6226 ; TVA sur biens et services : 44566 ; fournisseur ordinaire : 401.", "p1c2"], ["p1", "Sur une facture électronique au sens de la réforme, les données sont…", ["structurées (Factur-X, UBL, CII) et transmises par une plateforme agréée", "un simple PDF envoyé par mail", "une photo de la facture papier", "saisies à la main par le client"], "Un PDF seul n'est pas une facture électronique : il faut des données lisibles par les logiciels.", "p1c2"], ["p1", "Quelle mention devient obligatoire sur les factures avec la réforme de la facturation électronique ?", ["Le numéro SIREN du client", "Le nom du commercial", "La signature manuscrite", "Le logo de l'entreprise"], "S'y ajoutent l'adresse de livraison si elle diffère, la nature de l'opération (biens, services ou mixte) et l'option pour les débits le cas échéant.", "p1c2"], ["p5", "Le coût d'achat des matières comprend…", ["le prix d'achat et les frais d'approvisionnement", "le prix d'achat seulement", "le prix d'achat et la TVA", "le coût de production"], "Prix net de réductions + frais d'approvisionnement (transport, réception…), directs ou imputés par un centre.", "p5c1"], ["p5", "Le coût de production comprend…", ["les matières consommées, la MOD et les charges indirectes de production", "le coût d'achat des marchandises vendues", "les coûts de distribution", "le prix de vente moins la marge"], "Le coût de revient ajoute ensuite les coûts de distribution.", "p5c1"], ["p5", "Coût de revient unitaire 45 € ; prix de vente 50 € HT ; 2 000 unités vendues. Le résultat analytique est de…", ["10 000 €", "5 €", "100 000 €", "90 000 €"], "(50 − 45) × 2 000 = 10 000 €.", "p5c1"], ["p5", "Temps réel 520 h, temps préétabli 500 h, taux préétabli 15 €. L'écart sur temps est de…", ["300 € défavorable", "300 € favorable", "260 € défavorable", "7 800 €"], "(520 − 500) × 15 = 300 € : plus d'heures que prévu, donc défavorable.", "p5c4"], ["p5", "Consommation de 20 unités par jour, délai de livraison 5 jours, stock de sécurité 50 unités. Le stock d'alerte est de…", ["150 unités", "100 unités", "50 unités", "250 unités"], "Stock d'alerte = stock de sécurité + consommation pendant le délai = 50 + 20 × 5.", "p5c2"], ["p5", "D = 12 000 unités par an, coût d'une commande 100 €, coût de possession 2 € par unité et par an. La quantité économique est d'environ…", ["1 095 unités", "600 unités", "1 200 unités", "34 unités"], "Q* = √(2 × 12 000 × 100 / 2) = √1 200 000 ≈ 1 095, soit environ 11 commandes par an.", "p5c2"], ["p5", "Ventes de mars : 12 000 € TTC, encaissées 40 % comptant et 60 % à 30 jours. Encaissement en avril au titre de mars :", ["7 200 €", "4 800 €", "12 000 €", "6 000 €"], "60 % × 12 000 = 7 200 € encaissés en avril.", "p5c5"], ["p5", "Dans un budget de trésorerie, l'achat d'une machine payée en juin s'inscrit…", ["en décaissement de juin, pour son montant TTC", "en dotation aux amortissements mensuelle", "en encaissement au moment de la livraison", "nulle part : c'est une immobilisation"], "Le budget suit les flux d'argent : l'investissement est un décaissement au mois du paiement ; l'amortissement n'y figure pas.", "p5c5"], ["p7", "Une association (x,n) – (x,1) entre CLIENT et FACTURE se traduit par…", ["une clé étrangère numClient dans FACTURE", "une clé étrangère numFacture dans CLIENT", "une nouvelle table CLIENT_FACTURE", "la fusion des deux tables"], "La clé étrangère va du côté de la cardinalité maximale 1 : chaque facture concerne un seul client.", "p7c2"], ["p7", "La commande SQL qui supprime les factures de 2019 est…", ["DELETE FROM FACTURE WHERE YEAR(dateFact) = 2019;", "DROP FACTURE WHERE YEAR(dateFact) = 2019;", "REMOVE FROM FACTURE WHERE dateFact = 2019;", "UPDATE FACTURE SET dateFact = NULL WHERE dateFact = 2019;"], "DELETE supprime des lignes ; DROP TABLE supprimerait toute la table.", "p7c2"], ["p7", "La condition qui sélectionne les montants de 1 000 à 5 000 € compris est…", ["montantHT BETWEEN 1000 AND 5000", "montantHT IN (1000, 5000)", "montantHT LIKE '1000%5000'", "montantHT > 1000 OR montantHT < 5000"], "BETWEEN inclut les bornes ; IN ne garde que les valeurs listées.", "p7c2"], ["p7", "Pour trouver les clients sans adresse mail renseignée, on écrit…", ["WHERE mail IS NULL", "WHERE mail = NULL", "WHERE mail = ''", "WHERE mail NOT LIKE '%'"], "Une valeur absente se teste avec IS NULL, jamais avec =.", "p7c2"], ["p7", "Pour compter les factures d'un client supérieures à 1 000 € dans un tableur, on utilise…", ["NB.SI.ENS", "SOMME.SI", "RECHERCHEV", "ARRONDI"], "NB.SI.ENS compte avec plusieurs critères ; SOMME.SI.ENS additionne avec plusieurs critères.", "p7c3"], ["p7", "=SI(B2>1000;\"À relancer\";\"OK\") affiche « À relancer » quand…", ["B2 dépasse 1 000", "B2 est inférieur à 1 000", "B2 est vide", "B2 vaut exactement 1 000"], "SI(test ; valeur si vrai ; valeur si faux).", "p7c3"], ["p7", "Le registre des traitements prévu par le RGPD recense…", ["les traitements de données personnelles de l'entreprise", "les mots de passe des salariés", "les factures émises dans l'année", "les sauvegardes informatiques"], "Finalité, données, personnes concernées, durée de conservation, destinataires, mesures de sécurité.", "p7c4"], ["p7", "Un logiciel qui chiffre les fichiers et réclame une somme pour les débloquer est…", ["un rançongiciel", "un hameçonnage", "un pare-feu", "un antivirus"], "Parade principale : des sauvegardes 3-2-1 hors ligne, testées, et des mises à jour régulières.", "p7c4"], ["p7", "Lors d'un contrôle fiscal, le FEC doit être remis…", ["sous forme dématérialisée, à la demande du vérificateur", "sur papier, à la fin de chaque année", "au greffe avec les comptes annuels", "à l'URSSAF chaque mois"], "Fichier des écritures comptables de l'exercice, dans un format normé ; un défaut de remise est sanctionné.", "p7c5"]]);
 F.push(...[["p1", "Rapprochement bancaire : que faire de chaque écart ?", "Sur le relevé, pas en compta (frais, virements reçus, prélèvements) : on l'enregistre. En compta, pas sur le relevé (chèques émis ou remis non passés) : rien, le décalage disparaîtra.", "Les soldes rectifiés doivent être égaux.", "p1c5"], ["p5", "Budget de trésorerie : 3 réflexes", "TTC, au mois réel de l'encaissement ou du décaissement (délais clients et fournisseurs) ; TVA du mois payée le mois suivant ; ni amortissements ni provisions.", "Investissement : décaissement au mois du paiement.", "p5c5"], ["p5", "Écarts sur MOD", "Sur temps = (Tr − Tp) × taux préétabli. Sur taux = (taux réel − taux préétabli) × Tr. Global = coût réel − coût préétabli de la production réelle.", "Positif = défavorable.", "p5c4"], ["p7", "SQL : les pièges", "WHERE filtre les lignes, HAVING les groupes ; une valeur vide se teste avec IS NULL ; BETWEEN inclut les bornes ; UPDATE ou DELETE sans WHERE touchent toute la table.", "Jointure : FROM T1 INNER JOIN T2 ON T1.clé = T2.clé.", "p7c2"]]);
+/* Simulateur d'oral E6 / E7 : questions types du jury et éléments de réponse attendus */
+const ORAL = [
+/* ---------- E6 · P1 Opérations commerciales ---------- */
+{ e: "E6", c: "p1", q: "Vous avez enregistré cette facture d'achat : expliquez-nous chaque ligne de l'écriture.", pts: ["Charge par nature en 60x (ou 607 pour des marchandises) pour le net commercial HT", "TVA déductible en 44566 (44562 pour une immobilisation)", "Fournisseur au crédit en 401 pour le TTC", "Les réductions commerciales sur facture ne s'enregistrent pas, l'escompte va en 765 chez le client qui l'obtient"], piege: "Ne pas confondre remise (sur facture, non comptabilisée) et escompte (financier, en 765 ou 665)." },
+{ e: "E6", c: "p1", q: "Comment contrôlez-vous qu'une facture fournisseur peut être payée ?", pts: ["Rapprochement bon de commande, bon de livraison et facture (le triple contrôle)", "Vérification des quantités, des prix et des calculs, dont la TVA", "Vérification des mentions obligatoires de la facture", "Validation par la personne habilitée avant la mise en paiement"], piege: "Citer la séparation des tâches : celui qui valide n'est pas celui qui paie." },
+{ e: "E6", c: "p1", q: "Un client n'a pas payé à l'échéance. Que faites-vous, étape par étape ?", pts: ["Vérifier le compte client et l'absence d'erreur ou d'avoir en attente", "Relance amiable (mail, téléphone) puis lettre de relance", "Mise en demeure, puis injonction de payer si besoin", "Si le risque de non-paiement devient probable : passage en 416 et dépréciation en fin d'exercice"], piege: "La dépréciation porte sur le HT : la TVA n'est récupérée qu'en cas de perte définitive." },
+{ e: "E6", c: "p1", q: "Comment réalisez-vous un rapprochement bancaire ?", pts: ["Comparer le relevé et le compte 512 opération par opération (pointage)", "Repérer les opérations connues d'un seul côté", "Enregistrer en comptabilité ce que seule la banque connaît (frais, virements reçus, prélèvements)", "Vérifier que les soldes rectifiés sont égaux et justifier les décalages restants"], piege: "On ne passe aucune écriture pour un chèque émis non encore débité : c'est un décalage temporaire." },
+{ e: "E6", c: "p1", q: "Quelles nouveautés la facturation électronique apporte-t-elle dans votre structure ?", pts: ["Factures B2B émises et reçues sous forme structurée (Factur-X, UBL, CII), plus un simple PDF", "Passage par une plateforme agréée par l'administration", "Calendrier : réception obligatoire pour toutes les entreprises, puis émission selon la taille", "Nouvelles mentions : SIREN du client, nature de l'opération, adresse de livraison, option pour les débits"], piege: "Relier la réponse à ta structure : qui reçoit les factures, quel logiciel, ce qui va changer pour toi." },
+{ e: "E6", c: "p1", q: "Quelle est la différence entre un avoir et une facture rectificative ?", pts: ["L'avoir annule ou réduit une facture déjà émise (retour, rabais, erreur)", "Il reprend les références de la facture d'origine", "Chez le vendeur : 709 et 44571 au débit, 411 au crédit", "On ne modifie jamais une facture émise : on émet un avoir puis, si besoin, une nouvelle facture"], piege: "Un rabais accordé après facturation passe en 709 (ou 609 chez l'acheteur), pas en charge exceptionnelle." },
+{ e: "E6", c: "p1", q: "Montrez-nous comment vous lettrez un compte fournisseur.", pts: ["Associer chaque facture à son règlement (même lettre)", "Le solde du compte doit correspondre aux factures non lettrées", "Analyser les écarts : escompte, avoir, paiement partiel, erreur", "Utilité : suivre les dettes, éviter les doubles paiements, préparer la balance âgée"], piege: "Un compte fournisseur débiteur est anormal : avance, avoir non utilisé ou double paiement à vérifier." },
+{ e: "E6", c: "p1", q: "Quels contrôles mettez-vous en place sur la trésorerie ?", pts: ["Rapprochement bancaire régulier (au moins mensuel)", "Séparation des tâches entre engagement, comptabilisation et paiement", "Double signature ou validation des virements au-delà d'un seuil", "Contrôle des changements de RIB fournisseurs (contre-appel sur un numéro connu)"], piege: "La fraude au faux fournisseur (changement de RIB) est un exemple très apprécié du jury." },
+
+/* ---------- E6 · P2 Inventaire et comptes annuels ---------- */
+{ e: "E6", c: "p2", q: "Vous avez calculé cet amortissement : justifiez la méthode et la durée.", pts: ["Base amortissable : coût d'acquisition HT (prix + frais accessoires), diminué de la valeur résiduelle si elle est significative", "Durée d'utilisation prévue dans l'entreprise, ou durée d'usage fiscale", "Linéaire au prorata temporis à partir de la mise en service", "Écriture : 6811 au débit, 281x au crédit"], piege: "Le dégressif est fiscal : l'écart avec l'amortissement comptable passe en amortissement dérogatoire (6872 / 145)." },
+{ e: "E6", c: "p2", q: "Qu'est-ce que le principe d'indépendance des exercices et comment l'appliquez-vous ?", pts: ["Chaque exercice supporte ses propres charges et produits", "Charges à payer (408, 4286…) et produits à recevoir (418…)", "Charges constatées d'avance (486) et produits constatés d'avance (487)", "Contre-passation au début de l'exercice suivant"], piege: "Un abonnement payé d'avance sur 12 mois à cheval sur deux exercices : la part de l'exercice suivant va en 486." },
+{ e: "E6", c: "p2", q: "Comment valorisez-vous les stocks en fin d'exercice ?", pts: ["Inventaire physique, comparé à l'inventaire comptable", "Valorisation au coût d'achat (marchandises) ou au coût de production (produits)", "Méthode du CUMP ou du premier entré premier sorti", "Dépréciation si la valeur actuelle est inférieure au coût (6817 / 39x)"], piege: "Le LIFO (dernier entré premier sorti) est interdit en France." },
+{ e: "E6", c: "p2", q: "Quelle est la différence entre une dépréciation et une provision ?", pts: ["La dépréciation constate la perte de valeur d'un actif (stock, créance, immobilisation)", "La provision constate un passif : une obligation probable envers un tiers (litige, garantie)", "Dépréciation : 68x / 29x, 39x, 49x ; provision : 68x / 15x", "Les deux s'ajustent à chaque clôture (dotation ou reprise)"], piege: "Une provision exige une obligation envers un tiers : pas de provision pour une simple intention de dépense." },
+{ e: "E6", c: "p2", q: "Comment traitez-vous la cession d'une immobilisation ?", pts: ["Dotation complémentaire jusqu'à la date de cession", "Sortie de l'actif : 675 (VNC) au débit, reprise des amortissements 28x au débit, immobilisation au crédit", "Prix de cession en 775", "Plus ou moins-value = 775 − 675"], piege: "Ne pas oublier l'amortissement de l'exercice de cession avant de sortir le bien." },
+{ e: "E6", c: "p2", q: "Que contrôlez-vous avant d'éditer la balance de clôture ?", pts: ["Comptes de tiers lettrés et justifiés", "Banque rapprochée, caisse jamais créditrice", "Comptes d'attente (471) soldés", "Cohérence des comptes de TVA avec les déclarations et des comptes sociaux avec les DSN"], piege: "Un compte 512 créditeur n'est pas anormal (découvert), une caisse créditrice l'est toujours." },
+{ e: "E6", c: "p2", q: "Comment comptabilisez-vous une créance en devises à la clôture ?", pts: ["Conversion au cours de clôture", "Perte latente : 476 au débit, avec une provision pour perte de change (6865 / 1515)", "Gain latent : 477 au crédit, sans effet sur le résultat", "Contre-passation au début de l'exercice suivant"], piege: "Le gain latent n'est jamais pris en résultat : principe de prudence." },
+
+/* ---------- E6 · P3 Gestion fiscale ---------- */
+{ e: "E6", c: "p3", q: "Expliquez-nous comment vous avez établi cette déclaration de TVA.", pts: ["TVA collectée sur les ventes et encaissements (selon l'exigibilité)", "TVA déductible sur biens et services (44566) et sur immobilisations (44562)", "TVA due = collectée − déductible ; crédit de TVA si négatif", "Écriture de liquidation : 44571 au débit, 4456x au crédit, 44551 au crédit"], piege: "Services : TVA exigible à l'encaissement, sauf option pour les débits. Biens : à la livraison." },
+{ e: "E6", c: "p3", q: "Comment passez-vous du résultat comptable au résultat fiscal ?", pts: ["Réintégrations : charges non déductibles (amendes, IS, part non déductible des amortissements de véhicules de tourisme, taxe sur les véhicules…)", "Déductions : produits non imposables ou déjà imposés", "Imputation éventuelle des déficits antérieurs", "Documents : tableaux 2058-A à 2058-C de la liasse"], piege: "L'IS lui-même est réintégré : il n'est pas déductible de son propre résultat." },
+{ e: "E6", c: "p3", q: "Comment se calcule et se paie l'impôt sur les sociétés ?", pts: ["Taux réduit de 15 % jusqu'au plafond pour les PME éligibles, 25 % au-delà", "Quatre acomptes trimestriels calculés sur l'IS de l'exercice précédent", "Solde payé le 15 du 4e mois après la clôture (le 15 mai pour une clôture au 31 décembre)", "Écritures : 444 pour les acomptes et le solde, 695 pour la charge"], piege: "Le taux réduit exige un CA sous le seuil et un capital entièrement libéré, détenu à 75 % au moins par des personnes physiques." },
+{ e: "E6", c: "p3", q: "Quelles autres taxes votre structure paie-t-elle ?", pts: ["CFE (cotisation foncière des entreprises), due chaque année", "CVAE selon le chiffre d'affaires (en cours de suppression progressive)", "Taxe sur les salaires si l'entité n'est pas assujettie à la TVA sur la totalité de son CA", "Taxes liées aux véhicules ou à la formation selon la situation"], piege: "Une association non soumise à la TVA paie souvent la taxe sur les salaires : exemple utile si c'est ton cas." },
+{ e: "E6", c: "p3", q: "Que contrôlez-vous sur une déclaration de TVA avant de la déposer ?", pts: ["Concordance entre les comptes de TVA et la déclaration (tableau de contrôle)", "Cohérence chiffre d'affaires déclaré / chiffre d'affaires comptable", "Taux appliqués corrects selon les opérations", "Report d'un éventuel crédit de la période précédente"], piege: "Le tableau de rapprochement CA / TVA collectée est un excellent support à montrer au jury." },
+
+/* ---------- E6 · P4 Gestion sociale ---------- */
+{ e: "E6", c: "p4", q: "Expliquez-nous ce bulletin de paie, du brut au net.", pts: ["Salaire de base + heures supplémentaires + primes + avantages en nature = brut", "Cotisations salariales (santé, retraite, chômage selon les cas, CSG-CRDS)", "Net à payer avant impôt, puis prélèvement à la source", "Les cotisations patronales s'ajoutent pour le coût total employeur"], piege: "Un avantage en nature s'ajoute au brut puis se retire du net : il est déjà « versé » en nature." },
+{ e: "E6", c: "p4", q: "Comment comptabilisez-vous la paie du mois ?", pts: ["641 (salaires bruts) au débit, 421 (net à payer) et 43x (cotisations salariales) au crédit", "645 (charges patronales) au débit, 431 et 437 au crédit", "Prélèvement à la source en 4421", "Paiement : 421 au débit, 512 au crédit"], piege: "Bien séparer la part salariale (comprise dans 641) et la part patronale (645)." },
+{ e: "E6", c: "p4", q: "Qu'est-ce que la DSN et quels contrôles faites-vous dessus ?", pts: ["Déclaration sociale nominative, mensuelle, issue du logiciel de paie", "Elle transmet salaires, cotisations et événements (arrêts, fins de contrat)", "Contrôle : concordance DSN / livre de paie / comptes 43x", "Dépôt avant le 5 ou le 15 du mois suivant selon l'effectif"], piege: "Un arrêt de travail ou une fin de contrat se signale en DSN événementielle, sans attendre la DSN mensuelle." },
+{ e: "E6", c: "p4", q: "Comment calculez-vous les heures supplémentaires ?", pts: ["Au-delà de 35 heures par semaine", "Majoration de 25 % de la 36e à la 43e heure, 50 % au-delà (sauf accord différent)", "Exonération d'impôt dans la limite d'un plafond annuel et réduction de cotisations salariales", "Contingent annuel à respecter"], piege: "La majoration se calcule sur le taux horaire de base, primes liées au travail comprises." },
+{ e: "E6", c: "p4", q: "Que se passe-t-il en paie lors d'un arrêt maladie ?", pts: ["Retenue pour absence sur le brut", "Indemnités journalières versées par la Sécurité sociale après le délai de carence", "Maintien de salaire par l'employeur selon la loi ou la convention collective (subrogation possible)", "Signalement de l'arrêt en DSN"], piege: "Avec la subrogation, l'employeur perçoit les indemnités à la place du salarié : penser au compte de tiers correspondant." },
+
+/* ---------- E6 · P7 Système d'information (côté comptable) ---------- */
+{ e: "E6", c: "p7", q: "Montrez-nous comment le PGI enchaîne une vente, de la commande à l'écriture comptable.", pts: ["Saisie de la commande client dans le module commercial", "Bon de livraison puis facture générée à partir de la commande", "Écriture comptable créée automatiquement dans le journal des ventes", "Une seule base de données : pas de ressaisie, information à jour pour tous les services"], piege: "Le jury attend que tu saches citer les avantages ET les limites du PGI (coût, dépendance à l'éditeur, paramétrage)." },
+{ e: "E6", c: "p7", q: "Comment garantissez-vous la piste d'audit de vos écritures ?", pts: ["Chaque écriture renvoie à une pièce justificative numérotée", "Journal, date, numéro de pièce, libellé clair", "Validation des écritures : plus de modification possible, correction par contre-passation", "FEC à produire en cas de contrôle fiscal"], piege: "Une écriture validée ne se supprime pas : on l'annule par une écriture inverse." },
+
+/* ---------- E7 · P5 Contrôle de gestion ---------- */
+{ e: "E7", c: "p5", q: "Présentez-nous le calcul de coût que vous avez réalisé.", pts: ["Objectif du calcul : prix de vente, rentabilité d'un produit, choix d'une décision", "Charges directes affectées, charges indirectes réparties (centres d'analyse et unités d'œuvre)", "Étapes : coût d'achat, coût de production, coût de revient, résultat analytique", "Limites : choix des clés de répartition, charges fixes"], piege: "Être capable d'expliquer pourquoi tu as choisi cette unité d'œuvre." },
+{ e: "E7", c: "p5", q: "Qu'est-ce que le seuil de rentabilité et comment l'avez-vous calculé ?", pts: ["Chiffre d'affaires pour lequel le résultat est nul", "SR = charges fixes / taux de marge sur coût variable", "Point mort = SR / CA × 360 jours (ou 12 mois)", "Marge de sécurité = CA − SR ; indice de sécurité = marge de sécurité / CA"], piege: "Ne pas confondre taux de marge sur coût variable (MCV / CA) et taux de marque." },
+{ e: "E7", c: "p5", q: "Vous avez calculé des écarts : comment les interprétez-vous ?", pts: ["Écart global = coût réel − coût préétabli de la production réelle", "Décomposition : écart sur quantité (ou temps) et écart sur prix (ou taux)", "Positif = défavorable, négatif = favorable", "Recherche des causes et des responsables, puis actions correctives"], piege: "Un écart favorable sur prix peut cacher une matière de moins bonne qualité : à analyser avec l'écart sur quantité." },
+{ e: "E7", c: "p5", q: "Comment avez-vous construit votre budget de trésorerie ?", pts: ["Budget des encaissements (ventes TTC selon les délais clients)", "Budget des décaissements (achats TTC, salaires, charges, investissements, TVA à payer)", "Trésorerie de fin de mois = début + encaissements − décaissements", "Actions si trésorerie négative : découvert, escompte, négociation des délais, report d'investissement"], piege: "Pas d'amortissements ni de dépréciations dans un budget de trésorerie : ils ne font pas sortir d'argent." },
+{ e: "E7", c: "p5", q: "Quels indicateurs suivez-vous dans votre tableau de bord ?", pts: ["Indicateurs liés aux objectifs de la structure (CA, marge, taux d'occupation, délai de paiement…)", "Comparaison réel / objectif / année précédente", "Présentation visuelle : graphiques, alertes couleur", "Peu d'indicateurs, mis à jour régulièrement, compris par le décideur"], piege: "Relier chaque indicateur à une décision possible : un indicateur que personne n'utilise est inutile." },
+{ e: "E7", c: "p5", q: "Comment gérez-vous les stocks pour éviter les ruptures ?", pts: ["Stock de sécurité et stock d'alerte (sécurité + consommation pendant le délai de livraison)", "Quantité économique de commande (modèle de Wilson)", "Suivi des sorties et des inventaires", "Arbitrage entre coût de passation et coût de possession"], piege: "Savoir refaire le calcul du stock d'alerte à la main devant le jury." },
+
+/* ---------- E7 · P6 Analyse financière ---------- */
+{ e: "E7", c: "p6", q: "Présentez-nous les soldes intermédiaires de gestion de la structure.", pts: ["Marge commerciale, production de l'exercice, valeur ajoutée", "Excédent brut d'exploitation : performance de l'activité avant amortissements et financement", "Résultat d'exploitation, résultat courant, résultat de l'exercice", "Commentaire : évolution d'une année sur l'autre et comparaison au secteur"], piege: "L'EBE ne dépend ni des choix d'amortissement ni du financement : c'est pour cela qu'on le compare entre entreprises." },
+{ e: "E7", c: "p6", q: "Qu'est-ce que la capacité d'autofinancement et à quoi sert-elle ?", pts: ["Ressource interne dégagée par l'activité", "Calcul à partir de l'EBE (méthode soustractive) ou du résultat (méthode additive)", "Résultat + dotations − reprises − produits de cession + VNC des éléments cédés", "Sert à investir, rembourser les emprunts, verser des dividendes"], piege: "La CAF n'est pas de la trésorerie : les créances et les stocks peuvent l'absorber." },
+{ e: "E7", c: "p6", q: "Analysez l'équilibre financier à partir du bilan fonctionnel.", pts: ["Fonds de roulement net global = ressources stables − emplois stables", "Besoin en fonds de roulement (exploitation et hors exploitation)", "Trésorerie nette = FRNG − BFR", "Interprétation : le FRNG doit financer le BFR, sinon la structure dépend de ses concours bancaires"], piege: "Le bilan fonctionnel se construit avec les valeurs brutes, amortissements et dépréciations en ressources stables." },
+{ e: "E7", c: "p6", q: "Quels ratios avez-vous calculés et que disent-ils ?", pts: ["Ratios de rentabilité (économique, financière)", "Ratios de structure (autonomie financière, endettement, capacité de remboursement)", "Ratios de rotation (délais clients, fournisseurs, stocks)", "Toujours comparer : dans le temps et avec le secteur"], piege: "Un ratio seul ne veut rien dire : donne une évolution ou une norme de référence." },
+{ e: "E7", c: "p6", q: "Votre structure veut investir : comment évaluez-vous le projet ?", pts: ["Flux nets de trésorerie prévisionnels (CAF d'exploitation, variation du BFR, valeur résiduelle)", "Valeur actuelle nette au taux d'actualisation retenu", "Délai de récupération du capital investi", "Choix du financement : fonds propres, emprunt, crédit-bail"], piege: "Un projet rentable (VAN positive) peut rester impossible si le financement n'est pas trouvé." },
+{ e: "E7", c: "p6", q: "Comment comparez-vous un emprunt et un crédit-bail ?", pts: ["Coût total de chaque solution (intérêts, loyers, option d'achat)", "Effets fiscaux : intérêts et amortissements déductibles, ou loyers déductibles", "Effet sur la trésorerie et sur l'endettement au bilan", "Comparaison par actualisation des décaissements nets"], piege: "Avec le crédit-bail, l'entreprise n'est pas propriétaire : pas d'amortissement chez elle." },
+
+/* ---------- E7 · P7 Système d'information (côté gestion) ---------- */
+{ e: "E7", c: "p7", q: "Montrez-nous le tableur que vous avez construit : comment l'avez-vous fiabilisé ?", pts: ["Séparation des données, des calculs et des résultats", "Formules avec références absolues ou cellules nommées, pas de valeurs saisies dans les formules", "Contrôles : totaux croisés, mise en forme conditionnelle des anomalies", "Protection des cellules de calcul et validation des données saisies"], piege: "Le jury peut te demander de modifier une donnée en direct : ton tableau doit se recalculer sans erreur." },
+{ e: "E7", c: "p7", q: "Écrivez la requête qui donne le chiffre d'affaires par client.", pts: ["SELECT client.nom, SUM(facture.montantHT)", "FROM client INNER JOIN facture ON client.numClient = facture.numClient", "GROUP BY client.nom", "ORDER BY 2 DESC pour classer, HAVING pour filtrer sur le total"], piege: "WHERE filtre les lignes avant le regroupement, HAVING filtre les groupes après." },
+{ e: "E7", c: "p7", q: "Comment protégez-vous les données de gestion de votre structure ?", pts: ["Droits d'accès selon les fonctions, mots de passe robustes, double authentification", "Sauvegardes régulières, dont une copie hors ligne (règle 3-2-1)", "Mises à jour et antivirus", "RGPD : registre des traitements, durée de conservation, droits des personnes"], piege: "Citer un risque concret de ta structure (hameçonnage, rançongiciel) et la parade associée." },
+
+/* ---------- Questions transversales ---------- */
+{ e: "E6", c: "me", q: "Présentez-nous votre structure et votre rôle en quelques minutes.", pts: ["Activité, statut juridique, taille, organisation du service comptable", "Tes missions et les logiciels utilisés", "Le lien entre ces missions et les processus du BTS", "Une transition vers la situation que tu vas présenter"], piege: "Rester sous 3 minutes : le jury veut surtout t'entendre sur les situations." },
+{ e: "E6", c: "me", q: "Quelle difficulté avez-vous rencontrée et comment l'avez-vous résolue ?", pts: ["Situation concrète et datée", "Analyse de la cause", "Démarche suivie et ressources mobilisées (tuteur, documentation, logiciel)", "Ce que tu ferais différemment ou ce que tu as appris"], piege: "Une difficulté bien analysée vaut mieux qu'une situation où tout s'est bien passé." },
+{ e: "E7", c: "me", q: "Quelle décision la direction a-t-elle prise à partir de votre travail ?", pts: ["Rappel de la question posée par la direction", "Résultat de ton analyse, chiffré", "Ta préconisation, argumentée", "Décision prise et suites (ou raisons pour lesquelles elle n'a pas été suivie)"], piege: "Le contrôle de gestion sert à décider : montre le lien entre tes chiffres et une décision." },
+{ e: "E7", c: "me", q: "Si c'était à refaire, qu'amélioreriez-vous dans votre outil ?", pts: ["Une limite identifiée honnêtement (données, automatisation, présentation)", "Une amélioration précise et réaliste", "Le gain attendu (temps, fiabilité, lisibilité)", "Le lien avec les compétences du référentiel"], piege: "Le jury apprécie le recul critique : ne réponds jamais « rien »." }
+];
+const ORAL_TRAME = [
+  ["Contexte", "La structure, le service, qui demande quoi et pourquoi."],
+  ["Objectif", "La question à laquelle ton travail répond (une phrase)."],
+  ["Démarche", "Les étapes suivies, dans l'ordre, et les documents utilisés."],
+  ["Outils", "PGI, tableur, logiciel de paie, requêtes : ce que tu as fait dedans."],
+  ["Résultats", "Les chiffres obtenus et ce qu'ils montrent."],
+  ["Contrôles", "Comment tu as vérifié que c'était juste."],
+  ["Recul", "Les limites, une difficulté, ce que tu améliorerais."]
+];
+
 const QS = [], FS = [];
 (() => {
   const n = {};
@@ -2946,6 +3060,7 @@ function go(v, opts) {
   if (examTick && !(R && R.mode === "exam" && v === "run")) { clearInterval(examTick); examTick = null; }
   if (exTick && v !== "exrun") { clearInterval(exTick); exTick = null; }
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
+  if (v !== "oral") clearInterval(orTick);
   if (opts && opts.reset) { R = null; C = null; }
   closeSheet();
   if (tourI >= 0) { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); }
@@ -2995,7 +3110,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -3180,6 +3295,7 @@ function vRun() {
       <span class="verdict ${ok ? "ok" : "ko"}">${ok ? "Juste" : "À revoir"}</span>
       ${ok ? "" : `<p><b>Bonne réponse :</b> ${h(it.o[0])}</p>`}
       <p class="muted">${h(it.e)}</p>
+      <button class="rep-btn" data-act="report" data-t="q" data-id="${h(it.id)}" data-l="${h(String(it.q).slice(0, 140))}">Signaler une erreur</button>
     </div>` : "";
   const head = R.mode === "exam"
     ? `${R.ctrl ? `<span class="ep ctl-tag">Contrôle · ${h(CAT[chCat(R.ctrl)].code)}</span>` : ""}<span class="timer${R.end - Date.now() < 120000 ? " low" : ""}" id="timer">${timeLeft()}</span>`
@@ -3307,6 +3423,7 @@ function vErreurs() {
       ${e.w && e.w.t ? `<p class="y">Ta dernière erreur : ${h(e.w.t)}</p>` : ""}
       <p class="a">Bonne réponse : ${h(e.x.o[0])}</p>
       ${e.x.e ? `<p class="e">${h(e.x.e)}</p>` : ""}
+      <button class="rep-btn" data-act="report" data-t="q" data-id="${h(e.x.id)}" data-l="${h(String(e.x.q).slice(0, 140))}">Signaler une erreur</button>
     </div>`).join("")}</div>${list.length > shown.length ? `<p class="muted small">Et ${list.length - shown.length} autres : filtre par matière pour les voir.</p>` : ""}` : `<div class="empty">${EF.st === "todo" ? "Tout est corrigé dans cette sélection. Choisis « Toutes » pour relire tes anciennes erreurs." : "Rien dans cette sélection."}</div>`}
   </section>`;
 }
@@ -3329,6 +3446,34 @@ function weakSheet(k) {
   el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
   document.body.appendChild(el);
   const f = el.querySelector(".wk-opt"); if (f) f.focus();
+}
+const REP_KIND = { q: "Question de quiz", c: "Flashcard", l: "Leçon", f: "Fiche", o: "Question d'oral" };
+const REP_CHOICES = { q: ["La bonne réponse est fausse", "Plusieurs réponses sont justes", "L'explication est fausse ou pas claire", "Faute de frappe ou de français", "Autre"],
+  c: ["Le verso est faux", "Ce n'est pas clair", "Faute de frappe ou de français", "Autre"], l: ["Une information est fausse", "Ce n'est pas clair", "Information plus à jour", "Faute de frappe ou de français", "Autre"],
+  f: ["Une information est fausse", "Ce n'est pas clair", "Information plus à jour", "Faute de frappe ou de français", "Autre"], o: ["Un élément attendu est faux", "Il manque un élément important", "Autre"] };
+function reportSheet(t, id, label) {
+  closeSheet();
+  const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  el.innerHTML = `<form class="wk-box rep-box" role="dialog" aria-modal="true" aria-labelledby="repT">
+    <button type="button" class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
+    <span class="eyebrow">${h(REP_KIND[t] || "Contenu")}</span><h2 id="repT">Signaler une erreur</h2>
+    <p class="muted rep-l">« ${h(label)} »</p>
+    <fieldset class="rep-ch"><legend class="sr-only">Type de problème</legend>${(REP_CHOICES[t] || REP_CHOICES.q).map((c, i) => `<label><input type="radio" name="rc" value="${h(c)}"${i === 0 ? " checked" : ""}><span>${h(c)}</span></label>`).join("")}</fieldset>
+    <label class="rep-c"><span>Précise si tu peux (facultatif)</span><textarea name="cm" rows="3" maxlength="600" placeholder="Ex. : la TVA sur les services est exigible à l'encaissement, pas à la livraison."></textarea></label>
+    <div class="row"><button type="button" class="btn" data-act="wkClose">Annuler</button><button type="submit" class="btn primary">Envoyer</button></div>
+  </form>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  el.querySelector("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target, r = { t, id: String(id), l: String(label).slice(0, 200), ch: f.rc.value, cm: f.cm.value.trim().slice(0, 600), d: Date.now(), v: view };
+    const b = f.querySelector('[type="submit"]'); b.disabled = true;
+    let sent = false;
+    if (typeof window.GL_REPORT === "function") { try { await window.GL_REPORT(r); sent = true; } catch (x) {} }
+    if (!sent) { S.rp = S.rp || []; S.rp.unshift(r); if (S.rp.length > 100) S.rp.pop(); touch(); }
+    closeSheet(); toast(sent ? "Merci ! Ton signalement est envoyé." : "Signalement noté dans ton profil.");
+  });
+  document.body.appendChild(el);
+  const f = el.querySelector("input"); if (f) f.focus();
 }
 function closeSheet() { const x = document.getElementById("wkSheet"); if (x) x.remove(); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
@@ -3442,6 +3587,9 @@ function vProfil() {
       </div>
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
     </section>
+    ${(S.rp || []).length ? `<section class="stack"><div class="sec-head"><h2>Mes signalements</h2><p>${S.rp.length} erreur${S.rp.length > 1 ? "s" : ""} signalée${S.rp.length > 1 ? "s" : ""}, gardée${S.rp.length > 1 ? "s" : ""} ici. Copie-les et envoie-les pour qu'elles soient corrigées.</p></div>
+      <div class="rep-list">${S.rp.slice(0, 20).map(r => `<div class="rep-it"><small>${h(REP_KIND[r.t] || r.t)} · ${new Date(r.d).toLocaleDateString("fr-FR")}</small><b>${h(r.ch)}</b><span>« ${h(r.l)} »</span>${r.cm ? `<em>${h(r.cm)}</em>` : ""}</div>`).join("")}</div>
+      <div class="row"><button class="btn" data-act="repCopy">Copier mes signalements</button><button class="btn" data-act="repClear">Vider la liste</button></div></section>` : ""}
     <section class="stack"><h2>Sauvegarde de ma progression</h2>
       <div class="pf-set">
         <div class="pf-row"><div><b>Exporter</b><span>Un fichier avec toute ta progression (réponses, cartes, leçons, XP, réglages). Garde-le en lieu sûr.</span></div><div class="row"><button class="btn small" data-act="bkExport">${ICON.archive}Télécharger</button><button class="btn small" data-act="bkCopy">Copier</button></div></div>
@@ -3515,6 +3663,7 @@ function vCard() {
     </div>
     <div class="after-flip">
       ${it.m ? `<details class="more-box"><summary>Pour aller plus loin</summary><p>${h(it.m)}</p></details>` : ""}
+      <button class="rep-btn" data-act="report" data-t="c" data-id="${h(it.id)}" data-l="${h(String(it.f).slice(0, 140))}">Signaler une erreur</button>
       <p class="swipe-hint">Glisse la carte : à droite, je savais · à gauche, à revoir · vers le haut, difficile</p>
       <div class="card-actions"><button class="btn again" data-act="again">À revoir</button><button class="btn hard" data-act="hard">Difficile</button><button class="btn know" data-act="knew">Je savais</button></div>
     </div>
@@ -3818,6 +3967,7 @@ function vLesson() {
       <h1>${inl(lb.t)}</h1>
       <div class="md">${mdBlocks(s.lines, "l-" + cid + "-" + k)}</div>
       <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row"><button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button></div></div>
+      <p class="rep-row"><button class="rep-btn" data-act="report" data-t="l" data-id="${h(cid + ":" + k)}" data-l="${h(String(lb.t).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="lessonPrev">Leçon précédente</button>` : `<button class="btn" data-act="mat" data-cat="${cat}" data-seg="lecons">Retour à la matière</button>`}${nextBtn}</footer>
     </article>
   </div>`;
@@ -3919,6 +4069,7 @@ function vFiche() {
         ${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes de la fiche (${nf})</button>` : ""}
         ${cases.map(k => `<button class="btn" data-act="gcase" data-id="${k.id}">Exercice guidé : ${h(k.title)}</button>`).join("")}
       </div></div>` : ""}
+      <p class="rep-row"><button class="rep-btn" data-act="report" data-t="f" data-id="${h(c.id)}" data-l="${h(String(c.title).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="fiche" data-fprev data-id="${pv.id}">Fiche précédente</button>` : `<button class="btn" data-act="mat" data-cat="${c.cat}" data-seg="fiche">Retour à la matière</button>`}
         ${nx ? `<button class="next-card" data-act="fiche" data-fnext data-id="${nx.id}"><span>Fiche suivante</span><b>${h(nx.title)}</b></button>` : `<button class="next-card" data-act="quickQuiz" data-cat="${c.cat}"><span>Dernière fiche de la matière</span><b>Faire un quiz de 10 questions</b></button>`}</footer>
     </article>
@@ -4150,6 +4301,12 @@ function bindFusion() {
   document.querySelectorAll("textarea[data-gstep]").forEach(t => t.addEventListener("input", () => { const st = caseState(GC.id); st.notes[t.dataset.gstep] = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(touch, 900); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
+  document.querySelectorAll("[data-sit], [data-sitf]").forEach(inp => inp.addEventListener(inp.tagName === "SELECT" ? "change" : "input", () => {
+    const x = S.sit && S.sit[OSIT]; if (!x) return; x.f = x.f || {};
+    if (inp.dataset.sit) x[inp.dataset.sit] = inp.value; else x.f[inp.dataset.sitf] = inp.value;
+    clearTimeout(bindView.st); bindView.st = setTimeout(touch, 800);
+  }));
+  document.querySelectorAll("[data-orck]").forEach(cb => cb.addEventListener("change", () => { if (OR) OR.list[OR.i].ck[cb.dataset.orck] = cb.checked; }));
   const bf = document.getElementById("bkFile");
   if (bf) bf.addEventListener("change", () => { const f = bf.files && bf.files[0]; if (!f) return;
     if (f.size > 20e6) { BK = { pending: null, when: "", err: "Fichier trop gros pour être une sauvegarde du Grand Livre." }; render(); return; }
@@ -4839,8 +4996,92 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`]];
+  const T = [["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
+}
+/* ---------- Simulateur d'oral ---------- */
+let OR = null, OF = { e: "E6", n: 5, t: 120 }, orTick = null;
+function oralHome() {
+  const hist = (S.or || []).slice(-5).reverse(), sits = S.sit || [];
+  const nE = e => ORAL.filter(x => x.e === e).length;
+  return `<section class="stack">
+    <div class="sec-head"><h2>Simulateur d'oral</h2><p>Le jury te pose des questions sur tes situations professionnelles. Réponds à voix haute avant le chrono, puis vérifie les éléments attendus.</p></div>
+    <div class="or-set">
+      <div><div class="label">Épreuve</div><div class="pf-seg" role="group">${[["E6", `E6 · comptabilité, fiscal, social (${nE("E6")})`], ["E7", `E7 · gestion et finance (${nE("E7")})`], ["mix", "Les deux"]].map(([v, l]) => `<button type="button" data-act="orF" data-k="e" data-v="${v}" aria-pressed="${OF.e === v}">${l}</button>`).join("")}</div></div>
+      <div><div class="label">Questions</div><div class="pf-seg" role="group">${[3, 5, 8].map(v => `<button type="button" data-act="orF" data-k="n" data-v="${v}" aria-pressed="${OF.n === v}">${v}</button>`).join("")}</div></div>
+      <div><div class="label">Temps par réponse</div><div class="pf-seg" role="group">${[[90, "1 min 30"], [120, "2 min"], [180, "3 min"]].map(([v, l]) => `<button type="button" data-act="orF" data-k="t" data-v="${v}" aria-pressed="${OF.t === v}">${l}</button>`).join("")}</div></div>
+      <button class="btn primary" data-act="orStart">${ICON.talk}Lancer l'oral blanc</button>
+    </div>
+    ${hist.length ? `<div class="or-hist"><b>Tes derniers oraux</b>${hist.map(o => `<span class="pill ${o.pc >= 60 ? "ok" : "ko"}">${h(o.e === "mix" ? "E6 + E7" : o.e)} · ${o.pc} % · ${new Date(o.d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>`).join("")}</div>` : ""}
+  </section>
+  <section class="stack">
+    <div class="sec-head"><h2>Préparer mes situations</h2><p>Le jury part de tes situations du passeport professionnel. Rédige chacune avec cette trame en 7 points : tu sauras la présenter en 5 minutes.</p></div>
+    <div class="sit-list">${sits.map((x, i) => `<button class="sit-card" data-act="sitOpen" data-i="${i}"><span class="mini">${h(x.p || "")}</span><b>${h(x.t || "Situation sans titre")}</b><span class="muted">${ORAL_TRAME.filter(([k]) => (x.f || {})[k]).length} sur ${ORAL_TRAME.length} rubriques remplies</span></button>`).join("")}
+      <button class="sit-card add" data-act="sitNew">+ Nouvelle situation</button></div>
+    ${OSIT != null && sits[OSIT] ? sitForm(sits[OSIT], OSIT) : ""}
+  </section>`;
+}
+let OSIT = null;
+function sitForm(x, i) {
+  x.f = x.f || {};
+  return `<div class="sit-form" id="sitForm">
+    <div class="sit-row"><label>Titre<input class="pf-in" data-sit="t" value="${h(x.t || "")}" placeholder="Ex. : rapprochement bancaire de mars"></label>
+    <label>Processus<select class="pf-in" data-sit="p">${["", "P1", "P2", "P3", "P4", "P5", "P6", "P7"].map(p => `<option${x.p === p ? " selected" : ""}>${p}</option>`).join("")}</select></label></div>
+    ${ORAL_TRAME.map(([k, hint]) => `<label class="sit-f"><b>${h(k)}</b><span class="muted">${h(hint)}</span><textarea class="ex-text" rows="2" data-sitf="${h(k)}">${h(x.f[k] || "")}</textarea></label>`).join("")}
+    <div class="row"><button class="btn" data-act="sitClose">Fermer</button><button class="btn" data-act="sitDel" data-i="${i}">Supprimer</button><button class="btn primary" data-act="sitTrain" data-i="${i}">S'entraîner sur cette situation</button></div>
+    <p class="muted small">Enregistré automatiquement.</p>
+  </div>`;
+}
+function oralStart(only) {
+  const pool = only ? ORAL.filter(x => x.c === only || x.c === "me") : ORAL.filter(x => OF.e === "mix" || x.e === OF.e);
+  const gen = shuffle(pool.filter(x => x.c === "me")).slice(0, 1), rest = shuffle(pool.filter(x => x.c !== "me"));
+  const list = gen.concat(rest).slice(0, OF.n).map(q => ({ q, ck: {}, done: false }));
+  OR = { list, i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: only ? "sit" : OF.e };
+  go("oral");
+}
+function oralTimer() {
+  clearInterval(orTick);
+  orTick = setInterval(() => {
+    if (view !== "oral" || !OR) { clearInterval(orTick); return; }
+    const el = document.getElementById("orTime"), cur = OR.list[OR.i]; if (!el || cur.done) return;
+    const left = Math.max(0, Math.round((OR.end - Date.now()) / 1000));
+    el.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+    el.parentNode.classList.toggle("low", left <= 20);
+    const bar = document.getElementById("orBar"); if (bar) bar.style.width = (100 - left / OR.t * 100) + "%";
+    if (!left) { cur.done = true; buzz([40, 60, 40]); render(); }
+  }, 250);
+}
+function vOral() {
+  if (!OR) return vExHome();
+  if (OR.i >= OR.list.length) return oralEnd();
+  const cur = OR.list[OR.i], q = cur.q, c = CAT[q.c] || CAT.me;
+  setTimeout(oralTimer, 0);
+  const left = Math.max(0, Math.round((OR.end - Date.now()) / 1000));
+  return `<section class="runner or-run" style="${hueStyle(q.c)}">
+    <div class="runner-top"><span class="progress-text"><button class="quit" data-act="orQuit" aria-label="Quitter l'oral">✕</button>Question ${OR.i + 1} / ${OR.list.length}</span><span class="ep">${h(q.e)} · ${h(c.code)} ${h(c.name)}</span></div>
+    <div class="qcard">
+      <span class="eyebrow">Le jury te demande :</span>
+      <p class="qtext or-q">« ${h(q.q)} »</p>
+      ${cur.done ? `<div class="or-ck"><b>Coche ce que tu as dit :</b>${q.pts.map((p, j) => `<label><input type="checkbox" data-orck="${j}" ${cur.ck[j] ? "checked" : ""}><span>${h(p)}</span></label>`).join("")}</div>
+        <p class="or-piege"><b>Ce que le jury guette :</b> ${h(q.piege)}</p>
+        ${'<button class="rep-btn" data-act="report" data-t="o" data-id="' + h(q.e + "-" + q.c + "-" + ORAL.indexOf(q)) + '" data-l="' + h(q.q.slice(0, 140)) + '">Signaler une erreur</button>'}`
+      : `<div class="or-clock"><span class="or-time" id="orTime">${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</span><span class="muted">Réponds à voix haute, comme devant le jury. Fais des phrases complètes et donne un exemple de ta structure.</span><div class="bar"><i id="orBar" style="width:${100 - left / OR.t * 100}%"></i></div></div>`}
+    </div>
+    <div class="row">${cur.done ? `<button class="btn primary" data-act="orNext">${OR.i === OR.list.length - 1 ? "Voir le bilan" : "Question suivante"}</button>` : `<button class="btn primary" data-act="orDone">J'ai fini de répondre</button>`}</div>
+  </section>`;
+}
+function oralEnd() {
+  clearInterval(orTick);
+  const sc = OR.list.map(x => Object.values(x.ck).filter(Boolean).length / x.q.pts.length), pc = Math.round(sc.reduce((a, b) => a + b, 0) / sc.length * 100);
+  if (!OR.saved) { OR.saved = 1; S.or = S.or || []; S.or.push({ d: Date.now(), e: OR.e, pc }); if (S.or.length > 30) S.or.shift();
+    S.xp += Math.round(OR.list.length * 4 * pc / 100); const dl = dayLog(); dl.e++; dl.x = (dl.x || 0) + 1; bumpStreak(); touch(); }
+  const weak = OR.list.filter((x, i) => sc[i] < .5);
+  return `<section class="runner">
+    <div><span class="eyebrow">Oral blanc terminé</span><h1>${pc} % des éléments attendus</h1></div>
+    <p class="muted">${pc >= 75 ? "Très solide : le jury aurait eu ses réponses. Entraîne-toi maintenant à être plus concis." : pc >= 50 ? "Correct, mais il manque des éléments clés : reprends les questions ci-dessous." : "Les bases manquent encore : relis les fiches des processus concernés avant le prochain oral."}</p>
+    <div class="or-sum">${OR.list.map((x, i) => `<div class="or-it${sc[i] < .5 ? " ko" : ""}"><span class="mini">${h(x.q.e)} · ${h((CAT[x.q.c] || CAT.me).code)}</span><b>${h(x.q.q)}</b><span>${Math.round(sc[i] * 100)} % · ${Object.values(x.ck).filter(Boolean).length} sur ${x.q.pts.length}</span>${sc[i] < 1 ? `<ul>${x.q.pts.filter((_, j) => !x.ck[j]).map(p => `<li>${h(p)}</li>`).join("")}</ul>` : ""}</div>`).join("")}</div>
+    <div class="row"><button class="btn primary" data-act="orAgain">Nouvel oral blanc</button>${weak.length ? `<button class="btn" data-act="orRedo">Refaire les ${weak.length} question${weak.length > 1 ? "s" : ""} ratée${weak.length > 1 ? "s" : ""}</button>` : ""}<button class="btn" data-act="orBack">Retour</button></div>
+  </section>`;
 }
 function vExHome() {
   const n = todayCount(), eps = ["E5", "E4", "E3", "E1"];
@@ -4888,6 +5129,7 @@ function vExHome() {
       <div class="sec-head"><h2>Exercices guidés</h2><p>${GCASES.length} exercices type examen, découpés en étapes avec un corrigé pour chacune.</p></div>
       ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
     </section>` : ""}
+    ${EXT === "oraux" ? oralHome() : ""}
     ${EXT === "redac" ? `<section class="stack">
       <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
       <div class="ex-grid">${REDAC.map(redCard).join("")}</div>
@@ -5954,6 +6196,22 @@ document.addEventListener("click", e => {
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
     case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
+    case "orF": { const k = b.dataset.k; OF[k] = k === "e" ? b.dataset.v : +b.dataset.v; render(); break; }
+    case "orStart": oralStart(); break;
+    case "orDone": { const cur = OR.list[OR.i]; cur.done = true; render(); break; }
+    case "orNext": { OR.i++; OR.end = Date.now() + OR.t * 1000; render(); window.scrollTo({ top: 0 }); break; }
+    case "orQuit": clearInterval(orTick); OR = null; setExTab("oraux"); go("ex"); break;
+    case "orAgain": OR = null; oralStart(); break;
+    case "orRedo": { const sc = OR.list.map(x => Object.values(x.ck).filter(Boolean).length / x.q.pts.length); const l = OR.list.filter((x, i) => sc[i] < .5).map(x => ({ q: x.q, ck: {}, done: false })); OR = { list: l, i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: OR.e }; go("oral"); break; }
+    case "orBack": OR = null; setExTab("oraux"); go("ex"); break;
+    case "sitNew": { S.sit = S.sit || []; S.sit.push({ t: "", p: "", f: {} }); OSIT = S.sit.length - 1; touch(); render(); setTimeout(() => { const f = document.getElementById("sitForm"); if (f) f.scrollIntoView({ block: "start" }); }, 30); break; }
+    case "sitOpen": OSIT = +b.dataset.i; render(); setTimeout(() => { const f = document.getElementById("sitForm"); if (f) f.scrollIntoView({ block: "start" }); }, 30); break;
+    case "sitClose": OSIT = null; render(); break;
+    case "sitDel": { S.sit.splice(+b.dataset.i, 1); OSIT = null; touch(); render(); break; }
+    case "sitTrain": { const x = S.sit[+b.dataset.i], p = (x.p || "").toLowerCase(); if (!p) { toast("Choisis d'abord le processus de la situation"); break; } OF.n = Math.max(OF.n, 3); oralStart(p); break; }
+    case "report": reportSheet(b.dataset.t, b.dataset.id, b.dataset.l || ""); break;
+    case "repCopy": { const t = (S.rp || []).map(r => `- ${REP_KIND[r.t] || r.t} ${r.id} : ${r.ch}${r.cm ? " — " + r.cm : ""}\n  « ${r.l} »`).join("\n"); (navigator.clipboard ? navigator.clipboard.writeText("Mes signalements Grand Livre :\n" + t) : Promise.reject()).then(() => toast("Signalements copiés")).catch(() => toast("Copie impossible")); break; }
+    case "repClear": S.rp = []; touch(); render(); break;
     case "bkExport": { (async () => { let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) {}
       if (dl) { try { await dl.save({ filename: "grand-livre-progression-" + new Date().toISOString().slice(0, 10) + ".json", data: bkData() }); toast("Sauvegarde téléchargée"); } catch (e) { if (e && e.code !== "declined") toast("Téléchargement impossible ici : utilise « Copier »."); } return; }
       try { const blob = new Blob([bkData()], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "grand-livre-progression-" + new Date().toISOString().slice(0, 10) + ".json"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast("Sauvegarde téléchargée"); } catch (e) { toast("Téléchargement impossible ici : utilise « Copier »."); } })(); break; }

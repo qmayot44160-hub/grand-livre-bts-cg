@@ -86,6 +86,9 @@
   }
   window.claude = { use: async function (n) { if (GUEST) return null; return n === "db" ? db : n === "user" ? user : n === "sample" ? sample : null; } };
 
+  /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
+  if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
+
   /* Rappels quotidiens (notifications) */
   function b64(u) { var p = "=".repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
   var PUSH = {

@@ -175,6 +175,17 @@ app.post("/api/account/delete", auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* ---------- Signalements d'erreurs dans le contenu ---------- */
+app.post("/api/report", auth, async (req, res, next) => {
+  try {
+    if (limited("rp:" + req.user.id, 40, 24 * 3600e3)) return res.status(429).json({ error: "Tu as déjà envoyé beaucoup de signalements aujourd'hui. Merci !" });
+    const b = req.body || {}, cut = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
+    if (!/^[qclfo]$/.test(String(b.t))) return res.status(400).json({ error: "Signalement invalide." });
+    await store.addReport({ user_name: req.user.name, kind: b.t, item: cut(b.id, 80), label: cut(b.l, 200), choice: cut(b.ch, 80), comment: cut(b.cm, 600) });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 /* ---------- Remontée des erreurs de l'appli (sans donnée personnelle) ---------- */
 const ERRS = [];
 app.post("/api/err", express.json({ limit: "8kb" }), (req, res) => {
@@ -314,6 +325,14 @@ app.post("/api/admin/errors", (req, res) => {
   if (limited("ad:" + req.ip, 20, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
   if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
   res.json({ errors: ERRS });
+});
+app.post("/api/admin/reports", async (req, res, next) => {
+  try {
+    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    if (req.body.id != null) await store.doneReport(req.body.id, req.body.done);
+    res.json({ reports: await store.listReports() });
+  } catch (e) { next(e); }
 });
 app.post("/api/admin/reset", async (req, res, next) => {
   try {

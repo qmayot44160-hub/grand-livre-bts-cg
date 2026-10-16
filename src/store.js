@@ -21,11 +21,16 @@ function makePg(url) {
       await q(`CREATE TABLE IF NOT EXISTS ai_usage (
         user_id TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (user_id, day))`);
+      await q(`CREATE TABLE IF NOT EXISTS reports (
+        id BIGSERIAL PRIMARY KEY, user_name TEXT, kind TEXT, item TEXT, label TEXT, choice TEXT, comment TEXT, created BIGINT NOT NULL, done BOOLEAN NOT NULL DEFAULT FALSE)`);
       await q(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)`);
       await q(`CREATE TABLE IF NOT EXISTS push_subs (
         endpoint TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         sub JSONB NOT NULL, hour INTEGER NOT NULL DEFAULT 18, last_day TEXT, created BIGINT NOT NULL)`);
     },
+    async addReport(r) { await q("INSERT INTO reports(user_name,kind,item,label,choice,comment,created) VALUES($1,$2,$3,$4,$5,$6,$7)", [r.user_name, r.kind, r.item, r.label, r.choice, r.comment, Date.now()]); },
+    async listReports() { const r = await q("SELECT * FROM reports ORDER BY done ASC, created DESC LIMIT 300"); return r.rows; },
+    async doneReport(id, done) { await q("UPDATE reports SET done=$2 WHERE id=$1", [id, !!done]); },
     async getSetting(k) { const r = await q("SELECT v FROM settings WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
     async setSetting(k, v) { await q("INSERT INTO settings(k,v) VALUES($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, v]); },
     async deleteUser(id) { await q("DELETE FROM ai_usage WHERE user_id=$1", [id]); await q("DELETE FROM push_subs WHERE user_id=$1", [id]); await q("DELETE FROM progress WHERE user_id=$1", [id]); await q("DELETE FROM users WHERE id=$1", [id]); },
@@ -57,11 +62,14 @@ function makePg(url) {
 
 function makeFile(dir) {
   const file = path.join(dir, "db.json");
-  let d = { users: {}, progress: {}, ai: {}, settings: {}, subs: {} };
+  let d = { users: {}, progress: {}, ai: {}, settings: {}, subs: {}, reports: [] };
   const save = () => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file + ".tmp", JSON.stringify(d)); fs.renameSync(file + ".tmp", file); };
   return {
     kind: "fichier " + file,
-    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; },
+    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; d.reports = d.reports || []; },
+    async addReport(r) { d.reports.unshift(Object.assign({ id: Date.now() + Math.random(), created: Date.now(), done: false }, r)); d.reports = d.reports.slice(0, 1000); save(); },
+    async listReports() { return d.reports.slice().sort((a, b) => a.done - b.done || b.created - a.created).slice(0, 300); },
+    async doneReport(id, done) { const x = d.reports.find(r => String(r.id) === String(id)); if (x) { x.done = !!done; save(); } },
     async getSetting(k) { return d.settings[k] == null ? null : d.settings[k]; },
     async setSetting(k, v) { d.settings[k] = v; save(); },
     async deleteUser(id) { delete d.users[id]; delete d.progress[id]; Object.keys(d.ai).forEach(k => { if (k.startsWith(id + "|")) delete d.ai[k]; }); Object.keys(d.subs).forEach(k => { if (d.subs[k].user_id === id) delete d.subs[k]; }); save(); },

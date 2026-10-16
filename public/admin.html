@@ -11,7 +11,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:24px 16px}
-main{max-width:640px;margin:0 auto;display:grid;gap:18px}
+main{max-width:900px;margin:0 auto;display:grid;gap:18px}
 h1{margin:0;font-size:1.5rem}
 .card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:18px;display:grid;gap:12px}
 label{display:grid;gap:5px;font-weight:600;font-size:.92rem}
@@ -31,6 +31,12 @@ th{color:var(--muted);font-weight:600}
     <label for="key">Clé d'administration (variable ADMIN_KEY sur Railway)<input id="key" type="password" autocomplete="off"></label>
     <button id="list" type="button">Voir les élèves inscrits</button>
     <div class="tbl" id="users"></div>
+  </div>
+  <div class="card">
+    <strong>Erreurs signalées par les élèves</strong>
+    <p class="msg" style="margin:0;color:var(--muted)">Questions, cartes, fiches ou leçons que les élèves pensent fausses. Transmets-les à Claude pour correction, puis coche « Traité ».</p>
+    <button id="reps" type="button">Voir les signalements</button>
+    <div class="tbl" id="repList"></div>
   </div>
   <div class="card">
     <strong>Bugs remontés par l'appli</strong>
@@ -66,6 +72,24 @@ $("list").onclick = async function () {
     if (!j.users.length) $("users").textContent = "Aucun élève inscrit pour l'instant.";
   } catch (e) { $("users").textContent = e.message; }
 };
+var KIND = { q: "Quiz", c: "Carte", l: "Leçon", f: "Fiche", o: "Oral" };
+async function showReps(body) {
+  try {
+    var j = await call("/api/admin/reports", body || {});
+    if (!j.reports.length) { $("repList").textContent = "Aucun signalement pour l'instant."; return; }
+    var tb = document.createElement("table");
+    tb.innerHTML = "<thead><tr><th>Date</th><th>Type</th><th>Contenu</th><th>Problème</th><th>Élève</th><th></th></tr></thead>";
+    var tbody = document.createElement("tbody");
+    j.reports.forEach(function (r) {
+      var tr = document.createElement("tr"); if (r.done) tr.style.opacity = ".5";
+      [new Date(Number(r.created)).toLocaleDateString("fr-FR"), (KIND[r.kind] || r.kind) + " " + r.item, r.label, r.choice + (r.comment ? "\n" + r.comment : ""), r.user_name].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; td.style.whiteSpace = "pre-wrap"; tr.appendChild(td); });
+      var td = document.createElement("td"), b = document.createElement("button"); b.type = "button"; b.textContent = r.done ? "Rouvrir" : "Traité"; b.style.padding = "6px 10px";
+      b.onclick = function () { showReps({ id: r.id, done: !r.done }); }; td.appendChild(b); tr.appendChild(td); tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody); $("repList").replaceChildren(tb);
+  } catch (e) { $("repList").textContent = e.message; }
+}
+$("reps").onclick = function () { showReps(); };
 $("errs").onclick = async function () {
   try {
     var j = await call("/api/admin/errors");
