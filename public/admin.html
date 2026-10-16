@@ -22,6 +22,11 @@ button{font:600 .95rem system-ui;border:0;border-radius:9px;padding:10px 14px;ba
 table{border-collapse:collapse;width:100%;font-size:.9rem}
 td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule)}
 th{color:var(--muted);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{border:1px solid var(--rule);border-radius:11px;padding:10px 12px}.kpi b{display:block;font-size:1.5rem;line-height:1.2}.kpi span{color:var(--muted);font-size:.85rem}
+.bars{display:flex;align-items:flex-end;gap:3px;height:80px;border-bottom:1px solid var(--rule)}.bars i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.meter{height:8px;border-radius:5px;background:var(--rule);overflow:hidden;min-width:80px}.meter i{display:block;height:100%;background:var(--accent)}
+h3{margin:6px 0 0;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
@@ -31,6 +36,12 @@ th{color:var(--muted);font-weight:600}
     <label for="key">Clé d'administration (variable ADMIN_KEY sur Railway)<input id="key" type="password" autocomplete="off"></label>
     <button id="list" type="button">Voir les élèves inscrits</button>
     <div class="tbl" id="users"></div>
+  </div>
+  <div class="card">
+    <strong>Statistiques de la classe</strong>
+    <p class="msg" style="margin:0;color:var(--muted)">Activité et réussite de tous les inscrits, sans détail nominatif des réponses.</p>
+    <button id="stats" type="button">Voir les statistiques</button>
+    <div id="statBox"></div>
   </div>
   <div class="card">
     <strong>Erreurs signalées par les élèves</strong>
@@ -43,6 +54,12 @@ th{color:var(--muted);font-weight:600}
     <p class="msg" style="margin:0;color:var(--muted)">Rapports anonymes envoyés quand l'appli plante chez un élève (effacés au redémarrage du serveur).</p>
     <button id="errs" type="button">Voir les bugs</button>
     <div class="tbl" id="errList"></div>
+  </div>
+  <div class="card">
+    <strong>Sauvegardes de la base</strong>
+    <p class="msg" style="margin:0;color:var(--muted)">Une copie complète (comptes et progressions) est faite chaque jour et les 7 dernières sont gardées. Télécharge-en une de temps en temps pour l'avoir aussi chez toi.</p>
+    <div class="row"><button id="bks" type="button">Voir les sauvegardes</button><button id="bkNow" type="button">Faire une sauvegarde maintenant</button><button id="bkDl" type="button">Télécharger l'état actuel</button></div>
+    <div class="tbl" id="bkList"></div>
   </div>
   <div class="card">
     <strong>Réinitialiser le mot de passe d'un élève</strong>
@@ -101,6 +118,52 @@ $("errs").onclick = async function () {
     tb.appendChild(body); $("errList").replaceChildren(tb);
   } catch (e) { $("errList").textContent = e.message; }
 };
+function cell(tr, v) { var td = document.createElement("td"); if (v instanceof Node) td.appendChild(v); else td.textContent = v; tr.appendChild(td); return td; }
+function table(head, rows) {
+  var tb = document.createElement("table"), th = document.createElement("thead"), hr = document.createElement("tr");
+  head.forEach(function (h) { var x = document.createElement("th"); x.textContent = h; hr.appendChild(x); }); th.appendChild(hr); tb.appendChild(th);
+  var body = document.createElement("tbody"); rows.forEach(function (r) { var tr = document.createElement("tr"); r.forEach(function (v) { cell(tr, v); }); body.appendChild(tr); }); tb.appendChild(body);
+  var w = document.createElement("div"); w.className = "tbl"; w.appendChild(tb); return w;
+}
+function meter(p) { var m = document.createElement("div"); m.className = "meter"; m.title = p + " %"; var i = document.createElement("i"); i.style.width = p + "%"; m.appendChild(i); return m; }
+function h3(t) { var h = document.createElement("h3"); h.textContent = t; return h; }
+$("stats").onclick = async function () {
+  var box = $("statBox");
+  try {
+    var j = await call("/api/admin/stats"), out = [];
+    var k = document.createElement("div"); k.className = "kpis";
+    [[j.eleves, "élèves inscrits"], [j.actifs.jour, "actifs aujourd'hui"], [j.actifs.semaine, "actifs sur 7 jours"], [j.actifs.mois, "actifs sur 30 jours"], [j.classement, "dans le classement"], [j.signalements, "signalements à traiter"]].forEach(function (x) {
+      var d = document.createElement("div"); d.className = "kpi"; var b = document.createElement("b"); b.textContent = x[0]; var s = document.createElement("span"); s.textContent = x[1]; d.append(b, s); k.appendChild(d);
+    });
+    out.push(k, h3("Élèves actifs par jour (4 dernières semaines)"));
+    var bars = document.createElement("div"); bars.className = "bars"; var mx = Math.max.apply(null, j.jours.map(function (x) { return x.n; }).concat(1));
+    j.jours.forEach(function (x) { var i = document.createElement("i"); i.style.height = (x.n / mx * 100) + "%"; i.title = new Date(x.dn * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) + " : " + x.n + " élève" + (x.n > 1 ? "s" : ""); bars.appendChild(i); });
+    out.push(bars, h3("Par matière (réponses aux quiz)"));
+    out.push(table(["Matière", "Élèves", "Réponses", "Réussite"], j.matieres.map(function (m) { var w = document.createElement("div"); w.style.cssText = "display:flex;gap:8px;align-items:center"; w.append(meter(m.reussite), document.createTextNode(m.reussite + " %")); return [m.c.toUpperCase(), m.eleves, m.reponses, w]; })));
+    out.push(h3("Questions les plus ratées"));
+    if (!j.ratees.length) { var p = document.createElement("p"); p.className = "msg"; p.textContent = "Pas encore assez de réponses."; out.push(p); }
+    else out.push(table(["Question", "Chapitre", "Élèves qui l'ont ratée", "Réussite"], j.ratees.map(function (r) { return [(r.q || r.id) + " (" + r.c + ")", r.ch || "—", r.eleves, r.reussite + " %"]; })));
+    var n = document.createElement("p"); n.className = "msg"; n.style.color = "var(--muted)"; n.textContent = "Astuce : une question ratée par beaucoup d'élèves est soit un point à retravailler en classe, soit une question mal formulée ; dans le doute, transmets-la à Claude.";
+    out.push(n); box.replaceChildren.apply(box, out);
+  } catch (e) { box.textContent = e.message; }
+};
+function dlBackup(id) {
+  var f = document.createElement("form"); f.method = "POST"; f.action = "/api/admin/backup-file"; f.hidden = true;
+  [["key", $("key").value], ["id", id || ""]].forEach(function (x) { var i = document.createElement("input"); i.type = "hidden"; i.name = x[0]; i.value = x[1]; f.appendChild(i); });
+  document.body.appendChild(f); f.submit(); setTimeout(function () { f.remove(); }, 1000);
+}
+async function showBk(make) {
+  try {
+    var j = await call("/api/admin/backups", make ? { make: true } : {});
+    var rows = j.backups.map(function (b) { var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "Télécharger"; bt.style.padding = "6px 10px"; bt.onclick = function () { dlBackup(b.id); }; return [b.day, new Date(Number(b.created)).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), Math.max(1, Math.round(b.size * 0.75 / 1024)) + " Ko (compressé)", bt]; });
+    var info = document.createElement("p"); info.className = "msg"; info.style.margin = "0";
+    info.textContent = j.cron ? "Tâche planifiée Railway branchée (CRON_KEY définie)." : "Sauvegarde faite par le serveur lui-même ; la tâche planifiée Railway (CRON_KEY) n'est pas encore branchée.";
+    $("bkList").replaceChildren(info, rows.length ? table(["Jour", "Heure", "Taille", ""], rows) : document.createTextNode("Aucune sauvegarde pour l'instant."));
+  } catch (e) { $("bkList").textContent = e.message; }
+}
+$("bks").onclick = function () { showBk(false); };
+$("bkNow").onclick = function () { showBk(true); };
+$("bkDl").onclick = function () { dlBackup(""); };
 $("reset").onclick = async function () {
   var m = $("msg");
   try { var j = await call("/api/admin/reset", { name: $("who").value, password: $("np").value }); m.className = "msg ok"; m.textContent = "Mot de passe de " + j.name + " réinitialisé. Donne-lui le mot de passe provisoire."; }

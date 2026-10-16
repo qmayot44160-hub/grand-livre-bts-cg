@@ -1265,6 +1265,13 @@ html, body { overflow-x: hidden; }
 .peek-grab:active { cursor: grabbing; }
 .peek-handle { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--rule-strong); margin: 0 auto 8px; }
 .peek-bar { display: flex; align-items: center; gap: 10px; } .peek-bar .tabcode { border-radius: 8px; } .peek-k { flex: 1; color: var(--muted); font-size: .82rem; }
+.tts-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 .85rem var(--sans, inherit); cursor: pointer; }
+.tts-btn .svg { width: 16px; height: 16px; } .tts-btn[aria-pressed="true"] { background: var(--hue, var(--accent)); border-color: transparent; color: #fff; }
+.tts-rate { border: 1px solid var(--rule); background: transparent; color: var(--muted); border-radius: 99px; padding: 6px 10px; font: 600 .8rem var(--sans, inherit); cursor: pointer; min-width: 46px; }
+.tts-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 14px; }
+.peek-bar .tts-btn { padding: 6px 10px; } .peek-bar .tts-btn span { display: none; } @media (min-width: 520px) { .peek-bar .tts-btn span { display: inline; } }
+.tts-on { background: color-mix(in srgb, var(--hue, var(--accent)) 16%, transparent); border-radius: 6px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--hue, var(--accent)) 16%, transparent); transition: background .2s; }
+.ics-list { display: grid; gap: 8px; margin-top: 8px; } .ics-list .btn { justify-content: flex-start; }
 .peek-x { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font-size: 1.3rem; line-height: 1; cursor: pointer; }
 .peek-body { overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px calc(24px + env(safe-area-inset-bottom)); }
 .peek-body h1 { margin: 0 0 12px; font-size: 1.45rem; }
@@ -3102,6 +3109,9 @@ function chapPicker(cats, mode) {
 /* ---------- Navigation et accueil (version 5) ---------- */
 const SVG = p => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const ICON = {
+  speak: SVG('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  stop: SVG('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>'),
+  cal: SVG('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 13v4M10 15h4"/>'),
   home: SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h5v-6h4v6h5V9.5"/>'),
   book: SVG('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/>'),
   cards: SVG('<rect x="3" y="7" width="15" height="12" rx="2"/><path d="M7 4h12a2 2 0 0 1 2 2v9"/><path d="M6.5 11h8M6.5 14.5h5"/>'),
@@ -3139,7 +3149,7 @@ function go(v, opts) {
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
   if (v !== "oral") clearInterval(orTick);
   if (opts && opts.reset) { R = null; C = null; }
-  closeSheet(); peekClose(true);
+  closeSheet(); peekClose(true); ttsStop();
   if (tourI >= 0) { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); }
   render();
   window.scrollTo({ top: 0 });
@@ -4224,6 +4234,59 @@ function ficheMd(c) {
         ${c.points && c.points.length ? `<blockquote class="callout retain"><p class="md-label"><strong>L'essentiel</strong></p><ul>${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul></blockquote>` : ""}
       </div>`;
 }
+/* Lecture à voix haute des fiches (synthèse vocale de l'appareil, fr-FR) */
+const TTS_OK = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
+const TTS_RATES = [1, 1.25, 1.5, 0.85];
+let ttsRun = null;
+function ttsVoice() {
+  const v = speechSynthesis.getVoices().filter(x => /^fr/i.test(x.lang));
+  return v.find(x => /fr[-_]FR/i.test(x.lang) && /(premium|enhanced|natural|neural|google|amélie|thomas|audrey)/i.test(x.name)) || v.find(x => /fr[-_]FR/i.test(x.lang)) || v[0] || null;
+}
+function ttsRate() { return (S.pref && S.pref.ttsr) || 1; }
+function ttsText(el) {
+  let t = el.innerText || el.textContent || "";
+  t = t.replace(/\s+/g, " ").replace(/€/g, " euros").replace(/\s?%/g, " pour cent").replace(/(\d)\s?×\s?(\d)/g, "$1 fois $2").replace(/ − | - (?=\d)/g, " moins ").replace(/\bHT\b/g, "hors taxes").replace(/\bTTC\b/g, "toutes taxes comprises").replace(/→/g, ", donc ").replace(/\s=\s/g, " égale ").replace(/≥/g, " supérieur ou égal à ").replace(/≤/g, " inférieur ou égal à ");
+  return t.trim();
+}
+function ttsBlocks(root) {
+  const all = [...root.querySelectorAll("h1, .md-label, .md h4, .md p, .md li, .md tr, .md pre")].filter(e => !e.closest(".md-label") || e.classList.contains("md-label"));
+  return all.filter(e => !all.some(o => o !== e && o.contains(e)) && ttsText(e));
+}
+function ttsStop() {
+  if (!TTS_OK) return;
+  const r = ttsRun; ttsRun = null;
+  try { speechSynthesis.cancel(); } catch (e) {}
+  document.querySelectorAll(".tts-on").forEach(x => x.classList.remove("tts-on"));
+  document.querySelectorAll(".tts-btn[aria-pressed='true']").forEach(b => { b.setAttribute("aria-pressed", "false"); b.innerHTML = ttsLabel(false); });
+  if (r && r.wake) { try { r.wake.release(); } catch (e) {} }
+}
+function ttsLabel(on) { return on ? `${ICON.stop}<span>Arrêter la lecture</span>` : `${ICON.speak}<span>Écouter la fiche</span>`; }
+function ttsBtnHTML() { return TTS_OK ? `<button class="tts-btn" data-act="tts" aria-pressed="false">${ttsLabel(false)}</button>` : ""; }
+function ttsRateHTML() { return TTS_OK ? `<button class="tts-rate" data-act="ttsRate" aria-label="Vitesse de lecture">${String(ttsRate()).replace(".", ",")}×</button>` : ""; }
+function ttsToggle(btn) {
+  if (!TTS_OK) return;
+  if (ttsRun && ttsRun.btn === btn) return ttsStop();
+  ttsStop();
+  const root = btn.closest(".peek-sheet") || btn.closest(".lesson") || document.getElementById("main"), blocks = root ? ttsBlocks(root) : [];
+  if (!blocks.length) return;
+  const run = ttsRun = { btn, i: 0, blocks };
+  btn.setAttribute("aria-pressed", "true"); btn.innerHTML = ttsLabel(true);
+  try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(w => { if (ttsRun === run) run.wake = w; else w.release(); }).catch(() => {}); } catch (e) {}
+  const voice = ttsVoice();
+  const next = () => {
+    if (ttsRun !== run) return;
+    document.querySelectorAll(".tts-on").forEach(x => x.classList.remove("tts-on"));
+    if (run.i >= run.blocks.length) { ttsStop(); return; }
+    const el = run.blocks[run.i++], u = new SpeechSynthesisUtterance(ttsText(el));
+    u.lang = "fr-FR"; if (voice) u.voice = voice; u.rate = ttsRate();
+    el.classList.add("tts-on"); try { el.scrollIntoView({ block: "nearest", behavior: fxOn() ? "smooth" : "auto" }); } catch (e) {}
+    u.onend = next; u.onerror = e => { if (e.error !== "interrupted" && e.error !== "canceled") next(); };
+    run.u = u; speechSynthesis.speak(u);
+  };
+  next();
+}
+if (TTS_OK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {} document.addEventListener("visibilitychange", () => { if (document.hidden && ttsRun && /iPhone|iPad/.test(navigator.userAgent)) ttsStop(); }); window.addEventListener("pagehide", () => ttsStop()); }
+
 let peekT = null;
 function fichePeek(id) {
   const c = CHID[id]; if (!c) return;
@@ -4235,7 +4298,7 @@ function fichePeek(id) {
   const el = document.createElement("div"); el.className = "peek"; el.id = "peek";
   el.innerHTML = `<div class="peek-sheet" role="dialog" aria-modal="true" aria-labelledby="peekT" style="${hueStyle(c.cat)}">
     <div class="peek-grab" title="Fais glisser vers le bas pour fermer"><span class="peek-handle" aria-hidden="true"></span>
-      <div class="peek-bar"><span class="tabcode">${h(CAT[c.cat].code)}</span><span class="peek-k">Fiche · glisse vers le bas pour reprendre</span><button class="peek-x" data-act="peekClose" aria-label="Fermer la fiche">×</button></div></div>
+      <div class="peek-bar"><span class="tabcode">${h(CAT[c.cat].code)}</span><span class="peek-k">Fiche · glisse vers le bas pour reprendre</span>${ttsBtnHTML()}<button class="peek-x" data-act="peekClose" aria-label="Fermer la fiche">×</button></div></div>
     <div class="peek-body lesson fiche-view"><h1 id="peekT">${h(c.title)}</h1>${ficheMd(c)}
       <div class="row peek-foot"><button class="btn primary" data-act="peekClose">Reprendre</button><button class="btn" data-act="peekFull" data-id="${h(id)}">Ouvrir en grand</button></div></div>
   </div>`;
@@ -4245,7 +4308,7 @@ function fichePeek(id) {
   requestAnimationFrame(() => el.classList.add("in"));
   const sh = el.querySelector(".peek-sheet"), grab = el.querySelector(".peek-grab"), body = el.querySelector(".peek-body");
   let y0 = null, dy = 0, t0 = 0, fromBody = false;
-  const start = e => { if (e.target.closest(".peek-x")) return; fromBody = !grab.contains(e.target); if (fromBody && body.scrollTop > 0) return; y0 = e.clientY; dy = 0; t0 = Date.now(); };
+  const start = e => { if (e.target.closest(".peek-x, .tts-btn")) return; fromBody = !grab.contains(e.target); if (fromBody && body.scrollTop > 0) return; y0 = e.clientY; dy = 0; t0 = Date.now(); };
   const move = e => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); if (fromBody && dy < 8) return; sh.style.transition = "none"; sh.style.transform = `translateY(${dy}px)`; el.style.setProperty("--peek-k", String(Math.max(0, 1 - dy / 500))); };
   const end = () => { if (y0 == null) return; const fast = dy / Math.max(1, Date.now() - t0) > .6 && dy > 40; y0 = null; sh.style.transition = ""; if (dy > 120 || fast) peekClose(); else { sh.style.transform = ""; el.style.removeProperty("--peek-k"); } };
   sh.addEventListener("pointerdown", start); window.addEventListener("pointermove", move); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
@@ -4254,6 +4317,7 @@ function fichePeek(id) {
 }
 function peekClose(now) {
   const el = document.getElementById("peek"); if (!el) return;
+  if (ttsRun && el.contains(ttsRun.btn)) ttsStop();
   if (el._off) el._off();
   document.documentElement.classList.remove("peek-open");
   if (now || !fxOn()) { el.remove(); return; }
@@ -4276,6 +4340,7 @@ function vFiche() {
       <p class="lesson-meta"><span class="tabcode">${h(CAT[c.cat].code)}</span><span>Fiche ${i + 1} sur ${list.length}</span>${th ? `<span>${h(th.title)}</span>` : ""}</p>
       <div class="lprog" role="presentation"><i style="width:${pct(i + 1, list.length)}%"></i></div>
       <h1>${h(c.title)}</h1>
+      ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
       <div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
         ${(c.sections || []).map(s => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}`).join("")}
@@ -5355,6 +5420,48 @@ function packPreview(d) {
   if (!d) return "";
   return `<b>Pour ce contrôle :</b> ${d.fiches.length} fiche${d.fiches.length > 1 ? "s" : ""} · ${d.qs.length} question${d.qs.length > 1 ? "s" : ""} · ${d.fs.length} carte${d.fs.length > 1 ? "s" : ""} · ${d.gens.length + d.cases.length} exercice${d.gens.length + d.cases.length > 1 ? "s" : ""}${d.oral.length ? ` · ${d.oral.length} question${d.oral.length > 1 ? "s" : ""} d'oral` : ""}${!d.qs.length && !d.fs.length ? `<br><span class="muted">Aucune question ne correspond : élargis les chapitres ou change le thème.</span>` : ""}`;
 }
+const onSite = () => typeof window.GL_GUEST === "boolean";
+function icsEsc(t) { return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+function icsFold(l) { const o = []; while (l.length > 70) { o.push(l.slice(0, 70)); l = " " + l.slice(70); } o.push(l); return o.join("\r\n"); }
+function icsInfo(p) {
+  const c = CAT[p.cat], d = String(p.date).replace(/-/g, ""), d2 = new Date(p.date + "T12:00:00"); d2.setDate(d2.getDate() + 1);
+  const end = d2.getFullYear() + String(d2.getMonth() + 1).padStart(2, "0") + String(d2.getDate()).padStart(2, "0");
+  const title = "Contrôle " + (p.name ? c.code + " : " + p.name : ": " + packName(p));
+  const chs = (p.chs || []).map(id => CHID[id] ? CHID[id].title : "").filter(Boolean);
+  const desc = c.name + (chs.length ? "\nChapitres : " + chs.join(", ") : "") + (p.kw ? "\nThème : " + p.kw : "") + "\nRévise-le dans le Grand Livre : S'entraîner › Préparer un contrôle.";
+  return { d, end, title, desc };
+}
+function icsFile(i) {
+  const p = (S.packs || [])[i]; if (!p || !p.date) return;
+  const x = icsInfo(p), uid = "gl-ctl-" + (p.id || i) + "-" + x.d + "@grand-livre";
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Grand Livre BTS CG//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    "UID:" + uid, "DTSTAMP:" + stamp, "DTSTART;VALUE=DATE:" + x.d, "DTEND;VALUE=DATE:" + x.end, "SUMMARY:" + icsEsc(x.title), "DESCRIPTION:" + icsEsc(x.desc), "TRANSP:TRANSPARENT",
+    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc("Demain : " + x.title + ". Dernière révision !"), "TRIGGER:-PT6H", "END:VALARM",
+    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc(x.title + " dans 3 jours : lance le contrôle blanc."), "TRIGGER:-P2DT6H", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"].map(icsFold).join("\r\n");
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = ("controle-" + CAT[p.cat].code + "-" + x.d).toLowerCase() + ".ics"; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  closeSheet(); toast("Ouvre le fichier pour l'ajouter à ton agenda");
+}
+function icsSheet(i) {
+  const p = (S.packs || [])[i]; if (!p || !p.date) return;
+  closeSheet();
+  const x = icsInfo(p), g = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(x.title) + "&dates=" + x.d + "/" + x.end + "&details=" + encodeURIComponent(x.desc);
+  const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  el.innerHTML = `<div class="wk-box" role="dialog" aria-modal="true" aria-labelledby="icsT">
+    <button class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
+    <span class="eyebrow">${h(CAT[p.cat].code)} · ${h(new Date(p.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }))}</span><h2 id="icsT">Ajouter le contrôle à mon agenda</h2>
+    <p class="muted">${onSite() ? "Avec un rappel la veille à 18 h et un autre trois jours avant." : "Le rappel se règle dans ton agenda après l'ajout."}</p>
+    <div class="ics-list">
+      ${onSite() ? `<button class="btn primary" data-act="icsFile" data-i="${i}">${ICON.cal}iPhone, Outlook ou autre agenda (fichier .ics)</button>` : ""}
+      <a class="btn${onSite() ? "" : " primary"}" href="${h(g)}" target="_blank" rel="noopener">${ICON.cal}Google Agenda</a>
+    </div>
+  </div>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  document.body.appendChild(el);
+}
 function vPack() {
   const p = PK != null && (S.packs || [])[PK]; if (!p) { setExTab("ctl"); return vExHome(); }
   const d = packData(p), r = packReady(p, d), dt = daysTo(p.date), c = CAT[p.cat];
@@ -5373,7 +5480,7 @@ function vPack() {
       ${d.qs.length >= 5 ? `<li class="pk-exam"><div><b>${ICON.clock}Contrôle blanc</b><span>${Math.min(15, d.qs.length)} questions chronométrées, sans correction avant la fin.${hist.length ? ` Dernier : <b>${hist[hist.length - 1].pc} %</b>${hist.length > 1 ? ` (avant : ${hist[hist.length - 2].pc} %)` : ""}.` : ""}</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkExam">Lancer le contrôle blanc</button></div></li>` : ""}
       ${d.oral.length ? `<li><div><b>${ICON.talk}À l'oral</b><span>${d.oral.length} question${d.oral.length > 1 ? "s" : ""} du jury sur ce thème</span></div><div class="pk-btns"><button class="btn small" data-act="pkOral">S'entraîner à l'oral</button></div></li>` : ""}
     </ol>
-    <div class="row"><button class="btn small" data-act="pkEdit">Modifier le contrôle</button><button class="btn small" data-act="pkDel">Supprimer le contrôle</button></div>
+    <div class="row">${p.date && dt != null && dt >= 0 ? `<button class="btn small" data-act="pkIcs">${ICON.cal}Ajouter à mon agenda</button>` : ""}<button class="btn small" data-act="pkEdit">Modifier le contrôle</button><button class="btn small" data-act="pkDel">Supprimer le contrôle</button></div>
   </section>`;
 }
 function vExHome() {
@@ -6651,6 +6758,10 @@ document.addEventListener("click", e => {
     case "wkFiche": closeSheet(); fichePeek(b.dataset.id); break;
     case "fichePeek": fichePeek(b.dataset.id); break;
     case "peekClose": peekClose(); break;
+    case "tts": ttsToggle(b); break;
+    case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn; ttsStop(); ttsToggle(bt); } break; }
+    case "pkIcs": icsSheet(PK); break;
+    case "icsFile": icsFile(+b.dataset.i); break;
     case "peekFull": { const id = b.dataset.id; peekClose(true); openFiche(id); break; }
     case "wkErr": { const k = b.dataset.k; EF = { cat: "", ks: k === "*" ? weakChaps(5).map(o => o.k) : [k], st: "all" }; closeSheet(); go("erreurs"); break; }
     case "wkTrain": { const k = b.dataset.k, ks = k === "*" ? weakChaps(5).map(o => o.k) : [k], wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); closeSheet(); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); if (R) R.wk = true; break; }

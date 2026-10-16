@@ -1,7 +1,7 @@
 // Pages légales du Grand Livre : mentions légales + conditions d'utilisation, et politique de confidentialité.
 // Le contact vient de la variable CONTACT_EMAIL (Railway) : rien de personnel n'est écrit dans le code.
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const UPDATED = "16 octobre 2026";
+const UPDATED = "17 octobre 2026";
 
 function page(title, body) {
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -76,7 +76,7 @@ ${ai ? `<li><b>La correction de copie</b>, si tu l'utilises : le texte et les ph
 <h2>Destinataires et hébergement</h2>
 <p>Seul l'éditeur a accès aux données, pour faire fonctionner le site. Elles sont hébergées par Railway Corporation (États-Unis), sur les serveurs de la région choisie pour le service.${ai ? " Les copies envoyées à la correction passent par Anthropic, comme indiqué plus haut." : ""}</p>
 <h2>Durée de conservation</h2>
-<p>Tant que ton compte existe. Quand tu supprimes ton compte, ton nom, ton mot de passe chiffré, ta progression et tes rappels sont effacés immédiatement et définitivement. Les comptes inactifs depuis plus de deux ans pourront être supprimés.</p>
+<p>Tant que ton compte existe. Quand tu supprimes ton compte, ton nom, ton mot de passe chiffré, ta progression et tes rappels sont effacés immédiatement. Ils peuvent subsister au plus 7 jours dans les sauvegardes de sécurité de la base, qui sont ensuite écrasées. Les comptes inactifs depuis plus de deux ans pourront être supprimés.</p>
 <h2>Tes droits</h2>
 <ul>
 <li><b>Accès et portabilité</b> : « Mon profil » › « Mon compte » › « Télécharger mes données ».</li>

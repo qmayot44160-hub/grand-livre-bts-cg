@@ -56,4 +56,10 @@ s = s.replace("</body>", '<script>if("serviceWorker" in navigator)navigator.serv
 
 out = os.path.join(HERE, "..", "public", "app.html")
 open(out, "w", encoding="utf-8").write(s)
+
+# 5. Carte des questions pour les statistiques de l'admin (facultatif : nécessite Playwright)
+import subprocess
+qm = os.path.join(HERE, "..", "src", "qmap.json")
+subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "qmap.js"), src, qm], env=dict(os.environ, NODE_PATH=subprocess.run(["npm", "root", "-g"], capture_output=True, text=True).stdout.strip()))
+if os.path.exists(qm): assert "MAMI" not in open(qm, encoding="utf-8").read(), "contenu personnel dans qmap.json"
 print("app.html :", len(s), "octets ; mentions personnelles restantes hors partie retirée :", leftover)

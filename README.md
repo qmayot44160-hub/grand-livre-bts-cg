@@ -14,5 +14,24 @@ Classeur de révision du BTS Comptabilité et Gestion, en ligne, avec un compte 
 
 Chaque envoi sur la branche `main` redéploie le site automatiquement.
 
+## Sauvegardes et tâche planifiée
+Le serveur fait lui-même une copie complète de la base chaque jour (table `backups`, 7 dernières gardées), visible et téléchargeable dans `/admin` › « Sauvegardes de la base ».
+
+Pour que les rappels et la sauvegarde tournent même quand le site est en veille, ajoute un service planifié :
+1. Variables du service du site : `CRON_KEY` = une longue chaîne au hasard.
+2. Dans le projet : **+ New → Empty Service**, nomme-le `cron`.
+3. Dans ses **Settings** :
+   - **Source → Image** : `curlimages/curl:8.10.1`
+   - **Deploy → Custom Start Command** :
+     `curl -fsS -X POST -H "x-cron-key: ${{grand-livre-bts-cg.CRON_KEY}}" https://${{grand-livre-bts-cg.RAILWAY_PUBLIC_DOMAIN}}/api/cron/tick`
+     (remplace `grand-livre-bts-cg` par le nom exact du service du site)
+   - **Deploy → Cron Schedule** : `*/30 * * * *` (toutes les 30 minutes, heure UTC)
+4. **Deploy**. Dans `/admin`, la section Sauvegardes affiche « Tâche planifiée Railway branchée ».
+
+Pense aussi à activer les sauvegardes de la base PostgreSQL : service Postgres › **Backups** (si ton offre Railway le propose).
+
+## Statistiques
+`/admin` › « Statistiques de la classe » : élèves actifs, réussite par matière et questions les plus ratées. `build/build_public.py` génère `src/qmap.json` (texte des questions) avec Playwright.
+
 ## Mettre à jour le contenu
 `python3 build/build_public.py "Grand Livre BTS CG.html"` (fichier source gardé hors du dépôt : il contient des éléments personnels) régénère `public/app.html` à partir de la version Claude du Grand Livre (retire les contenus personnels, ajoute la connexion).

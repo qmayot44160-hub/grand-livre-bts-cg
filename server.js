@@ -291,6 +291,32 @@ async function pushTick() {
   } catch (e) { console.error("pushTick", e); }
 }
 
+/* ---------- Sauvegardes de la base (7 derniers jours) ---------- */
+async function makeDump() { return zlib.gzipSync(Buffer.from(JSON.stringify(Object.assign({ app: "grand-livre-bts-cg", at: new Date().toISOString() }, await store.dumpAll())), "utf8"), { level: 9 }).toString("base64"); }
+async function dailyBackup(force) {
+  const t = parisNow();
+  if (!force && (await store.hasBackup(t.day))) return false;
+  await store.saveBackup(t.day, await makeDump());
+  console.log("Sauvegarde du", t.day, "enregistrée");
+  return true;
+}
+function sendBackup(res, day, b64) {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="grand-livre-sauvegarde-${day}.json"`);
+  res.setHeader("Cache-Control", "no-store");
+  res.end(zlib.gunzipSync(Buffer.from(b64, "base64")));
+}
+
+/* ---------- Tâche planifiée (service « cron » sur Railway) ---------- */
+const CRON_KEY = process.env.CRON_KEY || "";
+app.post("/api/cron/tick", async (req, res, next) => {
+  try {
+    if (!CRON_KEY || String(req.headers["x-cron-key"] || "") !== CRON_KEY) return res.status(403).json({ error: "Clé de tâche planifiée incorrecte (variable CRON_KEY)." });
+    await pushTick(); const saved = await dailyBackup(false);
+    res.json({ ok: true, backup: saved ? "faite" : "déjà faite aujourd'hui", at: new Date().toISOString() });
+  } catch (e) { next(e); }
+});
+
 /* ---------- Progression ---------- */
 app.get("/api/progress", auth, async (req, res, next) => {
   try { res.setHeader("Cache-Control", "no-store"); res.json({ data: await store.getProgress(req.user.id) }); } catch (e) { next(e); }
@@ -357,6 +383,52 @@ app.post("/api/admin/reports", async (req, res, next) => {
     res.json({ reports: await store.listReports() });
   } catch (e) { next(e); }
 });
+app.post("/api/admin/backups", async (req, res, next) => {
+  try {
+    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    if (req.body.make) await dailyBackup(true);
+    res.json({ backups: await store.listBackups(), cron: !!CRON_KEY });
+  } catch (e) { next(e); }
+});
+app.post("/api/admin/backup-file", express.urlencoded({ extended: false }), async (req, res, next) => {
+  try {
+    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).end();
+    const key = String(req.body.key || ""); if (!ADMIN_KEY || key !== ADMIN_KEY) return res.status(403).type("text").send("Clé d'administration incorrecte.");
+    if (req.body.id) { const b = await store.getBackup(req.body.id); if (!b) return res.status(404).type("text").send("Sauvegarde introuvable."); return sendBackup(res, b.day, b.blob); }
+    sendBackup(res, parisNow().day + "-maintenant", await makeDump());
+  } catch (e) { next(e); }
+});
+/* Statistiques de la classe (aucune donnée nominative sur les réponses) */
+let QMAP = {}; try { QMAP = JSON.parse(fs.readFileSync(path.join(__dirname, "src", "qmap.json"), "utf8")); } catch (e) {}
+app.post("/api/admin/stats", async (req, res, next) => {
+  try {
+    if (limited("ad:" + req.ip, 40, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const t = parisNow(), rows = await store.fullProgress();
+    const act = n => rows.filter(r => r.data && Object.keys(r.data.h || {}).some(k => +k > t.dayNum - n)).length;
+    const cat = {}, miss = {}, days = {};
+    rows.forEach(r => {
+      const d = r.data || {};
+      Object.entries(d.q || {}).forEach(([id, a]) => {
+        const c = id.replace(/q\d+$/, ""), o = cat[c] || (cat[c] = { n: 0, ok: 0, users: 0 }); o.n += a[0] || 0; o.ok += a[1] || 0;
+        const m = (a[0] || 0) - (a[1] || 0); if (m > 0) { const x = miss[id] || (miss[id] = { m: 0, u: 0, n: 0 }); x.m += m; x.u++; } if (miss[id]) miss[id].n += a[0] || 0;
+      });
+      Object.keys(d.q || {}).map(id => id.replace(/q\d+$/, "")).filter((c, i, l) => l.indexOf(c) === i).forEach(c => cat[c].users++);
+      Object.entries(d.h || {}).forEach(([k, v]) => { if (+k > t.dayNum - 28) days[k] = (days[k] || 0) + 1; });
+    });
+    const top = Object.entries(miss).filter(([, x]) => x.u >= 2 || rows.length < 5).sort((a, b) => b[1].u - a[1].u || b[1].m - a[1].m).slice(0, 25)
+      .map(([id, x]) => ({ id, q: QMAP[id] ? QMAP[id][1] : "", ch: QMAP[id] ? QMAP[id][2] : "", c: QMAP[id] ? QMAP[id][0] : id.replace(/q\d+$/, ""), eleves: x.u, erreurs: x.m, reussite: x.n ? Math.round((1 - x.m / x.n) * 100) : 0 }));
+    res.json({
+      eleves: rows.length, actifs: { jour: act(1), semaine: act(7), mois: act(30) },
+      classement: rows.filter(r => r.data && r.data.cl && r.data.cl.on).length, rappels: null,
+      matieres: Object.entries(cat).map(([c, o]) => ({ c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, eleves: o.users })).sort((a, b) => b.reponses - a.reponses),
+      jours: Array.from({ length: 28 }, (_, i) => t.dayNum - 27 + i).map(dn => ({ dn, n: days[dn] || 0 })),
+      ratees: top,
+      signalements: (await store.listReports()).filter(r => !r.done).length
+    });
+  } catch (e) { next(e); }
+});
 app.post("/api/admin/reset", async (req, res, next) => {
   try {
     if (limited("ad:" + req.ip, 20, 900e3)) return res.status(429).json({ error: "Trop d'essais." });
@@ -375,5 +447,6 @@ app.use((err, req, res, next) => { console.error(err); res.status(500).json({ er
 
 store.init().then(() => {
   setInterval(pushTick, 5 * 60e3).unref(); setTimeout(pushTick, 20e3).unref();
+  setInterval(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60 * 60e3).unref(); setTimeout(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60e3).unref();
   app.listen(PORT, () => console.log(`Grand Livre en ligne sur le port ${PORT} (stockage : ${store.kind}, correction Claude : ${AI_KEY ? "activée" : "désactivée"})`));
 }).catch(e => { console.error("Impossible d'initialiser le stockage", e); process.exit(1); });
