@@ -458,7 +458,8 @@ app.post("/api/admin/stats", async (req, res, next) => {
       matieres: Object.entries(cat).map(([c, o]) => ({ c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, eleves: o.users })).sort((a, b) => b.reponses - a.reponses),
       jours: Array.from({ length: 28 }, (_, i) => t.dayNum - 27 + i).map(dn => ({ dn, n: days[dn] || 0 })),
       ratees: top,
-      signalements: (await store.listReports()).filter(r => !r.done).length
+      signalements: (await store.listReports()).filter(r => !r.done).length,
+      serveur: { depuis: Date.now() - Math.round(process.uptime() * 1000), region: process.env.RAILWAY_REPLICA_REGION || "", version: (process.env.RAILWAY_GIT_COMMIT_SHA || "").slice(0, 7), stockage: /postgres/.test(store.kind || "") ? "PostgreSQL" : "Fichier" }
     });
   } catch (e) { next(e); }
 });
@@ -478,13 +479,13 @@ function studentSummary(r, dn, full) {
   const s = { id: r.id, name: r.name, created: r.created, updated: r.updated, blocked: !!r.blocked, rappels: (r.subs || 0) > 0,
     xp, niveau: lv[1], serie: st.d >= dn - 1 ? st.n || 0 : 0, jours7: days.filter(k => k > dn - 7).length, jours30: days.filter(k => k > dn - 30).length,
     reponses: rep, reussite: rep ? Math.round(ok / rep * 100) : null, acquises: acq, aRevoir: wrong, classement: !!(d.cl && d.cl.on) };
+  s.activite = Array.from({ length: 28 }, (_, i) => h[dn - 27 + i] || 0);
   if (!full) return s;
   s.fiches = Object.keys(d.fr || {}).length; s.lecons = Object.keys(d.l || {}).length;
   s.cartes = Object.values(d.c || {}).filter(x => Array.isArray(x) && x[0] >= 3).length;
   s.matieres = Object.entries(cat).map(([c, o]) => ({ c: CATN[c] || c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, acquises: o.acq })).sort((a, b) => b.reponses - a.reponses);
   s.fragiles = Object.entries(ch).filter(([, x]) => x.n >= 4).map(([t, x]) => ({ t, c: x.c, reponses: x.n, reussite: Math.round(x.ok / x.n * 100) })).sort((a, b) => a.reussite - b.reussite).slice(0, 6);
   s.controles = (d.packs || []).map(p => ({ c: CATN[p.cat] || p.cat, nom: p.name || p.kw || "", date: p.date || "", dernier: p.hist && p.hist.length ? p.hist[p.hist.length - 1].pc : null }));
-  s.activite = Array.from({ length: 28 }, (_, i) => h[dn - 27 + i] || 0);
   return s;
 }
 app.post("/api/admin/students", async (req, res, next) => {
