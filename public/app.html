@@ -1721,6 +1721,13 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .pk-ex { display: flex; gap: 10px; align-items: flex-start; padding: 6px 4px; cursor: pointer; border-radius: 8px; } .pk-ex:hover { background: var(--sheet); }
 .pk-ex input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; } .pk-ex span { display: grid; } .pk-ex small { color: var(--muted); font-size: .78rem; }
 
+/* Suite du contrôle */
+.pk-ban { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px; border-radius: 14px; border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); background: var(--sheet); font-size: .9rem; }
+.pk-ban span { color: var(--muted); } .pk-ban b { color: var(--ink); }
+.pk-steps li.pk-next { border-color: var(--c, var(--accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, var(--accent)) 25%, transparent); }
+.pk-steps li.pk-next > div:first-child::before { content: "À faire maintenant"; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--c, var(--accent)); }
+.pk-pulse { animation: pkPulse 1.2s ease 2; } @keyframes pkPulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--c, var(--accent)) 30%, transparent); } }
+
 /* Profil : onglets et version compacte */
 .pf-more { color: rgba(255,255,255,.85); }
 .pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
@@ -3576,6 +3583,7 @@ function render() {
   const v = $("#view");
   const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
+  if (inPack() && /^(run|result|cards|card|cardsEnd|exrun|exres|calc|schema|gcase|oral|redac)$/.test(view) && !(view === "result" && R && R.pack != null)) v.insertAdjacentHTML("afterbegin", `<div class="pk-ban" style="${hueStyle(S.packs[FROMPACK].cat)}"><span>Contrôle : <b>${h(packName(S.packs[FROMPACK]))}</b></span><button class="btn small primary" data-act="pkResume">Suite du contrôle</button></div>`);
   v.dataset.view = view;
   renderTop();
   bindView();
@@ -3616,6 +3624,12 @@ function suggestEx(cat) {
 }
 function todayCount(cats) { const d = dueCards(cats); return Math.min(30, d.reviews.length + Math.min(15, d.fresh.length)); }
 function exCount() { return Object.keys(S.x || {}).length + Object.values(S.an || {}).filter(x => x && (x.d || x.r || (x.g && x.g.length))).length + Object.values(S.gc || {}).filter(x => x && x.step > 0).length; }
+let FROMPACK = null; // contrôle d'où l'activité a été lancée
+const inPack = () => FROMPACK != null && S.packs && S.packs[FROMPACK];
+function nextBtn(primary) {
+  if (inPack()) return `<button class="btn${primary ? " primary" : ""}" data-act="pkResume">Suite du contrôle</button>`;
+  return planLeft() ? `<button class="btn${primary ? " primary" : ""}" data-act="planNext">Étape suivante de la séance</button>` : "";
+}
 function planLeft() { const dy = dayLog(); return dy.l === 0 || (!(dy.x || 0) && !(dy.w || 0)) || (dy.c < 10 && (todayCount() > 0 || dueQs().length > 0)); }
 function weekAcq() {
   const d0 = dayNum() - 6; let n = 0, soon = 0;
@@ -3930,7 +3944,7 @@ function vResult() {
       ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button><button class="btn" data-act="goErr">${ICON.errbook}Cahier des erreurs</button>` : ""}
       <button class="btn" data-act="${R.mode === "exam" ? "goExam" : "goQuiz"}">${R.mode === "exam" ? "Nouveau QCM chronométré" : "Nouveau quiz"}</button>
       <button class="btn" data-act="goHome">Accueil</button>
-      ${planLeft() ? `<button class="btn primary" data-act="planNext">Étape suivante de la séance</button>` : ""}
+      ${nextBtn(true)}
     </div>
     ${(() => { const ks = {}; bad.forEach(x => { const k = chKey(x.it); ks[k] = (ks[k] || 0) + 1; }); const list = Object.entries(ks).sort((a, b) => b[1] - a[1]); return list.length ? `<div class="res-ch"><h2>Chapitres à retravailler</h2><div class="res-ch-l">${list.map(([k, n]) => `<button class="res-chip" style="${hueStyle(chCat(k))}" data-act="weakPick" data-k="${h(k)}"><span>${h(chLabel(k))}</span><small>${n} erreur${n > 1 ? "s" : ""} · retravailler ›</small></button>`).join("")}</div></div>` : ""; })()}
     ${bad.length ? `<h2>Corrections</h2><div class="review">${review}</div>` : `<div class="empty">Aucune erreur. Le compte est soldé.</div>`}
@@ -4271,7 +4285,7 @@ function vCardsEnd() {
       <tbody><tr class="total"><td>${C.total} cartes revues</td><td class="num debit">${C.knew}</td><td class="num credit">${C.again}</td></tr></tbody>
     </table></div>
     <p class="muted">+${S.xp - C.xp0} XP. Les cartes ratées reviendront dès ta prochaine révision du jour.</p>
-    <div class="row">${planLeft() ? `<button class="btn primary" data-act="planNext">Étape suivante de la séance</button>` : ""}<button class="btn${planLeft() ? "" : " primary"}" data-act="goCards">Autre session</button><button class="btn" data-act="goHome">Accueil</button></div>
+    <div class="row">${nextBtn(true)}<button class="btn${nextBtn() ? "" : " primary"}" data-act="goCards">Autre session</button><button class="btn" data-act="goHome">Accueil</button></div>
   </section>`;
 }
 
@@ -6389,18 +6403,20 @@ function vPack() {
   const p = PK != null && (S.packs || [])[PK]; if (!p) { setExTab("ctl"); return vExHome(); }
   const d = packData(p), r = packReady(p, d), dt = daysTo(p.date), c = CAT[p.cat];
   const nRead = d.fiches.filter(ficheRead).length, acq = d.qs.filter(x => qState(x.id) >= 2).length, wrong = d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0).length;
-  const hist = p.hist || [];
+  const hist = p.hist || [], exL = p.ex || [];
+  const nxt = d.fiches.length && nRead < d.fiches.length ? "f" : exL.length && exL.some(k => !exDone(k)) ? "e" : d.qs.length && acq < d.qs.length * .6 ? "q" : d.fs.length && d.fs.filter(x => cState(x.id) >= 2).length < d.fs.length * .6 ? "c" : d.qs.length >= 5 ? "b" : "";
+  const nx = k => nxt === k ? " pk-next" : "";
   return `<section class="pk-page" style="${hueStyle(p.cat)}">
     <div class="runner-top"><button class="crumb" data-act="pkBack">${ICON.back}Contrôles</button>${dt != null ? `<span class="pill ${dt <= 3 ? "ko" : ""}">${dt > 1 ? `Contrôle dans ${dt} jours` : dt === 1 ? "Contrôle demain" : dt === 0 ? "Contrôle aujourd'hui" : "Contrôle passé"}</span>` : ""}</div>
     <div class="pk-hero"><span class="tabcode">${h(c.code)}</span><h1>${h(packName(p))}</h1>
       <p class="muted">${h(c.name)}${(p.chs || []).length ? " · " + p.chs.map(id => CHID[id] ? CHID[id].title + ((p.secs || []).some(x => x.split("|")[0] === id) ? " (" + p.secs.filter(x => x.split("|")[0] === id).map(x => (CHID[id].sections[+x.split("|")[1]] || {}).h).filter(Boolean).join(", ") + ")" : "") : "").join(" · ") : " · toute la matière"}${p.kw ? ` · thème : « ${h(p.kw)} »` : ""}</p>
       <div class="pk-ready"><div class="meter"><i style="width:${r}%"></i></div><span><b>${r} %</b> prêt · ${acq}/${d.qs.length} questions acquises${wrong ? ` · ${wrong} à revoir` : ""}</span></div></div>
     <ol class="pk-steps">
-      ${d.fiches.length ? `<li><div><b>${ICON.book}Relire</b><span>${nRead} fiche${nRead > 1 ? "s" : ""} lue${nRead > 1 ? "s" : ""} sur ${d.fiches.length}</span></div><div class="pk-btns">${d.fiches.map(id => `<button class="btn small${ficheRead(id) ? "" : " primary"}" data-act="fichePeek" data-id="${id}" data-hint="${h((p.secs || []).filter(x => x.split("|")[0] === id).map(x => (CHID[id].sections[+x.split("|")[1]] || {}).h || "").join(" "))}">${ficheRead(id) ? "✓ " : ""}${h(CHID[id].title)}</button>`).join("")}</div></li>` : ""}
-      ${d.qs.length ? `<li><div><b>${ICON.cards}S'entraîner aux questions</b><span>${d.qs.length} questions pour ce contrôle</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkQuiz" data-n="10">Quiz de 10</button>${d.qs.length > 10 ? `<button class="btn small" data-act="pkQuiz" data-n="20">Quiz de 20</button>` : ""}<button class="btn small" data-act="pkQuiz" data-n="999">Toutes (${d.qs.length})</button>${wrong ? `<button class="btn small" data-act="pkWrong">Mes ${wrong} erreurs</button>` : ""}</div></li>` : ""}
-      ${d.fs.length ? `<li><div><b>${ICON.cards}Mémoriser</b><span>${d.fs.length} cartes</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkCards">Réviser les cartes</button></div></li>` : ""}
-      ${d.gens.length || d.cases.length || d.cx.length || d.sch.length ? `<li class="${d.chosen ? "pk-exam" : ""}"${d.chosen ? ' style="order:-1"' : ""}><div><b>${ICON.calc}${d.chosen ? "Tes exercices du contrôle" : "Exercices"}</b><span>${d.chosen ? `${(p.ex || []).filter(exDone).length} réussi${(p.ex || []).filter(exDone).length > 1 ? "s" : ""} sur ${(p.ex || []).length} · réussi = 70 % ou plus${d.focusEx ? " · les questions et les cartes du contrôle portent sur ces exercices" : ""}` : "Comme au contrôle : calculs et justifications"}</span></div><div class="pk-btns">${d.cx.map(g => `<button class="btn small${exDone("x:" + g.id) ? "" : " primary"}" data-act="pkCx" data-g="${g.id}">${exDone("x:" + g.id) ? "✓ " : "🧮 "}${h(g.t)}</button>`).join("")}${d.sch.map(x => `<button class="btn small${exDone("s:" + x.id) ? "" : " primary"}" data-act="scOpen" data-sid="${x.id}" data-cat="${x.cat}">${exDone("s:" + x.id) ? "✓ " : "🗺️ "}${h(x.title)}</button>`).join("")}${d.gens.map(g => `<button class="btn small${d.chosen && !exDone("g:" + g.id) ? " primary" : ""}" data-act="exStart" data-gid="${g.id}">${d.chosen && exDone("g:" + g.id) ? "✓ " : ""}${h(g.title)}</button>`).join("")}${d.cases.map(k => `<button class="btn small${d.chosen && !exDone("k:" + k.id) ? " primary" : ""}" data-act="gcase" data-id="${k.id}">${d.chosen && exDone("k:" + k.id) ? "✓ " : ""}${h(k.title)}</button>`).join("")}</div></li>` : ""}
-      ${d.qs.length >= 5 ? `<li class="pk-exam"><div><b>${ICON.clock}Contrôle blanc</b><span>${Math.min(15, d.qs.length)} questions chronométrées, sans correction avant la fin.${hist.length ? ` Dernier : <b>${hist[hist.length - 1].pc} %</b>${hist.length > 1 ? ` (avant : ${hist[hist.length - 2].pc} %)` : ""}.` : ""}</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkExam">Lancer le contrôle blanc</button></div></li>` : ""}
+      ${d.fiches.length ? `<li class="${nx("f")}"><div><b>${ICON.book}Relire</b><span>${nRead} fiche${nRead > 1 ? "s" : ""} lue${nRead > 1 ? "s" : ""} sur ${d.fiches.length}</span></div><div class="pk-btns">${d.fiches.map(id => `<button class="btn small${ficheRead(id) ? "" : " primary"}" data-act="fichePeek" data-id="${id}" data-hint="${h((p.secs || []).filter(x => x.split("|")[0] === id).map(x => (CHID[id].sections[+x.split("|")[1]] || {}).h || "").join(" "))}">${ficheRead(id) ? "✓ " : ""}${h(CHID[id].title)}</button>`).join("")}</div></li>` : ""}
+      ${d.qs.length ? `<li class="${nx("q")}"><div><b>${ICON.cards}S'entraîner aux questions</b><span>${d.qs.length} questions pour ce contrôle</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkQuiz" data-n="10">Quiz de 10</button>${d.qs.length > 10 ? `<button class="btn small" data-act="pkQuiz" data-n="20">Quiz de 20</button>` : ""}<button class="btn small" data-act="pkQuiz" data-n="999">Toutes (${d.qs.length})</button>${wrong ? `<button class="btn small" data-act="pkWrong">Mes ${wrong} erreurs</button>` : ""}</div></li>` : ""}
+      ${d.fs.length ? `<li class="${nx("c")}"><div><b>${ICON.cards}Mémoriser</b><span>${d.fs.length} cartes</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkCards">Réviser les cartes</button></div></li>` : ""}
+      ${d.gens.length || d.cases.length || d.cx.length || d.sch.length ? `<li class="${d.chosen ? "pk-exam" : ""}${nx("e")}"${d.chosen ? ' style="order:-1"' : ""}><div><b>${ICON.calc}${d.chosen ? "Tes exercices du contrôle" : "Exercices"}</b><span>${d.chosen ? `${(p.ex || []).filter(exDone).length} réussi${(p.ex || []).filter(exDone).length > 1 ? "s" : ""} sur ${(p.ex || []).length} · réussi = 70 % ou plus${d.focusEx ? " · les questions et les cartes du contrôle portent sur ces exercices" : ""}` : "Comme au contrôle : calculs et justifications"}</span></div><div class="pk-btns">${d.cx.map(g => `<button class="btn small${exDone("x:" + g.id) ? "" : " primary"}" data-act="pkCx" data-g="${g.id}">${exDone("x:" + g.id) ? "✓ " : "🧮 "}${h(g.t)}</button>`).join("")}${d.sch.map(x => `<button class="btn small${exDone("s:" + x.id) ? "" : " primary"}" data-act="scOpen" data-sid="${x.id}" data-cat="${x.cat}">${exDone("s:" + x.id) ? "✓ " : "🗺️ "}${h(x.title)}</button>`).join("")}${d.gens.map(g => `<button class="btn small${d.chosen && !exDone("g:" + g.id) ? " primary" : ""}" data-act="exStart" data-gid="${g.id}">${d.chosen && exDone("g:" + g.id) ? "✓ " : ""}${h(g.title)}</button>`).join("")}${d.cases.map(k => `<button class="btn small${d.chosen && !exDone("k:" + k.id) ? " primary" : ""}" data-act="gcase" data-id="${k.id}">${d.chosen && exDone("k:" + k.id) ? "✓ " : ""}${h(k.title)}</button>`).join("")}</div></li>` : ""}
+      ${d.qs.length >= 5 ? `<li class="pk-exam${nx("b")}"><div><b>${ICON.clock}Contrôle blanc</b><span>${Math.min(15, d.qs.length)} questions chronométrées, sans correction avant la fin.${hist.length ? ` Dernier : <b>${hist[hist.length - 1].pc} %</b>${hist.length > 1 ? ` (avant : ${hist[hist.length - 2].pc} %)` : ""}.` : ""}</span></div><div class="pk-btns"><button class="btn small primary" data-act="pkExam">Lancer le contrôle blanc</button></div></li>` : ""}
       ${d.oral.length ? `<li><div><b>${ICON.talk}À l'oral</b><span>${d.oral.length} question${d.oral.length > 1 ? "s" : ""} du jury sur ce thème</span></div><div class="pk-btns"><button class="btn small" data-act="pkOral">S'entraîner à l'oral</button></div></li>` : ""}
     </ol>
     <div class="row">${p.date && dt != null && dt >= 0 ? `<button class="btn small" data-act="pkIcs">${ICON.cal}Ajouter à mon agenda</button>` : ""}<button class="btn small" data-act="pkEdit">Modifier le contrôle</button><button class="btn small" data-act="pkDel">Supprimer le contrôle</button></div>
@@ -8568,9 +8584,10 @@ document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
     if (el && !el.disabled) setTimeout(() => { if ((tone.n || 0) !== t0) return; const sh = document.getElementById("wkSheet"); tone(sh && !sh0 ? "open" : el.closest("[data-nav]") ? "nav" : "tick"); }, 0); }
   const nb = e.target.closest("[data-nav]");
-  if (nb) { const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
+  if (nb) { FROMPACK = null; const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, cat = b.dataset.cat;
+  if (view === "pack" && PK != null && !/^(pkBack|pkEdit|pkDel|pkIcs)$/.test(a)) FROMPACK = PK;
   if (cat && lockedCat(cat) && !/^(toggle|annEp|annTag|pref|orF)/.test(a)) { lockSheet(cat); return; }
   switch (a) {
     case "quizCat": quizSel = [cat]; go("quiz"); break;
@@ -8689,8 +8706,9 @@ document.addEventListener("click", e => {
     case "pbCancel": PB = null; render(); break;
     case "pbSave": { const p = { cat: PB.cat, chs: PB.chs.slice(), secs: (PB.secs || []).filter(x => PB.chs.includes(x.split("|")[0])), ex: (PB.ex || []).slice(), kw: PB.kw.trim(), name: PB.name.trim(), date: PB.date, hist: PB.i != null && S.packs[PB.i] ? S.packs[PB.i].hist || [] : [] }; S.packs = S.packs || []; if (PB.i != null) S.packs[PB.i] = p; else S.packs.push(p); PK = PB.i != null ? PB.i : S.packs.length - 1; PB = null; touch(); go("pack"); break; }
     case "pkCx": cxFrom = "ex"; cxStart(S.packs[PK].cat, [b.dataset.g]); break;
+    case "pkResume": { const i = FROMPACK; if (i == null) break; PK = i; go("pack"); setTimeout(() => { const n = document.querySelector(".pk-next"); if (n) { n.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" }); n.classList.add("pk-pulse"); } }, 60); break; }
     case "pkOpen": PK = +b.dataset.i; go("pack"); break;
-    case "pkBack": PK = null; setExTab("ctl"); go("ex"); break;
+    case "pkBack": FROMPACK = null; PK = null; setExTab("ctl"); go("ex"); break;
     case "pkEdit": { const p = S.packs[PK]; PB = { cat: p.cat, chs: (p.chs || []).slice(), secs: (p.secs || []).slice(), ex: (p.ex || []).slice(), kw: p.kw || "", name: p.name || "", date: p.date || "", i: PK }; setExTab("ctl"); go("ex"); setTimeout(() => { const e = document.getElementById("pkBuild"); if (e) e.scrollIntoView({ block: "start" }); }, 30); break; }
     case "pkDel": { S.packs.splice(PK, 1); PK = null; touch(); setExTab("ctl"); go("ex"); break; }
     case "pkQuiz": { const d = packData(S.packs[PK]), n = +b.dataset.n, wr = shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), rest = shuffle(d.qs.filter(x => !wr.includes(x))); startRun(wr.concat(rest).slice(0, n), "quiz"); break; }
