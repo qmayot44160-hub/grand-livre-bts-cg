@@ -678,6 +678,31 @@ app.put("/api/progress", auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* ---------- Versions de sa propre progression (sauvegardes quotidiennes + version remplacée) ---------- */
+async function myVersions(uid) {
+  const out = [];
+  try { const pp = await store.getSetting("pp:" + uid); if (pp) { const o = JSON.parse(pp); if (o && o.d) out.push({ id: "pp", at: o.at, d: o.d }); } } catch (e) {}
+  for (const b of await store.listBackups()) {
+    try { const full = await store.getBackup(b.id), dump = JSON.parse(zlib.gunzipSync(Buffer.from(full.blob, "base64")).toString("utf8"));
+      const row = (dump.progress || []).find(p => String(p.user_id) === String(uid)); if (row && row.data) out.push({ id: "b" + b.id, at: b.created, d: typeof row.data === "string" ? JSON.parse(row.data) : row.data }); } catch (e) {}
+  }
+  return out;
+}
+const vSum = d => ({ xp: +d.xp || 0, q: Object.keys(d.q || {}).length, l: Object.keys(d.l || {}).length, u: d.u || 0 });
+app.get("/api/progress/versions", auth, async (req, res, next) => {
+  try { res.setHeader("Cache-Control", "no-store"); const v = await myVersions(req.user.id); res.json({ versions: v.map(x => Object.assign({ id: x.id, at: x.at }, vSum(x.d))).sort((a, b) => b.at - a.at) }); } catch (e) { next(e); }
+});
+app.post("/api/progress/restore", auth, async (req, res, next) => {
+  try {
+    if (limited("rs:" + req.user.id, 10, 3600e3)) return res.status(429).json({ error: "Trop d'essais. Réessaie plus tard." });
+    const v = (await myVersions(req.user.id)).find(x => x.id === String((req.body || {}).id || "")); if (!v) return res.status(404).json({ error: "Version introuvable." });
+    const cur = await store.getProgress(req.user.id);
+    if (cur) await store.setSetting("pp:" + req.user.id, JSON.stringify({ at: Date.now(), d: cur })).catch(() => {});
+    const d = Object.assign({}, v.d, { u: Date.now() }); await store.setProgress(req.user.id, d); CLASS.at = 0;
+    res.json({ ok: true, data: d });
+  } catch (e) { next(e); }
+});
+
 /* ---------- Correction par Claude (facultative) ---------- */
 app.post("/api/sample", auth, async (req, res, next) => {
   try {

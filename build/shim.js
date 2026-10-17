@@ -92,6 +92,7 @@
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
   if (!GUEST) window.GL_AV = function () { return api("GET", "/api/avatars"); };
+  if (!GUEST) window.GL_PV = { list: function () { return api("GET", "/api/progress/versions"); }, restore: function (id) { return api("POST", "/api/progress/restore", { id: id }); } };
   if (!GUEST) window.GL_FRIENDS = {
     list: function () { return api("GET", "/api/friends"); },
     add: function (code) { return api("POST", "/api/friends/add", { code: code }); },

@@ -92,6 +92,7 @@
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
   if (!GUEST) window.GL_AV = function () { return api("GET", "/api/avatars"); };
+  if (!GUEST) window.GL_PV = { list: function () { return api("GET", "/api/progress/versions"); }, restore: function (id) { return api("POST", "/api/progress/restore", { id: id }); } };
   if (!GUEST) window.GL_FRIENDS = {
     list: function () { return api("GET", "/api/friends"); },
     add: function (code) { return api("POST", "/api/friends/add", { code: code }); },
@@ -4022,6 +4023,19 @@ function bkApply(d) {
   try { localStorage.setItem("gl-backup-prev", JSON.stringify(S)); } catch (e) {}
   S = JSON.parse(JSON.stringify(d)); normS(); if (syncUid) S.uid = syncUid; S.u = Date.now(); renderTop.xp = S.xp; dirty = true; forceSave = true; touch(); render();
 }
+/* Versions de la progression gardées par le serveur (sauvegardes quotidiennes) */
+let PV = { list: null, busy: false, err: "" };
+function pvLoad(force) {
+  if (!window.GL_PV || PV.busy || (PV.list && !force)) return; PV.busy = true;
+  window.GL_PV.list().then(j => { PV.list = j.versions || []; PV.err = ""; }).catch(e => { PV.err = (e && e.message) || "Impossible de charger les versions."; PV.list = PV.list || []; }).then(() => { PV.busy = false; if (view === "profil") render(); });
+}
+function pvSection() {
+  if (!window.GL_PV) return ""; pvLoad();
+  const fd = t => new Date(t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return `<section class="stack"><div class="sec-head"><h2>Récupérer une ancienne version</h2><p>Le serveur garde une copie de ta progression chaque jour (7 derniers jours), plus la version d'avant le dernier remplacement. Tu peux revenir à l'une d'elles.</p></div>
+    ${!PV.list ? `<div class="empty">Chargement des versions…</div>` : !PV.list.length ? `<div class="empty">${PV.err ? h(PV.err) : "Pas encore de version sauvegardée."}</div>` : `<div class="pf-set">${PV.list.map(v => `<div class="pf-row"><div><b>${v.id === "pp" ? "Avant le dernier remplacement" : "Sauvegarde du " + h(fd(v.at))}</b><span>${v.xp} XP · ${v.q} questions travaillées · ${v.l} leçons lues${v.u ? " · dernière activité " + h(fd(v.u)) : ""}</span></div><button class="btn small" data-act="pvRestore" data-id="${h(v.id)}" data-xp="${v.xp}">Restaurer</button></div>`).join("")}</div>`}
+    <p class="muted small">Ta progression actuelle (${S.xp} XP) est gardée de côté avant toute restauration : tu peux annuler en restaurant « Avant le dernier remplacement ».</p></section>`;
+}
 let PFT = (() => { let t = "prog"; try { t = localStorage.getItem("gl-pft") || "prog"; } catch (e) {} return { t: ["prog", "set", "acc"].includes(t) ? t : "prog", lad: false }; })();
 function vProfil() {
   const p = P(), L = levelOf(S.xp), span = L.next ? L.next - L.floor : 1, prog = L.next ? Math.round((S.xp - L.floor) / span * 100) : 100;
@@ -4093,7 +4107,7 @@ function vProfil() {
       </div>
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
     </section>` : ""}
-    ${PFT.t === "acc" ? `<div class="pf-settings" aria-hidden="true"></div>
+    ${PFT.t === "acc" ? `<div class="pf-settings" aria-hidden="true"></div>${pvSection()}
     ${(S.rp || []).length ? `<section class="stack"><div class="sec-head"><h2>Mes signalements</h2><p>${S.rp.length} erreur${S.rp.length > 1 ? "s" : ""} signalée${S.rp.length > 1 ? "s" : ""}, gardée${S.rp.length > 1 ? "s" : ""} ici. Copie-les et envoie-les pour qu'elles soient corrigées.</p></div>
       <div class="rep-list">${S.rp.slice(0, 20).map(r => `<div class="rep-it"><small>${h(REP_KIND[r.t] || r.t)} · ${new Date(r.d).toLocaleDateString("fr-FR")}</small><b>${h(r.ch)}</b><span>« ${h(r.l)} »</span>${r.cm ? `<em>${h(r.cm)}</em>` : ""}</div>`).join("")}</div>
       <div class="row"><button class="btn" data-act="repCopy">Copier mes signalements</button><button class="btn" data-act="repClear">Vider la liste</button></div></section>` : ""}
@@ -8219,6 +8233,7 @@ document.addEventListener("click", e => {
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
     case "pfTab": PFT.t = b.dataset.t; try { localStorage.setItem("gl-pft", PFT.t); } catch (e) {} render(); break;
+    case "pvRestore": { const id = b.dataset.id; askConfirm("Restaurer cette version ?", `Ta progression passera à ${b.dataset.xp} XP, sur tous tes appareils. La version actuelle (${S.xp} XP) est gardée de côté.`, "Restaurer").then(ok => { if (!ok) return; window.GL_PV.restore(id).then(j => { keepCopy(S); S = JSON.parse(JSON.stringify(j.data)); normS(); if (syncUid) S.uid = syncUid; dirty = false; saveLocal(); PV.list = null; renderTop.xp = S.xp; render(); toast("Progression restaurée"); confettiBurst(30); }).catch(e => toast((e && e.message) || "Restauration impossible")); }); break; }
     case "plCfg": { PLSET = true; const p = plCfg(); p[b.dataset.k] = +b.dataset.v; touch(); render(); break; }
     case "plRebuild": { const p = plCfg(), prev = p.cur && p.cur.prevFocus || []; p.cur = Object.assign(plBuild(weekId(), prev), { prevFocus: prev }); touch(); render(); toast("Plan de la semaine recalculé"); break; }
     case "plLesson": { const c = b.dataset.cat; let t = null; for (const cid of coursesOf(c)) { for (let k = 1; k <= nLessons(cid); k++) if (!isRead(cid, k)) { t = { cid, k }; break; } if (t) break; } if (t) openLesson(t.cid, t.k); else toast("Toutes les leçons de cette matière sont lues"); break; }
