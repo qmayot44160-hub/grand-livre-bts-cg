@@ -1651,6 +1651,20 @@ select[data-fi] { width: 100%; max-width: 100%; }
 @media (max-width: 640px) { .wk-sheet { align-items: flex-end; padding: 0; } .wk-box { border-radius: 18px 18px 0 0; width: 100%; padding-bottom: calc(20px + env(safe-area-inset-bottom)); } }
 
 
+/* Calculs express */
+.cx-all { border-left-color: var(--accent); background: var(--accent-soft); }
+.cx-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cx-in { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 320px; background: var(--paper); border: 2px solid var(--rule-strong); border-radius: 12px; padding: 0 14px; transition: border-color .15s, box-shadow .15s; }
+.cx-in:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.cx-in input { flex: 1; min-width: 0; border: 0; background: none; font: 700 1.25rem var(--f-mono, monospace); color: var(--ink); padding: 12px 0; outline: none; }
+.cx-in span { font-weight: 800; color: var(--muted); }
+.cx-in.ok { border-color: var(--ok); background: var(--ok-bg); } .cx-in.ko { border-color: var(--bad); background: var(--bad-bg); }
+.cx-hint { margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 18%, var(--sheet)); font-size: .92rem; }
+.cx-steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; } .cx-steps li { line-height: 1.45; } .cx-steps li::marker { color: var(--c, var(--accent)); font-weight: 800; }
+.cx-score { font: 800 3rem/1 var(--f-display); margin: 4px 0; }
+.cx-ko { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .cx-ko li { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-left: 4px solid var(--c); background: var(--paper); border-radius: 8px; font-weight: 600; }
+.cx-ko .mini { font-size: .76rem; font-weight: 800; color: var(--c); }
+
 /* Profil : onglets et version compacte */
 .pf-more { color: rgba(255,255,255,.85); }
 .pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
@@ -3460,7 +3474,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -4367,6 +4381,7 @@ function matTrain(c) {
       <button class="mode" data-act="quizCat" data-cat="${c.id}"><b>Quiz plus long</b><span>Choisis 20 ou 40 questions, ou mélange avec d'autres matières.</span></button>
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
+    ${CXG.some(g => g.cat === c.id) ? cxHome(c.id) : ""}
     ${dosSection(c.id)}
     ${SCH.some(x => x.cat === c.id) ? schHome(c.id) : ""}
     ${(GCBY[c.id] || []).length ? `<div class="ex-group"><h2>Exercices guidés</h2><p class="muted">Un exercice type examen découpé en étapes : tu rédiges, puis tu débloques le corrigé de chaque étape.</p><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></div>` : ""}
@@ -5560,7 +5575,7 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; return t === "duel" ? "quiz" : t; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
@@ -6250,7 +6265,7 @@ function vExHome() {
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>` : ""}
-    ${EXT === "chiffres" ? `<section class="stack">${dosSection()}</section>` : ""}
+    ${EXT === "chiffres" ? `<section class="stack">${cxHome()}${dosSection()}</section>` : ""}
     ${EXT === "annales" ? `<div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div><section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
       <div class="picker" role="tablist" aria-label="Épreuve">
@@ -7778,6 +7793,243 @@ function avSheet() {
   document.body.appendChild(el); tone("open");
 }
 
+/* ---------- Calculs express : un calcul à la fois, réponse tapée, correction pas à pas, sans chrono ---------- */
+const CXG = [
+  /* P1 Opérations commerciales */
+  { id: "tvadec", cat: "p1", t: "TVA à décaisser", make() {
+    const col = ri(40, 160) * 100, abs = r2(col * pk([.3, .4, .45, .5])), imm = pk([0, ri(5, 30) * 100]), cr = pk([0, 0, ri(2, 10) * 100]), d = r2(col - abs - imm - cr);
+    return { q: `Ce mois-ci : TVA collectée ${fmt(col)} €, TVA déductible sur biens et services ${fmt(abs)} €${imm ? `, TVA déductible sur immobilisations ${fmt(imm)} €` : ""}${cr ? `, crédit de TVA du mois précédent ${fmt(cr)} €` : ""}. Quelle TVA faut-il décaisser ?`, a: d, u: "€",
+      hint: "TVA à décaisser = TVA collectée − TVA déductible (biens et services + immobilisations) − crédit antérieur.",
+      steps: [`TVA déductible totale = ${fmt(abs)}${imm ? " + " + fmt(imm) : ""} = ${fmt(abs + imm)} €`, `${fmt(col)} − ${fmt(abs + imm)}${cr ? " − " + fmt(cr) : ""} = <b>${fmt(d)} €</b> à décaisser (compte 44551).`] }; } },
+  { id: "netcom", cat: "p1", t: "Net commercial (remises en cascade)", make() {
+    const b = ri(20, 200) * 50, r1 = pk([5, 8, 10, 12, 15]), r2_ = pk([2, 3, 5]), a1 = r2(b * (1 - r1 / 100)), nc = r2(a1 * (1 - r2_ / 100));
+    return { q: `Prix brut ${fmt(b)} € HT. Le client obtient une remise de ${r1} % puis une remise supplémentaire de ${r2_} %. Quel est le net commercial ?`, a: nc, u: "€",
+      hint: "Les remises successives s'appliquent en cascade : chacune sur le montant obtenu après la précédente, jamais additionnées.",
+      steps: [`Après la 1re remise : ${fmt(b)} × (1 − ${r1} %) = ${fmt(a1)} €`, `Après la 2e : ${fmt(a1)} × (1 − ${r2_} %) = <b>${fmt(nc)} €</b>`, `Piège : ${r1 + r2_} % d'un coup donnerait ${fmt(r2(b * (1 - (r1 + r2_) / 100)))} €, c'est faux.`] }; } },
+  { id: "ttc", cat: "p1", t: "Du net commercial au TTC", make() {
+    const nc = ri(20, 200) * 50, e = pk([1, 2, 3]), port = pk([0, 40, 60, 90, 120]), ea = r2(nc * e / 100), nf = r2(nc - ea), ht = r2(nf + port), tv = r2(ht * .2), tt = r2(ht + tv);
+    return { q: `Net commercial ${fmt(nc)} €, escompte de ${e} % pour paiement comptant${port ? `, frais de port facturés ${fmt(port)} € HT` : ""}, TVA 20 %. Quel est le net à payer TTC ?`, a: tt, u: "€",
+      hint: "Ordre : net commercial − escompte = net financier ; + port = total HT ; + TVA = TTC.",
+      steps: [`Escompte = ${fmt(nc)} × ${e} % = ${fmt(ea)} € → net financier ${fmt(nf)} €`, ...(port ? [`+ port ${fmt(port)} € = total HT ${fmt(ht)} €`] : []), `TVA = ${fmt(ht)} × 20 % = ${fmt(tv)} €`, `TTC = ${fmt(ht)} + ${fmt(tv)} = <b>${fmt(tt)} €</b>`] }; } },
+  { id: "htttc", cat: "p1", t: "Retrouver le HT à partir du TTC", make() {
+    const tx = pk([20, 20, 10, 5.5]), ht = ri(40, 900) * 5, tt = r2(ht * (1 + tx / 100));
+    return { q: `Une facture affiche ${fmt(tt)} € TTC, TVA à ${fmt(tx)} %. Quel est le montant HT ?`, a: ht, u: "€",
+      hint: `HT = TTC ÷ (1 + taux). On ne retire jamais ${fmt(tx)} % du TTC.`,
+      steps: [`HT = ${fmt(tt)} ÷ ${String(1 + tx / 100).replace(".", ",")} = <b>${fmt(ht)} €</b>`, `Vérification : ${fmt(ht)} × ${fmt(tx)} % = ${fmt(r2(tt - ht))} € de TVA.`] }; } },
+  { id: "agios", cat: "p1", t: "Intérêts d'escompte d'un effet", make() {
+    const v = ri(10, 120) * 100, t = pk([4, 4.5, 5, 5.5, 6]), j = ri(20, 90), it = r2(v * t / 100 * j / 360);
+    return { q: `Un effet de ${fmt(v)} € est remis à l'escompte ${j} jours avant son échéance, au taux de ${fmt(t)} % par an (année de 360 jours). Combien d'intérêts la banque retient-elle ?`, a: it, u: "€",
+      hint: "Intérêts = valeur nominale × taux × jours ÷ 360.",
+      steps: [`${fmt(v)} × ${fmt(t)} % × ${j} ÷ 360 = <b>${fmt(it)} €</b>`, "Ils sont débités au compte 6616 (intérêts bancaires et sur opérations de financement)."] }; } },
+  { id: "coef", cat: "p1", t: "Prix de vente avec un coefficient", make() {
+    const pa = ri(10, 300), k = pk([1.4, 1.5, 1.6, 1.8, 2, 2.2, 2.5]), pv = r2(pa * k), tm = r2((pv - pa) / pv * 100);
+    return { q: `Un article est acheté ${fmt(pa)} € HT et revendu avec un coefficient multiplicateur de ${String(k).replace(".", ",")}. Quel est le taux de marque (marge ÷ prix de vente HT) ?`, a: tm, u: "%", tol: .1,
+      hint: "Prix de vente HT = prix d'achat × coefficient ; taux de marque = marge ÷ prix de vente HT.",
+      steps: [`PV HT = ${fmt(pa)} × ${String(k).replace(".", ",")} = ${fmt(pv)} €`, `Marge = ${fmt(pv)} − ${fmt(pa)} = ${fmt(r2(pv - pa))} €`, `Taux de marque = ${fmt(r2(pv - pa))} ÷ ${fmt(pv)} = <b>${fmt(tm)} %</b> (taux de marge, lui : ${fmt(r2((k - 1) * 100))} %)`] }; } },
+  /* P2 Inventaire */
+  { id: "amlin", cat: "p2", t: "Dotation linéaire avec prorata", make() {
+    const v = ri(6, 80) * 1000, n = pk([4, 5, 8, 10]), m = ri(2, 12), mo = 13 - m, an = r2(v / n), d = r2(an * mo / 12);
+    return { q: `Un matériel de ${fmt(v)} € HT est mis en service le 1er ${MOIS[m - 1]} N, amorti en linéaire sur ${n} ans. Clôture au 31 décembre. Quelle est la dotation de N ?`, a: d, u: "€",
+      hint: "Annuité pleine = valeur ÷ durée, puis prorata en mois depuis la mise en service.",
+      steps: [`Annuité pleine = ${fmt(v)} ÷ ${n} = ${fmt(an)} €`, `De ${MOIS[m - 1]} à décembre : ${mo} mois`, `${fmt(an)} × ${mo}/12 = <b>${fmt(d)} €</b>`] }; } },
+  { id: "amdeg", cat: "p2", t: "Première dotation en dégressif", make() {
+    const v = ri(8, 60) * 1000, n = pk([3, 4, 5, 6, 8]), c = n <= 4 ? 1.25 : n <= 6 ? 1.75 : 2.25, t = r2(100 / n * c), m = ri(1, 12), mo = 13 - m, d = r2(v * t / 100 * mo / 12);
+    return { q: `Une machine de ${fmt(v)} € HT, acquise le ${ri(2, 27)} ${MOIS[m - 1]} N, est amortie en dégressif sur ${n} ans (coefficient ${String(c).replace(".", ",")}). Clôture au 31/12. Quelle est la dotation de N ?`, a: d, u: "€",
+      hint: "Taux = 100 ÷ durée × coefficient. Le prorata part du 1er jour du mois d'acquisition.",
+      steps: [`Taux = 100 ÷ ${n} × ${String(c).replace(".", ",")} = ${fmt(t)} %`, `Prorata : ${mo} mois (on compte le mois d'acquisition en entier)`, `${fmt(v)} × ${fmt(t)} % × ${mo}/12 = <b>${fmt(d)} €</b>`] }; } },
+  { id: "vnc", cat: "p2", t: "Valeur nette comptable", make() {
+    const v = ri(10, 90) * 1000, n = pk([5, 8, 10]), k = ri(1, n - 1), an = r2(v / n), cum = r2(an * k), vn = r2(v - cum);
+    return { q: `Un bien de ${fmt(v)} € est amorti en linéaire sur ${n} ans, depuis le 1er janvier. Quelle est sa VNC après ${k} exercice${k > 1 ? "s" : ""} complet${k > 1 ? "s" : ""} ?`, a: vn, u: "€",
+      hint: "VNC = valeur d'origine − amortissements cumulés.",
+      steps: [`Annuité = ${fmt(v)} ÷ ${n} = ${fmt(an)} €`, `Cumul = ${fmt(an)} × ${k} = ${fmt(cum)} €`, `VNC = ${fmt(v)} − ${fmt(cum)} = <b>${fmt(vn)} €</b>`] }; } },
+  { id: "cession", cat: "p2", t: "Résultat de cession", make() {
+    const v = ri(10, 60) * 1000, am = r2(v * pk([.3, .45, .6, .75])), vn = r2(v - am), px = Math.max(500, Math.round(vn * pk([.6, .85, 1.15, 1.4]) / 100) * 100), res = r2(px - vn);
+    return { q: `Une machine achetée ${fmt(v)} €, amortie à hauteur de ${fmt(am)} €, est cédée ${fmt(px)} € HT. Quel est le résultat de cession (négatif si moins-value) ?`, a: res, u: "€",
+      hint: "Résultat de cession = prix de cession − VNC.",
+      steps: [`VNC = ${fmt(v)} − ${fmt(am)} = ${fmt(vn)} €`, `${fmt(px)} − ${fmt(vn)} = <b>${fmt(res)} €</b> → ${res >= 0 ? "plus-value" : "moins-value"}`, "Depuis le PCG 2025 : prix au 757, VNC au 657."] }; } },
+  { id: "cca", cat: "p2", t: "Charge constatée d'avance", make() {
+    const p = ri(6, 48) * 100, m = ri(2, 12), dans = 13 - m, cca = r2(p * (12 - dans) / 12);
+    return { q: `Une prime d'assurance annuelle de ${fmt(p)} € couvre la période du 1er ${MOIS[m - 1]} N au ${m === 1 ? "31 décembre N" : "dernier jour de " + MOIS[m - 2] + " N+1"}. Clôture au 31/12/N. Quelle charge constatée d'avance faut-il enregistrer ?`, a: cca, u: "€",
+      hint: "La CCA correspond aux mois qui concernent l'exercice suivant.",
+      steps: [`Mois sur N : ${dans} ; mois sur N+1 : ${12 - dans}`, `${fmt(p)} × ${12 - dans}/12 = <b>${fmt(cca)} €</b> (débit 486, crédit 616)`] }; } },
+  { id: "depcli", cat: "p2", t: "Dépréciation d'une créance douteuse", make() {
+    const ht = ri(10, 80) * 100, tt = r2(ht * 1.2), pc = pk([20, 30, 40, 50, 60, 70]), dep = r2(ht * pc / 100);
+    return { q: `Un client doit ${fmt(tt)} € TTC (TVA 20 %). On estime la perte probable à ${pc} %. Quel montant de dépréciation faut-il constater ?`, a: dep, u: "€",
+      hint: "La dépréciation se calcule sur le montant HORS TAXES : la TVA sera récupérée si la créance devient irrécouvrable.",
+      steps: [`HT = ${fmt(tt)} ÷ 1,2 = ${fmt(ht)} €`, `${fmt(ht)} × ${pc} % = <b>${fmt(dep)} €</b> (6817 / 491)`] }; } },
+  { id: "rlegale", cat: "p2", t: "Dotation à la réserve légale", make() {
+    const cap = ri(5, 40) * 10000, b = ri(8, 90) * 1000, ex = r2(cap * pk([0, .02, .05, .08, .095])), max = r2(cap * .1 - ex), five = r2(b * .05), d = Math.max(0, Math.min(five, max));
+    return { q: `Capital ${fmt(cap)} €, réserve légale déjà constituée ${fmt(ex)} €, bénéfice de l'exercice ${fmt(b)} € (pas de pertes antérieures). Quelle dotation à la réserve légale ?`, a: d, u: "€",
+      hint: "5 % du bénéfice, jusqu'à ce que la réserve atteigne 10 % du capital.",
+      steps: [`5 % du bénéfice = ${fmt(five)} €`, `Plafond restant = 10 % × ${fmt(cap)} − ${fmt(ex)} = ${fmt(max)} €`, `On retient le plus petit : <b>${fmt(d)} €</b>`] }; } },
+  /* P3 Fiscalité */
+  { id: "is", cat: "p3", t: "Calcul de l'IS (PME éligible)", make() {
+    const b = ri(15, 200) * 1000, low = Math.min(b, 42500), is = r2(low * .15 + Math.max(0, b - 42500) * .25);
+    return { q: `Une PME remplit les conditions du taux réduit. Son bénéfice fiscal est de ${fmt(b)} €. Quel est le montant de l'IS ?`, a: is, u: "€",
+      hint: "15 % jusqu'à 42 500 €, puis 25 % sur la partie au-delà.",
+      steps: [`15 % × ${fmt(low)} = ${fmt(r2(low * .15))} €`, ...(b > 42500 ? [`25 % × (${fmt(b)} − 42 500) = 25 % × ${fmt(b - 42500)} = ${fmt(r2((b - 42500) * .25))} €`] : []), `IS = <b>${fmt(is)} €</b>`] }; } },
+  { id: "rfisc", cat: "p3", t: "Résultat fiscal", make() {
+    const rc = ri(20, 150) * 1000, am = ri(2, 30) * 100, isv = ri(5, 30) * 1000, tvs = ri(5, 25) * 100, div = pk([0, ri(5, 40) * 500]), rf = r2(rc + am + isv + tvs - div);
+    return { q: `Résultat comptable ${fmt(rc)} €. Il comprend : amendes ${fmt(am)} €, IS comptabilisé ${fmt(isv)} €, taxes annuelles sur les véhicules de tourisme ${fmt(tvs)} €${div ? `, et des dividendes de filiale exonérés (régime mère-fille, quote-part de frais déjà réintégrée) de ${fmt(div)} €` : ""}. Quel est le résultat fiscal ?`, a: rf, u: "€",
+      hint: "Résultat fiscal = résultat comptable + charges non déductibles − produits non imposables.",
+      steps: [`Réintégrations : ${fmt(am)} + ${fmt(isv)} + ${fmt(tvs)} = ${fmt(am + isv + tvs)} €`, ...(div ? [`Déduction : ${fmt(div)} €`] : []), `${fmt(rc)} + ${fmt(am + isv + tvs)}${div ? " − " + fmt(div) : ""} = <b>${fmt(rf)} €</b>`] }; } },
+  { id: "acpt", cat: "p3", t: "Acompte d'IS", make() {
+    const r = ri(8, 120) * 1000, isr = r2(Math.min(r, 42500) * .15 + Math.max(0, r - 42500) * .25), ac = r2(isr / 4);
+    return { q: `L'IS de l'exercice précédent s'élève à ${fmt(isr)} €. Quel est le montant de chaque acompte trimestriel de cette année ?`, a: ac, u: "€",
+      hint: "4 acomptes égaux de 25 % de l'IS de référence (dès qu'il dépasse 3 000 €).",
+      steps: [`${fmt(isr)} × 25 % = <b>${fmt(ac)} €</b>, versés les 15 mars, 15 juin, 15 septembre et 15 décembre (clôture au 31/12).`] }; } },
+  { id: "solde", cat: "p3", t: "Solde d'IS", make() {
+    const ac = ri(2, 20) * 500, tot = ac * 4, isn = r2(tot * pk([.7, .9, 1.1, 1.25, 1.4]) / 10) * 10, s = r2(isn - tot);
+    return { q: `L'entreprise a versé 4 acomptes de ${fmt(ac)} €. L'IS réel de l'exercice est de ${fmt(isn)} €. Quel est le solde au 15 mai (négatif si excédent remboursé) ?`, a: s, u: "€",
+      hint: "Solde = IS réel − total des acomptes versés.",
+      steps: [`Acomptes = 4 × ${fmt(ac)} = ${fmt(tot)} €`, `${fmt(isn)} − ${fmt(tot)} = <b>${fmt(s)} €</b> ${s >= 0 ? "à payer" : "remboursés à l'entreprise"}`] }; } },
+  { id: "ca12", cat: "p3", t: "Acomptes de TVA au réel simplifié", make() {
+    const b = ri(20, 200) * 100, jul = r2(b * .55), dec = r2(b * .4), which = pk(["juillet", "décembre"]);
+    return { q: `Au réel simplifié, la TVA due l'an dernier, avant déduction de la TVA sur immobilisations, est de ${fmt(b)} €. Quel est l'acompte de ${which} ?`, a: which === "juillet" ? jul : dec, u: "€",
+      hint: "Acompte de juillet : 55 % ; acompte de décembre : 40 % de la TVA due l'année précédente.",
+      steps: [`${which === "juillet" ? "55" : "40"} % × ${fmt(b)} = <b>${fmt(which === "juillet" ? jul : dec)} €</b>`, "Le solde est régularisé avec la déclaration annuelle CA12."] }; } },
+  { id: "amvp", cat: "p3", t: "Amortissement non déductible d'une voiture", make() {
+    const pl = pk([18300, 20300, 30000]), px = ri(Math.ceil(pl / 1000) + 3, 60) * 1000, n = 5, an = r2(px / n), ri_ = r2(an * (px - pl) / px);
+    return { q: `Une voiture de tourisme achetée ${fmt(px)} € TTC est amortie en linéaire sur ${n} ans (année entière). Le plafond fiscal applicable est de ${fmt(pl)} €. Quel montant d'amortissement faut-il réintégrer ?`, a: ri_, u: "€",
+      hint: "Réintégration = dotation × (prix − plafond) ÷ prix, ou dotation − plafond ÷ durée.",
+      steps: [`Dotation comptable = ${fmt(px)} ÷ ${n} = ${fmt(an)} €`, `Dotation déductible = ${fmt(pl)} ÷ ${n} = ${fmt(r2(pl / n))} €`, `Réintégration = ${fmt(an)} − ${fmt(r2(pl / n))} = <b>${fmt(ri_)} €</b>`] }; } },
+  /* P4 Social et paie */
+  { id: "brut", cat: "p4", t: "Salaire brut avec heures supplémentaires", make() {
+    const th = r2(ri(1250, 2200) / 100), base = r2(th * 151.67), hs = ri(2, 8), hsv = r2(hs * th * 1.25), b = r2(base + hsv);
+    return { q: `Taux horaire ${fmt(th)} €, 151,67 h par mois. Le salarié a fait ${hs} heures supplémentaires majorées à 25 %. Quel est son salaire brut ?`, a: b, u: "€", tol: .05,
+      hint: "Brut = salaire de base + heures sup × taux horaire × 1,25.",
+      steps: [`Base = ${fmt(th)} × 151,67 = ${fmt(base)} €`, `Heures sup = ${hs} × ${fmt(th)} × 1,25 = ${fmt(hsv)} €`, `Brut = <b>${fmt(b)} €</b>`] }; } },
+  { id: "csg", cat: "p4", t: "CSG et CRDS", make() {
+    const b = ri(1800, 4500), base = r2(b * .9825), m = r2(base * .097);
+    return { q: `Salaire brut ${fmt(b)} €. Calcule le total CSG + CRDS (taux global 9,7 %, assiette 98,25 % du brut).`, a: m, u: "€", tol: .05,
+      hint: "Assiette = 98,25 % du brut (abattement de 1,75 % pour frais), puis × 9,7 % (CSG 9,2 % + CRDS 0,5 %).",
+      steps: [`Assiette = ${fmt(b)} × 98,25 % = ${fmt(base)} €`, `${fmt(base)} × 9,7 % = <b>${fmt(m)} €</b>`] }; } },
+  { id: "net", cat: "p4", t: "Net à payer avant impôt", make() {
+    const b = ri(1800, 4000), t = pk([21, 22, 22.5, 23]), c = r2(b * t / 100), n = r2(b - c);
+    return { q: `Salaire brut ${fmt(b)} €. L'ensemble des retenues salariales (cotisations, CSG, CRDS) représente ${fmt(t)} % du brut. Quel est le net à payer avant impôt ?`, a: n, u: "€", tol: .05,
+      hint: "Net avant impôt = brut − retenues salariales.",
+      steps: [`Retenues = ${fmt(b)} × ${fmt(t)} % = ${fmt(c)} €`, `${fmt(b)} − ${fmt(c)} = <b>${fmt(n)} €</b>`] }; } },
+  { id: "cout", cat: "p4", t: "Coût total employeur", make() {
+    const b = ri(1800, 4000), t = pk([25, 28, 30, 35, 40, 42]), c = r2(b * (1 + t / 100));
+    return { q: `Salaire brut ${fmt(b)} €, cotisations patronales de ${t} % du brut. Quel est le coût total pour l'employeur ?`, a: c, u: "€", tol: .05,
+      hint: "Coût employeur = brut + cotisations patronales.",
+      steps: [`Cotisations patronales = ${fmt(b)} × ${t} % = ${fmt(r2(b * t / 100))} €`, `${fmt(b)} + ${fmt(r2(b * t / 100))} = <b>${fmt(c)} €</b>`] }; } },
+  { id: "pas", cat: "p4", t: "Prélèvement à la source", make() {
+    const ni = ri(1500, 3800), t = pk([2.5, 4.2, 5.8, 7.5, 9.1, 11.3]), p = r2(ni * t / 100);
+    return { q: `Net imposable du mois ${fmt(ni)} €, taux personnalisé de prélèvement à la source ${fmt(t)} %. Quel montant est prélevé ?`, a: p, u: "€", tol: .05,
+      hint: "PAS = net imposable × taux transmis par l'administration fiscale.",
+      steps: [`${fmt(ni)} × ${fmt(t)} % = <b>${fmt(p)} €</b>`, "Il est retenu sur le net à payer, puis reversé via la DSN."] }; } },
+  { id: "cp", cat: "p4", t: "Indemnité de congés payés (règle du dixième)", make() {
+    const b = ri(20, 45) * 1000, cp = r2(b / 10);
+    return { q: `Sur la période de référence, le salarié a perçu ${fmt(b)} € de salaire brut. Selon la règle du dixième, quelle indemnité pour l'ensemble de ses congés acquis ?`, a: cp, u: "€",
+      hint: "Règle du dixième : 10 % de la rémunération brute de la période de référence. On retient la plus favorable avec le maintien de salaire.",
+      steps: [`${fmt(b)} × 10 % = <b>${fmt(cp)} €</b>`] }; } },
+  /* P5 Contrôle de gestion */
+  { id: "sr", cat: "p5", t: "Seuil de rentabilité", make() {
+    const ca = ri(20, 120) * 10000, tcv = pk([.4, .5, .55, .6, .65, .7]), cf = r2(ca * (1 - tcv) * pk([.5, .6, .7, .8])), mcv = r2(ca * (1 - tcv)), sr = r2(cf / (1 - tcv));
+    return { q: `CA ${fmt(ca)} €, charges variables ${fmt(r2(ca * tcv))} €, charges fixes ${fmt(cf)} €. Quel est le seuil de rentabilité ?`, a: sr, u: "€",
+      hint: "SR = charges fixes ÷ taux de marge sur coût variable.",
+      steps: [`MCV = ${fmt(ca)} − ${fmt(r2(ca * tcv))} = ${fmt(mcv)} €`, `Taux de MCV = ${fmt(mcv)} ÷ ${fmt(ca)} = ${fmt(r2((1 - tcv) * 100))} %`, `SR = ${fmt(cf)} ÷ ${String(r2(1 - tcv)).replace(".", ",")} = <b>${fmt(sr)} €</b>`] }; } },
+  { id: "pm", cat: "p5", t: "Point mort (en jours)", make() {
+    const ca = ri(30, 120) * 10000, sr = r2(ca * pk([.4, .5, .6, .75])), pm = r2(sr / ca * 360);
+    return { q: `CA annuel ${fmt(ca)} €, seuil de rentabilité ${fmt(sr)} €, activité régulière sur l'année (360 jours). Au bout de combien de jours le point mort est-il atteint ?`, a: pm, u: "jours", tol: .5,
+      hint: "Point mort = SR ÷ CA × 360 jours (ou × 12 mois).",
+      steps: [`${fmt(sr)} ÷ ${fmt(ca)} × 360 = <b>${fmt(pm)} jours</b>`] }; } },
+  { id: "cmup", cat: "p5", t: "Coût moyen unitaire pondéré", make() {
+    const q1 = ri(5, 40) * 10, p1 = r2(ri(400, 900) / 100), q2 = ri(5, 40) * 10, p2 = r2(p1 + pk([-.4, -.2, .2, .35, .5])), c = r2((q1 * p1 + q2 * p2) / (q1 + q2));
+    return { q: `Stock initial : ${q1} unités à ${fmt(p1)} €. Entrée du mois : ${q2} unités à ${fmt(p2)} €. Quel est le CMUP (fin de période) ?`, a: c, u: "€", tol: .01,
+      hint: "CMUP = (valeur du stock initial + valeur des entrées) ÷ (quantités totales).",
+      steps: [`Valeur = ${q1} × ${fmt(p1)} + ${q2} × ${fmt(p2)} = ${fmt(r2(q1 * p1 + q2 * p2))} €`, `Quantités = ${q1 + q2}`, `CMUP = <b>${fmt(c)} €</b>`] }; } },
+  { id: "ecq", cat: "p5", t: "Écart sur quantité de matière", make() {
+    const qp = ri(80, 300) * 10, qr = qp + pk([-1, 1]) * ri(2, 30) * 10, pp = r2(ri(150, 900) / 100), e = r2((qr - qp) * pp);
+    return { q: `Pour la production réelle, la quantité préétablie de matière est ${fmt(qp)} kg à ${fmt(pp)} € le kg. On a réellement consommé ${fmt(qr)} kg. Quel est l'écart sur quantité (positif si défavorable) ?`, a: e, u: "€",
+      hint: "Écart sur quantité = (quantité réelle − quantité préétablie) × prix préétabli.",
+      steps: [`(${fmt(qr)} − ${fmt(qp)}) × ${fmt(pp)} = <b>${fmt(e)} €</b> → ${e > 0 ? "défavorable (on a consommé plus que prévu)" : "favorable"}`] }; } },
+  /* P6 Analyse financière */
+  { id: "caf", cat: "p6", t: "CAF (méthode additive)", make() {
+    const r = ri(10, 120) * 1000, dot = ri(5, 60) * 1000, rep = pk([0, ri(1, 10) * 1000]), vc = pk([0, ri(2, 20) * 1000]), pc = vc ? r2(vc * pk([.6, 1.2, 1.5])) : 0, caf = r2(r + dot - rep + vc - pc);
+    return { q: `Résultat net ${fmt(r)} €, dotations ${fmt(dot)} €${rep ? `, reprises ${fmt(rep)} €` : ""}${vc ? `, valeur comptable des éléments cédés ${fmt(vc)} €, produits de cession ${fmt(pc)} €` : ""}. Quelle est la CAF ?`, a: caf, u: "€",
+      hint: "CAF = résultat + dotations − reprises + valeur comptable des éléments cédés − produits de cession.",
+      steps: [`${fmt(r)} + ${fmt(dot)}${rep ? " − " + fmt(rep) : ""}${vc ? " + " + fmt(vc) + " − " + fmt(pc) : ""} = <b>${fmt(caf)} €</b>`] }; } },
+  { id: "treso", cat: "p6", t: "Trésorerie nette (FRNG − BFR)", make() {
+    const rs = ri(200, 900) * 1000, es = r2(rs * pk([.6, .7, .8, .9])), fr = r2(rs - es), bfr = r2(fr * pk([.5, .8, 1.1, 1.4])), t = r2(fr - bfr);
+    return { q: `Ressources stables ${fmt(rs)} €, emplois stables ${fmt(es)} €, BFR ${fmt(bfr)} €. Quelle est la trésorerie nette ?`, a: t, u: "€",
+      hint: "FRNG = ressources stables − emplois stables ; trésorerie nette = FRNG − BFR.",
+      steps: [`FRNG = ${fmt(rs)} − ${fmt(es)} = ${fmt(fr)} €`, `Trésorerie = ${fmt(fr)} − ${fmt(bfr)} = <b>${fmt(t)} €</b>${t < 0 ? " (négative : dépendance aux concours bancaires)" : ""}`] }; } },
+  { id: "dcli", cat: "p6", t: "Délai de crédit clients", make() {
+    const ca = ri(30, 200) * 10000, j = pk([30, 36, 45, 54, 60, 72]), cl = r2(ca * 1.2 * j / 360);
+    return { q: `CA HT ${fmt(ca)} € (TVA 20 %). Créances clients au bilan : ${fmt(cl)} €. Quel est le délai moyen de crédit clients (année de 360 jours) ?`, a: j, u: "jours", tol: .5,
+      hint: "Délai = créances clients TTC ÷ CA TTC × 360.",
+      steps: [`CA TTC = ${fmt(ca)} × 1,2 = ${fmt(ca * 1.2)} €`, `${fmt(cl)} ÷ ${fmt(ca * 1.2)} × 360 = <b>${j} jours</b>`] }; } },
+  { id: "va", cat: "p6", t: "Valeur ajoutée et EBE", make() {
+    const mc = ri(0, 60) * 1000, pr = ri(100, 600) * 1000, cons = r2(pr * pk([.3, .4, .5])), va = r2(mc + pr - cons), pers = r2(va * pk([.4, .5, .6])), imp = ri(2, 15) * 1000, ebe = r2(va - pers - imp);
+    return { q: `Marge commerciale ${fmt(mc)} €, production de l'exercice ${fmt(pr)} €, consommations en provenance des tiers ${fmt(cons)} €, impôts et taxes ${fmt(imp)} €, charges de personnel ${fmt(pers)} €. Quel est l'EBE ?`, a: ebe, u: "€",
+      hint: "VA = marge + production − consommations des tiers ; EBE = VA (+ subventions) − impôts et taxes − charges de personnel.",
+      steps: [`VA = ${fmt(mc)} + ${fmt(pr)} − ${fmt(cons)} = ${fmt(va)} €`, `EBE = ${fmt(va)} − ${fmt(imp)} − ${fmt(pers)} = <b>${fmt(ebe)} €</b>`] }; } },
+  { id: "annuite", cat: "p6", t: "Annuité constante d'un emprunt", make() {
+    const c = ri(2, 30) * 10000, i = pk([3, 3.5, 4, 4.5, 5]) / 100, n = pk([4, 5, 6, 8, 10]), a = r2(c * i / (1 - Math.pow(1 + i, -n)));
+    return { q: `Emprunt de ${fmt(c)} € au taux annuel de ${fmt(i * 100)} %, remboursable en ${n} annuités constantes. Quel est le montant de chaque annuité ?`, a, u: "€", tol: .002,
+      hint: "Annuité = C × i ÷ (1 − (1 + i)^−n).",
+      steps: [`(1 + ${String(i).replace(".", ",")})^−${n} = ${String(r2(Math.pow(1 + i, -n) * 10000) / 10000).replace(".", ",")}`, `${fmt(c)} × ${String(i).replace(".", ",")} ÷ (1 − ${String(r2(Math.pow(1 + i, -n) * 10000) / 10000).replace(".", ",")}) = <b>${fmt(a)} €</b>`, `1re annuité : intérêts ${fmt(r2(c * i))} € + amortissement ${fmt(r2(a - c * i))} €.`] }; } }
+];
+const CXBY = Object.fromEntries(CXG.map(g => [g.id, g]));
+const cxNum = v => { const t = String(v || "").replace(/[\s  €%]|jours?/gi, "").replace(",", ".").replace("−", "-"); return t === "" || isNaN(+t) ? null : +t; };
+let CX = null, cxFrom = "ex";
+function cxStart(cat, only) {
+  const st = S.cx || {}, pool = CXG.filter(g => (!cat || g.cat === cat) && !lockedCat(g.cat) && (!only || only.includes(g.id)));
+  if (!pool.length) return;
+  const w = g => { const r = st[g.id] || [0, 0]; return 1 + (r[0] ? (1 - r[1] / r[0]) * 3 : 1.5); }; // plus de place aux calculs ratés ou jamais faits
+  const pick = () => { const tot = pool.reduce((s, g) => s + w(g), 0); let x = Math.random() * tot; for (const g of pool) { x -= w(g); if (x <= 0) return g; } return pool[0]; };
+  const list = []; let last = null;
+  for (let k = 0; k < 10; k++) { let g = pick(), guard = 0; while (pool.length > 1 && last && g.id === last && guard++ < 8) g = pick(); last = g.id; list.push(Object.assign({ g: g.id, cat: g.cat, t: g.t }, g.make())); }
+  CX = { cat, list, i: 0, ok: 0, done: false };
+  go("calc");
+}
+function cxCheck() {
+  const it = CX.list[CX.i], el = document.getElementById("cxIn"), v = cxNum(el && el.value); if (v == null) { toast("Tape un nombre (ex. 1 250,50)"); return; }
+  const tol = it.tol != null ? (it.tol < .01 ? Math.abs(it.a) * it.tol : it.tol) : (it.u === "€" ? Math.max(1, Math.abs(it.a) * .001) : .05);
+  it.user = v; it.ok = Math.abs(v - it.a) <= tol + 1e-9; it.shown = true;
+  S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; if (it.ok) r[1]++;
+  if (it.ok) { CX.ok++; S.xp += it.hintUsed ? 2 : 4; } else S.xp += 1;
+  tone(it.ok ? "ok" : "ko"); buzz(it.ok ? 15 : [35, 45, 35]); dayLog().e++; bumpStreak(); touch(); renderTop(); render();
+  setTimeout(() => { const f = document.querySelector(".cx-corr"); if (f) f.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "nearest" }); }, 30);
+}
+function cxHome(cat) {
+  const st = S.cx || {}, cats = ["p1", "p2", "p3", "p4", "p5", "p6"].filter(c => (!cat || c === cat) && CXG.some(g => g.cat === c));
+  const tot = Object.values(st).reduce((a, r) => [a[0] + r[0], a[1] + r[1]], [0, 0]);
+  return `<div class="ex-group cx-home"><h2>Calculs express</h2><p class="muted">10 calculs courts, de nouveaux chiffres à chaque fois, sans chrono. Tu tapes ton résultat et la correction détaille chaque étape. Les calculs que tu rates reviennent plus souvent.${tot[0] ? ` <b>${tot[1]}/${tot[0]}</b> justes jusqu'ici.` : ""}</p>
+    <div class="ex-grid g3">${cat ? "" : `<button class="ex-card cx-all" data-act="cxGo" data-c=""><span class="mini">P1 à P6</span><b>Tout mélanger</b><span class="muted">${CXG.length} types de calculs</span></button>`}
+    ${cats.map(c => { const gs = CXG.filter(g => g.cat === c), d = gs.reduce((a, g) => { const r = st[g.id]; return r ? [a[0] + r[0], a[1] + r[1]] : a; }, [0, 0]);
+      return `<button class="ex-card" style="${hueStyle(c)}" data-act="cxGo" data-c="${c}" data-cat="${c}"><span class="mini">${h(CAT[c].code)}</span><b>${h(CAT[c].name)}</b><span class="muted">${gs.length} types · ${d[0] ? Math.round(d[1] / d[0] * 100) + " % de réussite" : "pas encore fait"}</span></button>`; }).join("")}</div></div>`;
+}
+function cxFocus() { setTimeout(() => { const i = document.getElementById("cxIn"); if (i && !i.disabled && view === "calc") i.focus({ preventScroll: true }); }, 60); }
+function vCalc() { cxFocus(); return vCalc2(); }
+function vCalc2() {
+  if (!CX) return vExHome();
+  if (CX.done) {
+    const ko = CX.list.filter(x => !x.ok), pc = Math.round(CX.ok / CX.list.length * 100);
+    return `<section class="runner ex-runner"><div class="runner-top"><span class="progress-text">Calculs express</span><span class="ep">${CX.cat ? h(CAT[CX.cat].code) : "P1 à P6"}</span></div>
+      <div class="qcard cx-end"><span class="eyebrow">Résultat</span><h2 class="cx-score">${CX.ok}/${CX.list.length}</h2><p>${pc === 100 ? "Sans faute, bravo !" : pc >= 70 ? "Bien joué. Refais ceux qui ont coincé pour les ancrer." : "Ces calculs demandent de la pratique : refais ceux qui ont coincé, avec l'indice si besoin."}</p>
+      ${ko.length ? `<div class="label">À retravailler</div><ul class="cx-ko">${ko.filter((x, i) => ko.findIndex(y => y.g === x.g) === i).map(x => `<li style="${hueStyle(x.cat)}"><span class="mini">${h(CAT[x.cat].code)}</span>${h(x.t)}</li>`).join("")}</ul>` : ""}</div>
+      <div class="row">${ko.length ? `<button class="btn primary" data-act="cxRetry">Refaire ces calculs avec de nouveaux chiffres</button>` : ""}<button class="btn${ko.length ? "" : " primary"}" data-act="cxGo" data-c="${CX.cat || ""}">Nouvelle série</button><button class="btn" data-act="cxBack">Retour</button></div></section>`;
+  }
+  const it = CX.list[CX.i];
+  return `<section class="runner ex-runner cx-run">
+    <div class="runner-top"><span class="progress-text">Calcul ${CX.i + 1} sur ${CX.list.length}</span><span class="ep">${h(CAT[it.cat].code)} · ${h(it.t)}</span></div>
+    <div class="bar" aria-hidden="true"><i style="width:${CX.i / CX.list.length * 100}%"></i></div>
+    <div class="qcard" style="${hueStyle(it.cat)}">
+      <p class="qtext">${it.q}</p>
+      ${it.hintShown && !it.shown ? `<p class="cx-hint">💡 ${h(it.hint)}</p>` : ""}
+      <form class="cx-form" data-cxf="1" autocomplete="off"><label class="cx-in${it.shown ? (it.ok ? " ok" : " ko") : ""}"><input id="cxIn" inputmode="decimal" enterkeyhint="done" placeholder="Ta réponse" aria-label="Ta réponse" value="${it.shown && it.user != null ? h(fmt(it.user)) : ""}" ${it.shown ? "disabled" : ""}><span>${h(it.u)}</span></label>
+      ${it.shown ? "" : `<button class="btn primary" type="submit">Vérifier</button>`}</form>
+      ${it.shown ? `<div class="feedback cx-corr"><span class="verdict ${it.ok ? "ok" : "ko"}">${it.ok ? "Juste !" : `Pas tout à fait : ${fmt(it.a)} ${h(it.u)}`}</span>
+        <div class="label">Correction pas à pas</div><ol class="cx-steps">${it.steps.map(x => `<li>${x}</li>`).join("")}</ol><p class="muted small">Méthode : ${h(it.hint)}</p></div>` : ""}
+    </div>
+    <div class="row">${it.shown ? `<button class="btn primary" data-act="cxNext">${CX.i + 1 < CX.list.length ? "Calcul suivant" : "Voir mon résultat"}</button>` : `<button class="btn" data-act="cxHint" ${it.hintShown ? "disabled" : ""}>Un indice</button><button class="btn" data-act="cxSkip">Voir la correction</button>`}<button class="btn" data-act="cxBack">Quitter</button></div>
+  </section>`;
+}
+
+document.addEventListener("submit", e => { if (e.target.matches && e.target.matches("[data-cxf]")) { e.preventDefault(); cxCheck(); } });
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
@@ -7812,6 +8064,12 @@ document.addEventListener("click", e => {
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
     case "pfTab": PFT.t = b.dataset.t; try { localStorage.setItem("gl-pft", PFT.t); } catch (e) {} render(); break;
+    case "cxGo": cxFrom = view === "mat" ? "mat" : view === "calc" ? cxFrom : "ex"; cxStart(b.dataset.c || ""); break;
+    case "cxHint": { const it = CX.list[CX.i]; it.hintShown = it.hintUsed = true; render(); break; }
+    case "cxSkip": { const it = CX.list[CX.i]; it.user = null; it.ok = false; it.shown = true; S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; touch(); tone("soft"); render(); break; }
+    case "cxNext": if (CX.i + 1 < CX.list.length) { CX.i++; render(); window.scrollTo({ top: 0 }); } else { CX.done = true; if (CX.ok === CX.list.length) { confettiBurst(60); tone("lvl"); } else tone("xp"); render(); window.scrollTo({ top: 0 }); } break;
+    case "cxRetry": cxStart(CX.cat, [...new Set(CX.list.filter(x => !x.ok).map(x => x.g))]); break;
+    case "cxBack": if (cxFrom === "mat") go("mat"); else { setExTab("chiffres"); go("ex"); } break;
     case "avPick": avSheet(); break;
     case "avSet": { const v = b.dataset.av || ""; if (v) S.av = v; else delete S.av; touch(); closeSheet(); render(); renderTop(); tone(v ? "pop" : "soft"); if (v) { toast("Avatar : " + AVK[v].n); confettiBurst(24); } avLoad(true); break; }
     case "scOpen": scFrom = view === "mat" ? "mat" : "ex"; schStart(b.dataset.sid, "voir"); go("schema"); break;
