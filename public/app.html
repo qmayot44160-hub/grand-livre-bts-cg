@@ -5808,6 +5808,7 @@ async function inboxPoll() {
   IB.busy = true;
   try {
     const j = await N.inbox(), items = [];
+    if (j.fsig) { if (IB.fsig && j.fsig !== IB.fsig) { FR.at = 0; FRX = null; loadFriends(true); } IB.fsig = j.fsig; }
     if (j.v) { if (!IB.v) IB.v = j.v; else if (j.v !== IB.v && !IB.upd) { IB.upd = true; IB.q.unshift({ key: "u", kind: "upd", name: "GL", sub: "Recharge pour profiter des dernières améliorations." }); ibNext(); } }
     (j.duels || []).forEach(d => items.push({ key: "d:" + d.id, kind: "duel", id: d.id, name: d.from, sub: d.live ? `${d.n} questions · en direct, ton adversaire t'attend !` : `${d.n} questions${d.score != null ? ` · ${d.score} points à battre` : ""}` }));
     (j.friends || []).forEach(f => items.push({ key: "f:" + f.k + ":" + f.at, kind: "ami", k: f.k, name: f.name, sub: "veut t'ajouter en ami" }));

@@ -465,7 +465,8 @@ app.get("/api/inbox", auth, async (req, res, next) => {
       const mine = d.a.id === me ? d.a : d.b, other = d.a.id === me ? d.b : d.a; if (!mine || !other) continue;
       results.push({ id: d.id, opp: other.name, me: duelScore(mine), them: duelScore(other), lastMine: (mine.at || 0) >= (other.at || 0) });
     }
-    res.json({ duels, friends, accepted, results, v: APP_VER });
+    const fsig = (await store.friendsOf(me)).map(f => (f.a === me ? f.b : f.a).slice(-6) + f.status).sort().join(",");
+    res.json({ duels, friends, accepted, results, v: APP_VER, fsig: crypto.createHash("sha1").update(fsig).digest("hex").slice(0, 10) });
   } catch (e) { next(e); }
 });
 app.get("/api/duels", auth, async (req, res, next) => {
