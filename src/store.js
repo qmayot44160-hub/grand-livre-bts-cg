@@ -26,6 +26,7 @@ function makePg(url) {
       await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE`);
       await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sv INTEGER NOT NULL DEFAULT 0`);
       await q(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)`);
+      await q(`CREATE TABLE IF NOT EXISTS friends (a TEXT NOT NULL, b TEXT NOT NULL, status TEXT NOT NULL, created BIGINT NOT NULL, PRIMARY KEY (a, b))`);
       await q(`CREATE TABLE IF NOT EXISTS duels (id TEXT PRIMARY KEY, a TEXT NOT NULL, b TEXT, data JSONB NOT NULL, updated BIGINT NOT NULL)`);
       await q(`CREATE INDEX IF NOT EXISTS duels_a ON duels(a)`); await q(`CREATE INDEX IF NOT EXISTS duels_b ON duels(b)`);
       await q(`CREATE TABLE IF NOT EXISTS backups (id BIGSERIAL PRIMARY KEY, day TEXT NOT NULL, created BIGINT NOT NULL, size INTEGER NOT NULL, blob TEXT NOT NULL)`);
@@ -48,13 +49,17 @@ function makePg(url) {
     async listBackups() { const r = await q("SELECT id, day, created, size FROM backups ORDER BY created DESC"); return r.rows; },
     async getBackup(id) { const r = await q("SELECT day, blob FROM backups WHERE id=$1", [id]); return r.rows[0] || null; },
     async hasBackup(day) { const r = await q("SELECT 1 FROM backups WHERE day=$1 LIMIT 1", [day]); return !!r.rows.length; },
+    async friendsOf(uid) { const r = await q("SELECT a, b, status, created FROM friends WHERE a=$1 OR b=$1", [uid]); return r.rows; },
+    async friendSet(a, b, status) { await q("INSERT INTO friends(a,b,status,created) VALUES($1,$2,$3,$4) ON CONFLICT (a,b) DO UPDATE SET status=EXCLUDED.status", [a, b, status, Date.now()]); },
+    async friendDel(a, b) { await q("DELETE FROM friends WHERE (a=$1 AND b=$2) OR (a=$2 AND b=$1)", [a, b]); },
+    async usersAll() { const r = await q("SELECT id, name, blocked FROM users"); return r.rows; },
     async duelGet(id) { const r = await q("SELECT data FROM duels WHERE id=$1", [id]); return r.rows[0] ? r.rows[0].data : null; },
     async duelPut(x) { await q("INSERT INTO duels(id,a,b,data,updated) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO UPDATE SET b=EXCLUDED.b, data=EXCLUDED.data, updated=EXCLUDED.updated", [x.id, x.a.id, x.b ? x.b.id : null, x, Date.now()]); },
     async duelsOf(uid) { const r = await q("SELECT data FROM duels WHERE a=$1 OR b=$1 ORDER BY updated DESC LIMIT 30", [uid]); return r.rows.map(x => x.data); },
     async duelPurge(before) { await q("DELETE FROM duels WHERE updated < $1", [before]); },
     async getSetting(k) { const r = await q("SELECT v FROM settings WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
     async setSetting(k, v) { await q("INSERT INTO settings(k,v) VALUES($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, v]); },
-    async deleteUser(id) { await q("DELETE FROM duels WHERE a=$1 OR b=$1", [id]); await q("DELETE FROM ai_usage WHERE user_id=$1", [id]); await q("DELETE FROM push_subs WHERE user_id=$1", [id]); await q("DELETE FROM progress WHERE user_id=$1", [id]); await q("DELETE FROM users WHERE id=$1", [id]); },
+    async deleteUser(id) { await q("DELETE FROM friends WHERE a=$1 OR b=$1", [id]); await q("DELETE FROM duels WHERE a=$1 OR b=$1", [id]); await q("DELETE FROM ai_usage WHERE user_id=$1", [id]); await q("DELETE FROM push_subs WHERE user_id=$1", [id]); await q("DELETE FROM progress WHERE user_id=$1", [id]); await q("DELETE FROM users WHERE id=$1", [id]); },
     async addSub(uid, sub, hour) { await q(`INSERT INTO push_subs(endpoint,user_id,sub,hour,created) VALUES($1,$2,$3,$4,$5)
       ON CONFLICT (endpoint) DO UPDATE SET user_id=EXCLUDED.user_id, sub=EXCLUDED.sub, hour=EXCLUDED.hour`, [sub.endpoint, uid, sub, hour, Date.now()]); },
     async delSub(endpoint) { await q("DELETE FROM push_subs WHERE endpoint=$1", [endpoint]); },
@@ -84,11 +89,11 @@ function makePg(url) {
 
 function makeFile(dir) {
   const file = path.join(dir, "db.json");
-  let d = { users: {}, progress: {}, ai: {}, settings: {}, subs: {}, reports: [], backups: [], duels: {} };
+  let d = { users: {}, progress: {}, ai: {}, settings: {}, subs: {}, reports: [], backups: [], duels: {}, friends: [] };
   const save = () => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file + ".tmp", JSON.stringify(d)); fs.renameSync(file + ".tmp", file); };
   return {
     kind: "fichier " + file,
-    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; d.reports = d.reports || []; d.backups = d.backups || []; d.duels = d.duels || {}; },
+    async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; d.reports = d.reports || []; d.backups = d.backups || []; d.duels = d.duels || {}; d.friends = d.friends || []; },
     async dumpAll() { return { users: Object.values(d.users), progress: Object.entries(d.progress).map(([user_id, x]) => ({ user_id, data: x.data, updated: x.updated })) }; },
     async setBlocked(id, b) { const u = d.users[id]; if (u) { u.blocked = !!b; u.sv = (u.sv || 0) + 1; save(); } },
     async bumpSv(id) { const u = d.users[id]; if (!u) return 0; u.sv = (u.sv || 0) + 1; save(); return u.sv; },
@@ -100,13 +105,17 @@ function makeFile(dir) {
     async addReport(r) { d.reports.unshift(Object.assign({ id: Date.now() + Math.random(), created: Date.now(), done: false }, r)); d.reports = d.reports.slice(0, 1000); save(); },
     async listReports() { return d.reports.slice().sort((a, b) => a.done - b.done || b.created - a.created).slice(0, 300); },
     async doneReport(id, done) { const x = d.reports.find(r => String(r.id) === String(id)); if (x) { x.done = !!done; save(); } },
+    async friendsOf(uid) { return d.friends.filter(f => f.a === uid || f.b === uid).map(f => Object.assign({}, f)); },
+    async friendSet(a, b, status) { const f = d.friends.find(x => x.a === a && x.b === b); if (f) f.status = status; else d.friends.push({ a, b, status, created: Date.now() }); save(); },
+    async friendDel(a, b) { d.friends = d.friends.filter(x => !((x.a === a && x.b === b) || (x.a === b && x.b === a))); save(); },
+    async usersAll() { return Object.values(d.users).map(u => ({ id: u.id, name: u.name, blocked: !!u.blocked })); },
     async duelGet(id) { return d.duels[id] ? JSON.parse(JSON.stringify(d.duels[id])) : null; },
     async duelPut(x) { d.duels[x.id] = JSON.parse(JSON.stringify(x)); d.duels[x.id]._u = Date.now(); save(); },
     async duelsOf(uid) { return Object.values(d.duels).filter(x => x.a.id === uid || (x.b && x.b.id === uid)).sort((a, b) => b._u - a._u).slice(0, 30).map(x => JSON.parse(JSON.stringify(x))); },
     async duelPurge(before) { Object.keys(d.duels).forEach(k => { if (d.duels[k]._u < before) delete d.duels[k]; }); save(); },
     async getSetting(k) { return d.settings[k] == null ? null : d.settings[k]; },
     async setSetting(k, v) { d.settings[k] = v; save(); },
-    async deleteUser(id) { Object.keys(d.duels || {}).forEach(k => { const x = d.duels[k]; if (x.a.id === id || (x.b && x.b.id === id)) delete d.duels[k]; }); delete d.users[id]; delete d.progress[id]; Object.keys(d.ai).forEach(k => { if (k.startsWith(id + "|")) delete d.ai[k]; }); Object.keys(d.subs).forEach(k => { if (d.subs[k].user_id === id) delete d.subs[k]; }); save(); },
+    async deleteUser(id) { d.friends = (d.friends || []).filter(f => f.a !== id && f.b !== id); Object.keys(d.duels || {}).forEach(k => { const x = d.duels[k]; if (x.a.id === id || (x.b && x.b.id === id)) delete d.duels[k]; }); delete d.users[id]; delete d.progress[id]; Object.keys(d.ai).forEach(k => { if (k.startsWith(id + "|")) delete d.ai[k]; }); Object.keys(d.subs).forEach(k => { if (d.subs[k].user_id === id) delete d.subs[k]; }); save(); },
     async addSub(uid, sub, hour) { d.subs[sub.endpoint] = { endpoint: sub.endpoint, user_id: uid, sub, hour, last_day: null, created: Date.now() }; save(); },
     async delSub(endpoint) { delete d.subs[endpoint]; save(); },
     async subsFull(uid) { return Object.values(d.subs).filter(x => x.user_id === uid); },

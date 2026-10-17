@@ -91,6 +91,21 @@
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
+  if (!GUEST) window.GL_FRIENDS = {
+    list: function () { return api("GET", "/api/friends"); },
+    add: function (code) { return api("POST", "/api/friends/add", { code: code }); },
+    respond: function (k, accept) { return api("POST", "/api/friends/respond", { k: k, accept: !!accept }); },
+    remove: function (k) { return api("POST", "/api/friends/remove", { k: k }); }
+  };
+  if (!GUEST) window.GL_ROOM = {
+    create: function () { return api("POST", "/api/room", {}); },
+    join: function (code) { return api("POST", "/api/room/join", { code: code }); },
+    get: function (id) { return api("GET", "/api/room/" + encodeURIComponent(id)); },
+    start: function (id, ids, cats) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/start", { ids: ids, cats: cats }); },
+    ans: function (id, i, pos, ok) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/ans", { i: i, pos: pos, ok: ok }); },
+    next: function (id) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/next", {}); },
+    leave: function (id) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/leave", {}); }
+  };
   if (!GUEST) window.GL_DUEL = {
     list: function () { return api("GET", "/api/duels"); },
     create: function (o) { return api("POST", "/api/duel", o); },

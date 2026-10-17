@@ -223,7 +223,8 @@ app.get("/api/class", auth, async (req, res, next) => {
       const all = await store.allProgress();
       CLASS = { at: Date.now(), wk, rows: all.map(r => { const d = r.data || {}; return Object.assign({ id: r.id, p: String((d.cl && d.cl.p) || "Anonyme").replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) }, weekStats(d, wk)); }) };
     }
-    res.json({ wk, rows: CLASS.rows.map(r => ({ p: r.p, acq: r.acq, days: r.days, dsc: r.dsc, dt: r.dt, me: r.id === req.user.id })) });
+    const fr = new Set((await store.friendsOf(req.user.id)).filter(f => f.status === "ok").map(f => f.a === req.user.id ? f.b : f.a));
+    res.json({ wk, rows: CLASS.rows.map(r => ({ p: r.p, acq: r.acq, days: r.days, dsc: r.dsc, dt: r.dt, me: r.id === req.user.id, f: fr.has(r.id) })) });
   } catch (e) { next(e); }
 });
 app.put("/api/progress", (req, res, next) => { CLASS.at = 0; next(); });
@@ -354,10 +355,8 @@ app.post("/api/duel", auth, async (req, res, next) => {
     const x = { id, created: Date.now(), cats, ids, seed: crypto.randomBytes(4).readUInt32BE(0), mode: "live", status: "wait", startAt: 0,
       a: { id: req.user.id, name: await duelName(req.user), ans: [], t: [], joined: true }, b: null };
     if (b.opp) {
-      const rows = (await store.allProgress()).filter(r => r.id !== req.user.id);
-      const o = rows.find(r => sign("duel:" + r.id).slice(0, 16) === String(b.opp));
-      if (!o) return res.status(404).json({ error: "Camarade introuvable." });
-      const u = await store.userById(o.id); if (!u || u.blocked) return res.status(404).json({ error: "Camarade introuvable." });
+      const oid = await resolveMate(req.user.id, String(b.opp));
+      const u = oid ? await store.userById(oid) : null; if (!u || u.blocked) return res.status(404).json({ error: "Camarade introuvable." });
       x.b = { id: u.id, name: await duelName(u), ans: [], t: [], joined: false };
       duelNotify(u.id, "⚔️ " + x.a.name + " te défie !", ids.length + " questions en duel. Ouvre le Grand Livre pour relever le défi.", "/?duel=" + id);
     }
@@ -436,11 +435,144 @@ app.get("/api/duels", auth, async (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     const list = (await store.duelsOf(req.user.id)).filter(x => Date.now() - x.created < 30 * 864e5).map(x => duelView(x, req.user.id));
     const rows = (await store.allProgress()).filter(r => r.id !== req.user.id);
-    const mates = rows.map(r => ({ k: sign("duel:" + r.id).slice(0, 16), p: String((r.data && r.data.cl && r.data.cl.p) || "").replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) })).filter(m => m.p);
+    const mates = rows.map(r => ({ k: fk(r.id), p: String((r.data && r.data.cl && r.data.cl.p) || "").replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) })).filter(m => m.p);
+    for (const f of await friendIds(req.user.id)) { const k = fk(f); const m = mates.find(x => x.k === k); if (m) m.f = true; else { const u = await store.userById(f); if (u && !u.blocked) mates.unshift({ k, p: await duelName(u), f: true }); } }
+    mates.sort((a, b) => (b.f ? 1 : 0) - (a.f ? 1 : 0));
     res.json({ duels: list, mates });
   } catch (e) { next(e); }
 });
 setInterval(() => store.duelPurge(Date.now() - 30 * 864e5).catch(() => {}), 6 * 3600e3).unref();
+
+/* ---------- Amis ---------- */
+const fk = id => sign("duel:" + id).slice(0, 16);
+function fcode(id) { const b = crypto.createHmac("sha256", SECRET).update("fc:" + id).digest(); const c = Array.from(b.slice(0, 6), v => DUEL_ABC[v % DUEL_ABC.length]).join(""); return c.slice(0, 3) + "-" + c.slice(3); }
+async function friendIds(uid) { return (await store.friendsOf(uid)).filter(f => f.status === "ok").map(f => f.a === uid ? f.b : f.a); }
+async function resolveMate(uid, k) {
+  for (const id of await friendIds(uid)) if (fk(id) === k) return id;
+  for (const r of await store.allProgress()) if (r.id !== uid && fk(r.id) === k) return r.id;
+  return null;
+}
+async function userByK(k) { for (const u of await store.usersAll()) if (fk(u.id) === k) return u; return null; }
+function friendStats(d, dn) {
+  d = d || {}; const wk = Math.floor((dn + 3) / 7), w = weekStats(d, wk), st = d.st || {}, xp = d.xp || 0, lv = LV.filter(l => xp >= l[0]).pop();
+  const cat = {}; let acq = 0;
+  Object.entries(d.q || {}).forEach(([id, a]) => { if (!Array.isArray(a)) return; const c = id.replace(/q\d+$/, ""), o = cat[c] || (cat[c] = { n: 0, ok: 0 }); o.n += a[0] || 0; o.ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; });
+  const mats = Object.entries(cat).filter(([, o]) => o.n >= 8).map(([c, o]) => ({ c, r: Math.round(o.ok / o.n * 100), n: o.n })).sort((a, b) => b.r - a.r);
+  const days = Object.keys(d.h || {}).map(Number), last = days.length ? Math.max(...days) : null;
+  return { semAcq: w.acq, semJours: w.days, defi: w.dsc, serie: st.d >= dn - 1 ? st.n || 0 : 0, xp, niveau: lv[1], acquises: acq, forts: mats.slice(0, 3), faibles: mats.length > 3 ? mats.slice(-2).reverse() : [], dernier: last == null ? null : dn - last,
+    activite: Array.from({ length: 7 }, (_, i) => (d.h || {})[dn - 6 + i] || 0) };
+}
+app.get("/api/friends", auth, async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const me = req.user.id, dn = parisNow().dayNum, rows = await store.friendsOf(me), out = { code: fcode(me), name: await duelName(req.user), friends: [], incoming: [], outgoing: [] };
+    out.mine = friendStats(await store.getProgress(me), dn);
+    for (const f of rows) {
+      const oid = f.a === me ? f.b : f.a, u = await store.userById(oid); if (!u || u.blocked) continue;
+      const base = { k: fk(oid), name: await duelName(u), since: f.created };
+      if (f.status === "ok") out.friends.push(Object.assign(base, friendStats(await store.getProgress(oid), dn)));
+      else if (f.b === me) out.incoming.push(base); else out.outgoing.push(base);
+    }
+    out.friends.sort((a, b) => b.semAcq - a.semAcq || b.xp - a.xp);
+    res.json(out);
+  } catch (e) { next(e); }
+});
+app.post("/api/friends/add", auth, async (req, res, next) => {
+  try {
+    if (limited("fa:" + req.user.id, 30, 3600e3)) return res.status(429).json({ error: "Trop de demandes : réessaie plus tard." });
+    const code = String((req.body || {}).code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 6) return res.status(400).json({ error: "Un code ami ressemble à ABC-123." });
+    let target = null; for (const u of await store.usersAll()) if (fcode(u.id).replace("-", "") === code) { target = u; break; }
+    if (!target || target.blocked) return res.status(404).json({ error: "Aucun élève avec ce code." });
+    if (target.id === req.user.id) return res.status(400).json({ error: "C'est ton propre code !" });
+    const rows = await store.friendsOf(req.user.id), ex = rows.find(f => (f.a === target.id || f.b === target.id));
+    if (ex && ex.status === "ok") return res.json({ ok: true, already: true });
+    if (ex && ex.a === target.id) { await store.friendSet(ex.a, ex.b, "ok"); duelNotify(target.id, "🤝 Nouvel ami", (await duelName(req.user)) + " a accepté ta demande d'ami.", "/?amis=1"); return res.json({ ok: true, accepted: true }); }
+    if (!ex) { await store.friendSet(req.user.id, target.id, "pending"); duelNotify(target.id, "🤝 Demande d'ami", (await duelName(req.user)) + " veut t'ajouter en ami sur le Grand Livre.", "/?amis=1"); }
+    res.json({ ok: true, pending: true, name: await duelName(target) });
+  } catch (e) { next(e); }
+});
+app.post("/api/friends/respond", auth, async (req, res, next) => {
+  try {
+    const u = await userByK(String((req.body || {}).k || "")); if (!u) return res.status(404).json({ error: "Demande introuvable." });
+    const ex = (await store.friendsOf(req.user.id)).find(f => f.a === u.id && f.b === req.user.id && f.status === "pending");
+    if (!ex) return res.status(404).json({ error: "Demande introuvable." });
+    if (req.body.accept) { await store.friendSet(u.id, req.user.id, "ok"); duelNotify(u.id, "🤝 Nouvel ami", (await duelName(req.user)) + " a accepté ta demande d'ami.", "/?amis=1"); }
+    else await store.friendDel(u.id, req.user.id);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+app.post("/api/friends/remove", auth, async (req, res, next) => {
+  try { const u = await userByK(String((req.body || {}).k || "")); if (u) await store.friendDel(u.id, req.user.id); res.json({ ok: true }); } catch (e) { next(e); }
+});
+
+/* ---------- Réviser ensemble : salles de quiz en direct (en mémoire, effacées après 3 h) ---------- */
+const ROOMS = new Map(), ROOM_T = 30000;
+setInterval(() => { const now = Date.now(); for (const [k, r] of ROOMS) if (now - r.touched > 3 * 3600e3) ROOMS.delete(k); }, 600e3).unref();
+function roomPresent(r) { const now = Date.now(); return [...r.members.entries()].filter(([, m]) => now - m.seen < 15000).map(([id]) => id); }
+function roomTick(r) {
+  if (r.phase === "q") { const a = r.ans[r.idx] || {}, pres = roomPresent(r); if (Date.now() - r.qStart > ROOM_T || (pres.length && pres.every(id => a[id]))) { r.phase = "reveal"; r.revealAt = Date.now(); } }
+}
+function roomView(r, uid) {
+  roomTick(r);
+  const a = r.ans[r.idx] || {}, pres = new Set(roomPresent(r)), showAns = r.phase === "reveal" || r.phase === "end";
+  const members = [...r.members.entries()].map(([id, m]) => ({ k: fk(id), name: m.name, me: id === uid, host: id === r.host, here: pres.has(id),
+    answered: !!a[id], pos: showAns && a[id] ? a[id].pos : undefined, ok: showAns && a[id] ? a[id].ok : undefined,
+    score: r.ans.reduce((s, x) => s + (x && x[id] && x[id].ok ? 1 : 0), 0) }));
+  return { id: r.id, host: r.host === uid, phase: r.phase, idx: r.idx, n: r.ids.length, ids: r.ids, seed: r.seed, cats: r.cats, left: r.phase === "q" ? Math.max(0, ROOM_T - (Date.now() - r.qStart)) : 0, T: ROOM_T, members,
+    mine: a[uid] ? a[uid] : null, hist: r.phase === "end" ? r.ans.map(x => Object.fromEntries(Object.entries(x || {}).map(([id, v]) => [fk(id), v.ok]))) : undefined };
+}
+function roomFor(req, res) {
+  const r = ROOMS.get(String(req.params.id || "").toUpperCase());
+  if (!r || !r.members.has(req.user.id)) { res.status(404).json({ error: "Cette salle n'existe plus." }); return null; }
+  r.members.get(req.user.id).seen = Date.now(); r.touched = Date.now(); return r;
+}
+app.post("/api/room", auth, async (req, res, next) => {
+  try {
+    if (limited("ro:" + req.user.id, 20, 3600e3)) return res.status(429).json({ error: "Trop de salles d'un coup." });
+    let id = ""; do { id = Array.from(crypto.randomBytes(5), v => DUEL_ABC[v % DUEL_ABC.length]).join(""); } while (ROOMS.has(id) || (await store.duelGet(id)));
+    const r = { id, host: req.user.id, created: Date.now(), touched: Date.now(), phase: "lobby", idx: -1, ids: [], cats: [], seed: crypto.randomBytes(4).readUInt32BE(0), ans: [], members: new Map() };
+    r.members.set(req.user.id, { name: await duelName(req.user), seen: Date.now() });
+    ROOMS.set(id, r); res.json({ room: roomView(r, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.post("/api/room/join", auth, async (req, res, next) => {
+  try {
+    const r = ROOMS.get(String((req.body || {}).code || "").trim().toUpperCase());
+    if (!r) return res.status(404).json({ error: "Aucune salle ouverte avec ce code." });
+    if (!r.members.has(req.user.id)) { if (r.members.size >= 8) return res.status(403).json({ error: "La salle est pleine (8 élèves)." }); r.members.set(req.user.id, { name: await duelName(req.user), seen: Date.now() }); }
+    r.members.get(req.user.id).seen = Date.now(); r.touched = Date.now();
+    res.json({ room: roomView(r, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.get("/api/room/:id", auth, (req, res) => { const r = roomFor(req, res); if (!r) return; res.setHeader("Cache-Control", "no-store"); res.json({ room: roomView(r, req.user.id) }); });
+app.post("/api/room/:id/start", auth, (req, res) => {
+  const r = roomFor(req, res); if (!r) return;
+  if (r.host !== req.user.id) { if (roomPresent(r).includes(r.host)) return res.status(403).json({ error: "Seul l'organisateur lance le quiz." }); r.host = req.user.id; }
+  const ids = Array.isArray((req.body || {}).ids) ? req.body.ids.map(String).filter(i => /^[a-z][a-z0-9]{0,2}q\d{1,4}$/.test(i)).slice(0, 30) : [];
+  if (ids.length < 3) return res.status(400).json({ error: "Choisis au moins 3 questions." });
+  r.ids = ids; r.cats = (req.body.cats || []).map(String).slice(0, 12); r.seed = crypto.randomBytes(4).readUInt32BE(0); r.ans = []; r.idx = 0; r.phase = "q"; r.qStart = Date.now();
+  res.json({ room: roomView(r, req.user.id) });
+});
+app.post("/api/room/:id/ans", auth, (req, res) => {
+  const r = roomFor(req, res); if (!r) return; roomTick(r);
+  const b = req.body || {};
+  if (r.phase === "q" && Number(b.i) === r.idx) { const a = r.ans[r.idx] || (r.ans[r.idx] = {}); if (!a[req.user.id]) a[req.user.id] = { pos: Number(b.pos), ok: !!b.ok, t: Date.now() - r.qStart }; }
+  res.json({ room: roomView(r, req.user.id) });
+});
+app.post("/api/room/:id/next", auth, (req, res) => {
+  const r = roomFor(req, res); if (!r) return; roomTick(r);
+  if (r.host !== req.user.id) { if (roomPresent(r).includes(r.host)) return res.status(403).json({ error: "Seul l'organisateur passe à la suite." }); r.host = req.user.id; }
+  if (r.phase === "q") { r.phase = "reveal"; r.revealAt = Date.now(); }
+  else if (r.phase === "reveal") { if (r.idx + 1 >= r.ids.length) r.phase = "end"; else { r.idx++; r.phase = "q"; r.qStart = Date.now(); } }
+  else if (r.phase === "end") { r.phase = "lobby"; r.idx = -1; r.ans = []; }
+  res.json({ room: roomView(r, req.user.id) });
+});
+app.post("/api/room/:id/leave", auth, (req, res) => {
+  const r = ROOMS.get(String(req.params.id || "").toUpperCase());
+  if (r) { r.members.delete(req.user.id); if (!r.members.size) ROOMS.delete(r.id); else if (r.host === req.user.id) r.host = r.members.keys().next().value; }
+  res.json({ ok: true });
+});
 
 /* ---------- Sauvegardes de la base (7 derniers jours) ---------- */
 async function makeDump() { return zlib.gzipSync(Buffer.from(JSON.stringify(Object.assign({ app: "grand-livre-bts-cg", at: new Date().toISOString() }, await store.dumpAll())), "utf8"), { level: 9 }).toString("base64"); }

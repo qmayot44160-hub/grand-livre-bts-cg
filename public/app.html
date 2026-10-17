@@ -91,6 +91,21 @@
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
+  if (!GUEST) window.GL_FRIENDS = {
+    list: function () { return api("GET", "/api/friends"); },
+    add: function (code) { return api("POST", "/api/friends/add", { code: code }); },
+    respond: function (k, accept) { return api("POST", "/api/friends/respond", { k: k, accept: !!accept }); },
+    remove: function (k) { return api("POST", "/api/friends/remove", { k: k }); }
+  };
+  if (!GUEST) window.GL_ROOM = {
+    create: function () { return api("POST", "/api/room", {}); },
+    join: function (code) { return api("POST", "/api/room/join", { code: code }); },
+    get: function (id) { return api("GET", "/api/room/" + encodeURIComponent(id)); },
+    start: function (id, ids, cats) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/start", { ids: ids, cats: cats }); },
+    ans: function (id, i, pos, ok) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/ans", { i: i, pos: pos, ok: ok }); },
+    next: function (id) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/next", {}); },
+    leave: function (id) { return api("POST", "/api/room/" + encodeURIComponent(id) + "/leave", {}); }
+  };
   if (!GUEST) window.GL_DUEL = {
     list: function () { return api("GET", "/api/duels"); },
     create: function (o) { return api("POST", "/api/duel", o); },
@@ -811,8 +826,8 @@ mark { background: var(--hl); color: inherit; border-radius: 2px; padding: 0 1px
   .shelf { height: 260px; order: -1; }
 }
 @media (max-width: 760px) {
-  .nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .nav-btn { font-size: .68rem; }
+  .nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .nav-btn { font-size: .64rem; }
   .hero-text h1 { font-size: 2rem; }
   .shelf { height: 230px; border-radius: 16px; }
   .countdown b { font-size: 1.6rem; }
@@ -874,7 +889,10 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .gs-flash { animation: gsFlash 2.4s ease; border-radius: 6px; }
 @keyframes gsFlash { 0%, 55% { background: var(--hl-band, #f5d73d); box-shadow: 0 0 0 6px var(--hl-band, #f5d73d); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
 
-@media (max-width: 1060px) { .gs-btn span, .gs-btn kbd { display: none; } .gs-btn { padding: 8px; } }
+@media (max-width: 1360px) { .gs-btn span, .gs-btn kbd { display: none; } .gs-btn { padding: 8px; } }
+@media (min-width: 761px) and (max-width: 1180px) { .nav-btn { padding: 8px 10px; gap: 6px; } }
+@media (min-width: 761px) and (max-width: 1100px) { .brand b { display: none; } }
+@media (min-width: 761px) and (max-width: 980px) { .nav-btn .svg { display: none; } .nav-btn { padding: 8px 8px; font-size: .9rem; } .who .lvl { display: none; } }
 @media (max-width: 760px) {
   .gs { padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 10px; }
   .gs-panel { max-height: calc(100% - 10px); border-radius: 16px; }
@@ -1316,6 +1334,43 @@ html, body { overflow-x: hidden; }
 .du-mates { display: flex; flex-wrap: wrap; gap: 8px; }
 .du-opt.flash-ok { animation: optPop .45s cubic-bezier(.2, .9, .3, 1.3); }
 @media (prefers-reduced-motion: reduce) { .du-code span, .du-count, .du-inv, .du-wait i { animation: none !important; } }
+.nav-btn { position: relative; }
+.nav-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 17px; height: 17px; border-radius: 99px; background: #e05561; color: #fff; font-size: .64rem; font-weight: 800; display: grid; place-items: center; padding: 0 4px; line-height: 1; }
+@media (min-width: 761px) { .nav-badge { position: static; margin-left: 2px; } }
+.am-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.fr-code { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.fr-code .du-code span { width: 40px; height: 50px; font-size: 1.5rem; }
+.fr-code .du-code i { align-self: center; font: 800 1.4rem var(--f-mono); color: var(--muted); font-style: normal; }
+.fr-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; padding: 14px; display: grid; gap: 12px; }
+.fr-top { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; width: 100%; }
+.fr-top .du-av { width: 46px; height: 46px; font-size: 1rem; }
+.fr-top small { color: var(--muted); }
+.fr-week { display: flex; align-items: flex-end; gap: 3px; height: 26px; }
+.fr-week i { width: 7px; border-radius: 2px; background: var(--rule); min-height: 3px; } .fr-week i.on { background: var(--accent); }
+.fr-cmp { display: grid; gap: 10px; }
+.fr-row { display: grid; grid-template-columns: 1fr; gap: 4px; }
+.fr-row .lbl { display: flex; justify-content: space-between; font-size: .84rem; font-weight: 700; } .fr-row .lbl span { color: var(--muted); font-weight: 600; }
+.fr-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.fr-duo div { height: 10px; border-radius: 6px; background: var(--rule); overflow: hidden; display: flex; }
+.fr-duo div:first-child { justify-content: flex-end; }
+.fr-duo i { display: block; height: 100%; border-radius: 6px; transition: width .8s cubic-bezier(.2, .8, .2, 1); }
+.fr-duo div:first-child i { background: var(--accent); } .fr-duo div:last-child i { background: #e0a31f; }
+.fr-legend { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 800; } .fr-legend span:first-child { color: var(--accent); } .fr-legend span:last-child { color: #b07a00; }
+.fr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fr-chip { font-size: .78rem; font-weight: 700; border-radius: 99px; padding: 3px 10px; background: var(--ok-bg); color: var(--ok); } .fr-chip.ko { background: var(--bad-bg); color: var(--bad); }
+.rm-mem { display: flex; flex-wrap: wrap; gap: 8px; }
+.rm-m { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--sheet); border-radius: 99px; padding: 4px 10px 4px 4px; font-weight: 700; font-size: .86rem; position: relative; }
+.rm-m .du-av { width: 28px; height: 28px; font-size: .68rem; }
+.rm-m.off { opacity: .45; } .rm-m.done { border-color: #1d8a4e; } .rm-m.done::after { content: "✓"; color: #1d8a4e; font-weight: 900; }
+.rm-m .host { font-size: .7rem; color: var(--muted); }
+.rm-opt { position: relative; }
+.rm-who { display: flex; gap: 3px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+.rm-who .du-av { width: 24px; height: 24px; font-size: .6rem; box-shadow: 0 0 0 2px var(--sheet); animation: pop .35s cubic-bezier(.3, .8, .3, 1.5) both; }
+@keyframes pop { from { transform: scale(0); } }
+.rm-rank { display: grid; gap: 8px; } .rm-rank li { display: grid; grid-template-columns: 2em auto 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 12px; background: var(--sheet); border: 1px solid var(--rule); }
+.rm-rank .du-av { width: 34px; height: 34px; font-size: .78rem; }
+.rm-rank li.me { border-color: var(--accent); background: var(--accent-soft); }
+.am-empty { display: grid; gap: 8px; justify-items: center; text-align: center; padding: 18px 10px; color: var(--muted); } .am-empty .big { font-size: 2.2rem; }
 .tts-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 .85rem var(--sans, inherit); cursor: pointer; }
 .tts-btn .svg { width: 16px; height: 16px; } .tts-btn[aria-pressed="true"] { background: var(--hue, var(--accent)); border-color: transparent; color: #fff; }
 .tts-rate { border: 1px solid var(--rule); background: transparent; color: var(--muted); border-radius: 99px; padding: 6px 10px; font: 600 .8rem var(--sans, inherit); cursor: pointer; min-width: 46px; }
@@ -1489,7 +1544,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .ag-res { display: grid; gap: 6px; }
 
 /* Onglets de la page S'entraîner */
-.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .ex-tab:hover { border-color: var(--accent); }
 .ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -1538,6 +1593,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
       <button class="nav-btn" data-nav="cours"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/></svg>Cours</button>
       <button class="nav-btn" data-nav="fiches"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="15" height="12" rx="2"/><path d="M7 4h12a2 2 0 0 1 2 2v9"/><path d="M6.5 11h8M6.5 14.5h5"/></svg>Fiches</button>
       <button class="nav-btn" data-nav="ex"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z"/><path d="M14.5 6.5l3 3"/></svg>S'entraîner</button>
+      <button class="nav-btn" data-nav="amis"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>Amis<span class="nav-badge" id="navAmis" hidden></span></button>
       <button class="nav-btn" data-nav="bts"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>Mon BTS</button>
     </nav>
     <button class="gs-btn" data-act="gsOpen" aria-label="Rechercher dans tout le Grand Livre (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
@@ -3102,6 +3158,7 @@ function levelUpFx(L) {
 const TOUR = [
   [".plan", "Ta séance du jour", "Trois étapes, environ 20 minutes. Le bouton « Commencer la séance » les enchaîne pour toi."],
   ['[data-nav="ex"]', "S'entraîner", "Quiz, exercices chiffrés, cas guidés, annales et rédactions, rangés par onglet. Ton cahier des erreurs est là aussi."],
+  ['[data-nav="amis"]', "Amis", "Ajoute tes camarades avec leur code ami, compare vos semaines, défie-les en duel ou révisez ensemble en direct."],
   ['[data-nav="bts"]', "Mon BTS", "Le compte à rebours, le poids de chaque épreuve et ton équilibre de révision."],
   [".who", "Ton niveau", "Tu gagnes des XP en répondant juste. Une question réussie deux jours différents devient acquise : tampon !"]
 ];
@@ -3164,6 +3221,7 @@ function chapPicker(cats, mode) {
 /* ---------- Navigation et accueil (version 5) ---------- */
 const SVG = p => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const ICON = {
+  friends: SVG('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/>'),
   duel: SVG('<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4M7 17l-3 3M3 19l2 2"/>'),
   speak: SVG('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
   stop: SVG('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>'),
@@ -3205,6 +3263,7 @@ function go(v, opts) {
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
   if (v !== "oral") clearInterval(orTick);
   if (v !== "duel") duelStop();
+  if (v !== "room") roomStop();
   if (opts && opts.reset) { R = null; C = null; }
   closeSheet(); peekClose(true); ttsStop();
   if (tourI >= 0) { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); }
@@ -3213,7 +3272,8 @@ function go(v, opts) {
 }
 function navOf(v) {
   if (v === "profil") return "";
-  if (v === "home" || v === "classe") return "home";
+  if (v === "home") return "home";
+  if (v === "amis" || v === "classe" || v === "duel" || v === "room") return "amis";
   if (v === "cours" || v === "lesson") return "cours";
   if (v === "fiches" || v === "fiche") return "fiches";
   if (v === "bts") return "bts";
@@ -3254,7 +3314,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { duel: vDuel, pack: vPack, classe: vClasse, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -3348,6 +3408,7 @@ function vHome() {
   </section>
   ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
   ${duelHomeCard()}
+  ${amisHomeCard()}
   ${classeCard()}
   <section class="stack">
     <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
@@ -3503,7 +3564,7 @@ async function loadClass(force) {
   CL.busy = true;
   try { if (ref && dirty) { clearTimeout(saveTimer); await flush(); } CL.data = await window.GL_CLASS(); CL.at = Date.now(); CL.err = ""; }
   catch (e) { CL.err = (e && e.message) || "Classement indisponible pour l'instant."; }
-  CL.busy = false; if (view === "classe" || view === "home") render();
+  CL.busy = false; if (view === "classe" || view === "home" || (view === "amis" && AMT === "classement")) render();
 }
 function fmtT(sec) { sec = Math.round(sec || 0); return Math.floor(sec / 60) + " min " + String(sec % 60).padStart(2, "0"); }
 function vClasse() {
@@ -3520,7 +3581,7 @@ function vClasse() {
     ${defiCard(dw)}
   </section>`;
   loadClass();
-  const d = CL.data, rows = d ? d.rows : [];
+  const d = CL.data, rows = d ? (CL.fil === "amis" ? d.rows.filter(r => r.f || r.me) : d.rows) : [];
   const sem = rows.slice().sort((a, b) => b.acq - a.acq || b.days - a.days || a.p.localeCompare(b.p));
   const df = rows.filter(r => r.dsc != null).sort((a, b) => b.dsc - a.dsc || a.dt - b.dt);
   const rank = (list, me) => { const i = list.findIndex(r => r.me); return i < 0 ? null : i + 1; };
@@ -3532,6 +3593,7 @@ function vClasse() {
   return head + `<section class="stack">
     ${defiCard(dw)}
     <div class="cl-head"><div class="pf-seg" role="group"><button type="button" data-act="clTab" data-v="sem" aria-pressed="${CL.tab === "sem"}">Cette semaine</button><button type="button" data-act="clTab" data-v="defi" aria-pressed="${CL.tab === "defi"}">Défi de la semaine</button></div>
+      <div class="pf-seg" role="group" aria-label="Qui afficher"><button type="button" data-act="clFil" data-v="all" aria-pressed="${CL.fil !== "amis"}">Toute la classe</button><button type="button" data-act="clFil" data-v="amis" aria-pressed="${CL.fil === "amis"}">Mes amis</button></div>
       <button class="btn small" data-act="clRefresh" ${CL.busy ? "disabled" : ""}>${CL.busy ? "Mise à jour…" : "Actualiser"}</button></div>
     ${CL.err ? `<p class="bk-err">${h(CL.err)}</p>` : !d ? `<div class="empty">Chargement du classement…</div>` : `<p class="muted small" style="margin:0">${CL.tab === "sem" ? `Classement par questions devenues acquises cette semaine (réussies deux jours différents, à 3 jours d'écart au moins).${rs ? ` Tu es ${rs}${rs === 1 ? "er" : "e"} sur ${sem.length}.` : ""}` : `Mêmes 10 questions pour tout le monde ; seul ton premier essai compte.${rd ? ` Tu es ${rd}${rd === 1 ? "er" : "e"} sur ${df.length}.` : ""}`}</p>${tbl}`}
     <div class="row"><button class="btn small" data-act="clLeave">Quitter le classement</button><span class="muted small">Pseudo : ${h(cl.p || "")}</span></div>
@@ -5339,10 +5401,10 @@ function annCard(a) {
   </article>`;
 }
 const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`;
-let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
+let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; return t === "duel" ? "quiz" : t; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`], ["duel", ICON.duel, "Duels", DUEL_NET() ? "Défie un camarade" : "Contre le Grand Livre"]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
@@ -5368,10 +5430,11 @@ async function loadDuels(force) {
   if (!force && DH.list && Date.now() - DH.at < 30000) return;
   DH.busy = true;
   try { const j = await N.list(); DH.list = j.duels || []; DH.mates = j.mates || []; DH.at = Date.now(); DH.err = ""; }
-  catch (e) { DH.err = (e && e.message) || "Duels indisponibles pour l'instant."; if (!DH.list) DH.list = []; }
+  catch (e) { DH.err = (e && e.message) || "Duels indisponibles pour l'instant."; if (!DH.list) DH.list = []; DH.at = Date.now(); }
   DH.busy = false;
   const inv = duelInvites().length, chg = inv !== DH.inv; DH.inv = inv;
-  if ((view === "ex" && EXT === "duel") || (view === "home" && chg)) render();
+  amisBadge();
+  if ((view === "amis" && AMT === "duels") || (view === "home" && chg)) render();
 }
 const duelInvites = () => (DH.list || []).filter(d => d.me === "b" && d.you && !d.you.started && !d.you.ans.length && d.status !== "done" && d.status !== "declined");
 function duelHomeCard() {
@@ -5501,7 +5564,7 @@ function duelEnd() {
   DH.at = 0;
 }
 function vDuel() {
-  if (!DU) { setExTab("duel"); return vExHome(); }
+  if (!DU) { AMT = "duels"; return vAmis(); }
   const o = duOpp(), myName = P().name || window.GL_NAME || "Moi";
   const top = `<div class="runner-top"><span class="progress-text"><button class="quit" data-act="duQuit" aria-label="Quitter le duel">✕</button>Duel${DU.bot ? " contre le Grand Livre" : ` · code ${h(DU.id)}`}</span><span class="ep">${DU.items.length} questions</span></div>`;
   if (DU.stage === "lobby") {
@@ -5533,7 +5596,7 @@ function vDuel() {
       <div class="pf-set" style="padding:18px;display:grid;gap:12px;justify-items:center;text-align:center">
         <b style="font-size:1.1rem">Tu as terminé avec ${duScore(DU.picks.map(Boolean), DU.times)} points !</b>
         <div class="du-wait" aria-hidden="true"><i></i><i></i><i></i></div>
-        <p class="muted" style="margin:0">${DU.bot ? "Le Grand Livre termine ses questions…" : o.joined ? `${h(o.name)} est en train de jouer (${o.n}/${DU.items.length}).` : `${h(o.name || "Ton adversaire")} n'a pas encore commencé. Tu verras le résultat dans S'entraîner › Duels${DUEL_NET() ? ", et tu recevras une notification si tes rappels sont activés" : ""}.`}</p>
+        <p class="muted" style="margin:0">${DU.bot ? "Le Grand Livre termine ses questions…" : o.joined ? `${h(o.name)} est en train de jouer (${o.n}/${DU.items.length}).` : `${h(o.name || "Ton adversaire")} n'a pas encore commencé. Tu verras le résultat dans Amis › Duels${DUEL_NET() ? ", et tu recevras une notification si tes rappels sont activés" : ""}.`}</p>
         <button class="btn" data-act="duBack">Retour aux duels</button></div></section>`;
   const me = duScore(DU.picks.map(Boolean), DU.times), r = me > o.score ? "w" : me < o.score ? "l" : "d";
   const oa = o.ans || [], ot = DU.bot ? DU.botT : ((DU.srv && DU.srv.opp && DU.srv.opp.t) || []);
@@ -5562,6 +5625,170 @@ function duelDeepLink() {
 }
 document.addEventListener("keydown", e => { if (view === "duel" && DU && DU.stage === "play" && /^[1-4]$/.test(e.key) && !e.target.closest("input,textarea")) duelAnswer(+e.key - 1); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && view === "duel" && DU && !DU.bot && DUEL_NET()) DUEL_NET().get(DU.id).then(j => duelSync(j.duel)).catch(() => {}); });
+
+/* ---------- Amis : code ami, comparaison, duels, réviser ensemble, classement ---------- */
+let AMT = "amis", FRX = null;
+let FR = { data: null, at: 0, busy: false, err: "" };
+const FRN = () => (typeof window.GL_FRIENDS === "object" && window.GL_FRIENDS) || null;
+const ROOMN = () => (typeof window.GL_ROOM === "object" && window.GL_ROOM) || null;
+function amisBadge() {
+  const n = duelInvites().length + ((FR.data && FR.data.incoming) || []).length, b = document.getElementById("navAmis");
+  if (b) { b.hidden = !n; b.textContent = n; }
+}
+async function loadFriends(force) {
+  const N = FRN(); if (!N || FR.busy) return;
+  if (!force && FR.data && Date.now() - FR.at < 30000) return;
+  FR.busy = true;
+  try { FR.data = await N.list(); FR.at = Date.now(); FR.err = ""; } catch (e) { FR.err = (e && e.message) || "Amis indisponibles pour l'instant."; FR.at = Date.now(); }
+  FR.busy = false; amisBadge();
+  if (view === "amis" && AMT === "amis") render();
+}
+function amisHomeCard() {
+  if (!FRN()) return "";
+  loadFriends();
+  const inc = (FR.data && FR.data.incoming) || []; if (!inc.length) return "";
+  return `<button class="wk-cta du-inv" data-act="amGo" data-t="amis"><span class="wk-ic">${ICON.friends}</span><span><b>${h(inc[0].name)} veut t'ajouter en ami</b><small>${inc.length > 1 ? `Et ${inc.length - 1} autre${inc.length > 2 ? "s" : ""} demande${inc.length > 2 ? "s" : ""}. ` : ""}Accepte pour comparer vos semaines et vous défier.</small></span><span class="wk-go">Voir ›</span></button>`;
+}
+function vAmis() {
+  const T = [["amis", ICON.friends, "Mes amis", FR.data ? `${FR.data.friends.length} ami${FR.data.friends.length > 1 ? "s" : ""}` : "Code ami"], ["duels", ICON.duel, "Duels", DUEL_NET() ? "Défie un ami" : "Contre le Grand Livre"], ["salle", ICON.talk, "Réviser ensemble", "Quiz en direct à plusieurs"], ["classement", ICON.target, "Classement", "Semaine et défi commun"]];
+  const tabs = `<nav class="ex-tabs am-tabs" aria-label="Amis">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="amGo" data-t="${k}" aria-current="${AMT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
+  const body = AMT === "duels" ? duelHome() : AMT === "salle" ? roomHome() : AMT === "classement" ? vClasse().replace(/^<section class="page-head">[\s\S]*?<\/section>/, "") : friendsPanel();
+  return `<section class="page-head"><h1>Amis</h1><p class="muted">Révise avec tes camarades : compare-toi, défie-les en duel ou faites un quiz ensemble en direct.</p></section>${tabs}${body}`;
+}
+function frBars(me, him) { const mx = Math.max(me, him, 1); return `<div class="fr-duo"><div><i style="width:${Math.round(me / mx * 100)}%"></i></div><div><i style="width:${Math.round(him / mx * 100)}%"></i></div></div>`; }
+function friendsPanel() {
+  const N = FRN();
+  if (!N) return `<section class="stack"><div class="pf-set am-empty"><span class="big">🤝</span><b>Les amis se retrouvent sur le site partagé du Grand Livre</b><span>${isGuest() ? "Crée ton compte gratuit pour ajouter tes camarades, comparer vos semaines et vous défier." : "Ici, tu peux t'entraîner en duel contre le Grand Livre dans l'onglet Duels."}</span>${isGuest() ? `<a class="btn primary" href="/#signup">Créer mon compte</a>` : ""}</div></section>`;
+  loadFriends();
+  const d = FR.data;
+  if (!d) return `<section class="stack"><div class="empty">${FR.err ? h(FR.err) : "Chargement de tes amis…"}</div></section>`;
+  const mine = d.mine || {}, me = P().name || window.GL_NAME || "Moi";
+  const card = f => {
+    const open = FRX === f.k, mx = Math.max(1, ...f.activite);
+    return `<div class="fr-card"><button class="fr-top" data-act="frOpen" data-k="${h(f.k)}" aria-expanded="${open}">${duAv(f.name)}<span><b>${h(f.name)}</b>${f.serie >= 2 ? ` <span class="du-tag w">🔥 ${f.serie} j</span>` : ""}<br><small>${f.niveau} · ${f.semAcq} acquise${f.semAcq > 1 ? "s" : ""} et ${f.semJours} jour${f.semJours > 1 ? "s" : ""} cette semaine${f.dernier === 0 ? " · a révisé aujourd'hui" : f.dernier != null ? ` · vu il y a ${f.dernier} j` : ""}</small></span>
+        <span class="fr-week" aria-hidden="true">${f.activite.map(v => `<i class="${v ? "on" : ""}" style="height:${Math.max(3, v / mx * 26)}px"></i>`).join("")}</span></button>
+      ${open ? `<div class="fr-cmp"><div class="fr-legend"><span>Toi</span><span>${h(f.name)}</span></div>
+        ${[["Acquises cette semaine", mine.semAcq, f.semAcq], ["Jours de révision cette semaine", mine.semJours, f.semJours], ["Série en cours", mine.serie, f.serie], ["Questions acquises au total", mine.acquises, f.acquises], ["XP", mine.xp, f.xp]].map(([l, a, b]) => `<div class="fr-row"><div class="lbl">${l}<span>${(a || 0).toLocaleString("fr-FR")} · ${(b || 0).toLocaleString("fr-FR")}</span></div>${frBars(a || 0, b || 0)}</div>`).join("")}
+        ${f.defi != null || mine.defi != null ? `<p class="muted small" style="margin:0">Défi de la semaine : toi ${mine.defi != null ? mine.defi + "/10" : "pas encore fait"}, ${h(f.name)} ${f.defi != null ? f.defi + "/10" : "pas encore fait"}.</p>` : ""}
+        ${f.forts.length ? `<div><div class="label">Ses points forts</div><div class="fr-chips">${f.forts.map(m => `<span class="fr-chip">${h(CAT[m.c] ? CAT[m.c].code : m.c)} · ${m.r} %</span>`).join("")}${f.faibles.map(m => `<span class="fr-chip ko">${h(CAT[m.c] ? CAT[m.c].code : m.c)} · ${m.r} %</span>`).join("")}</div><p class="muted small" style="margin:4px 0 0">Demande-lui un coup de main sur ses matières fortes, ou aide-le sur les tiennes.</p></div>` : ""}
+        <div class="row"><button class="btn small primary" data-act="duMate" data-k="${h(f.k)}">${ICON.duel}Le défier en duel</button><button class="btn small" data-act="rmWith" data-name="${h(f.name)}">Réviser ensemble</button><button class="btn small" data-act="frDel" data-k="${h(f.k)}" data-name="${h(f.name)}">Retirer</button></div></div>` : ""}
+    </div>`;
+  };
+  return `<section class="stack">
+    <div class="pf-set fr-code" style="padding:16px">
+      <span class="eyebrow">Ton code ami</span>
+      <div class="du-code" aria-label="Code ami ${h(d.code)}">${d.code.split("").map(c => c === "-" ? `<i>–</i>` : `<span>${h(c)}</span>`).join("")}</div>
+      <p class="muted small" style="margin:0">Donne-le à tes camarades : ils pourront t'ajouter, et tu choisis d'accepter.</p>
+      <div class="row" style="justify-content:center">${navigator.share ? `<button class="btn small" data-act="frShare">Partager</button>` : ""}<button class="btn small" data-act="frCopy">Copier</button></div>
+    </div>
+    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Ajouter un ami</h3>
+      <div class="row"><input id="frCode" class="pf-in du-code-in" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="ABC-123" aria-label="Code ami de ton camarade"><button class="btn primary" data-act="frAdd">Ajouter</button></div>
+      ${d.outgoing.length ? `<p class="muted small" style="margin:0">En attente de réponse : ${d.outgoing.map(o => h(o.name)).join(", ")}.</p>` : ""}</div>
+    ${d.incoming.length ? `<div class="stack" style="gap:8px"><h3>Demandes reçues</h3>${d.incoming.map(r => `<div class="du-card du-inv" style="cursor:default">${duAv(r.name)}<span><b>${h(r.name)}</b><br><small class="muted">veut t'ajouter en ami</small></span><span class="row" style="gap:6px"><button class="btn small" data-act="frNo" data-k="${h(r.k)}">Refuser</button><button class="btn small primary" data-act="frYes" data-k="${h(r.k)}">Accepter</button></span></div>`).join("")}</div>` : ""}
+    ${d.friends.length ? `<div class="stack" style="gap:10px"><h3>Mes amis</h3>${d.friends.map(card).join("")}</div>`
+      : `<div class="pf-set am-empty"><span class="big">👋</span><b>Pas encore d'amis ici</b><span>Échange ton code avec tes camarades de classe. Une fois acceptés, vous comparez vos semaines, vous vous défiez en duel et vous révisez ensemble.</span></div>`}
+    <p class="muted small" style="margin:0">Tes amis voient ton niveau, tes XP, ta série, tes questions acquises, tes jours de révision et tes matières fortes et faibles. Jamais tes erreurs ni tes réponses. Retire un ami à tout moment.</p>
+  </section>`;
+}
+
+/* Réviser ensemble : une salle, un organisateur, tout le monde voit la même question */
+let RO = null, rmPoll = null, rmTick = null;
+const roomCfg = () => { S.rmf = S.rmf || { cats: duelCfg().cats.slice(), n: 10 }; return S.rmf; };
+function roomStop() { clearInterval(rmPoll); rmPoll = null; clearInterval(rmTick); rmTick = null; }
+function roomHome() {
+  const N = ROOMN();
+  if (!N) return `<section class="stack"><div class="pf-set am-empty"><span class="big">📚</span><b>Réviser ensemble, c'est sur le site partagé</b><span>${isGuest() ? "Crée ton compte pour ouvrir une salle avec tes camarades." : "Ouvre le Grand Livre en ligne pour faire un quiz en direct avec tes camarades."}</span></div></section>`;
+  return `<section class="stack">
+    <div class="du-hero"><b style="font:800 1.25rem var(--f-display);position:relative;z-index:1">Un quiz en direct, à plusieurs</b><p class="muted" style="margin:0;position:relative;z-index:1">L'organisateur ouvre une salle et donne le code. Tout le monde voit la même question en même temps, puis la correction avec les réponses de chacun. Idéal en permanence, à la bibliothèque ou en appel.</p></div>
+    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Ouvrir une salle</h3><p class="muted small" style="margin:0">Jusqu'à 8 élèves. Tu choisiras les matières une fois tout le monde arrivé.</p><div class="row"><button class="btn primary" data-act="rmNew">Ouvrir une salle</button></div></div>
+    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Rejoindre une salle</h3>
+      <div class="row"><input id="rmCode" class="pf-in du-code-in" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Code de la salle"><button class="btn primary" data-act="rmJoin">Rejoindre</button></div></div>
+  </section>`;
+}
+function roomEnter(room) {
+  roomStop(); RO = { srv: room, local: {}, sig: "" };
+  rmPoll = setInterval(async () => {
+    const N = ROOMN(); if (!RO || !N || view !== "room" || document.hidden) return;
+    try { const j = await N.get(RO.srv.id); roomApply(j.room); } catch (e) { if (e && /existe plus/.test(e.message || "")) { toast("La salle a été fermée."); RO = null; roomStop(); AMT = "salle"; go("amis"); } }
+  }, 1200);
+  rmTick = setInterval(() => {
+    if (!RO || view !== "room" || RO.srv.phase !== "q") return;
+    const left = Math.max(0, RO.srv.left - (Date.now() - RO.got)), el = document.getElementById("rmBar"), tt = document.getElementById("rmSec");
+    if (el) el.style.width = (left / RO.srv.T * 100) + "%"; if (tt) { const s = Math.ceil(left / 1000); tt.textContent = s + " s"; tt.classList.toggle("low", s <= 5); }
+  }, 150);
+  RO.got = Date.now(); RO.sig = roomSig(room); go("room");
+}
+function roomSig(r) { return [r.phase, r.idx, r.host, r.members.map(m => m.k + (m.here ? 1 : 0) + (m.answered ? 1 : 0) + (m.score) + (m.pos ?? "")).join(","), r.mine ? 1 : 0].join("|"); }
+function roomApply(r) {
+  if (!RO) return;
+  const prev = RO.srv; RO.srv = r; RO.got = Date.now();
+  if (r.phase === "q" && (prev.phase !== "q" || prev.idx !== r.idx)) { tone("xp"); buzz(10); }
+  if (r.phase === "reveal" && prev.phase === "q") { const me = r.members.find(m => m.me); if (me && me.ok) tone("ok"); }
+  const sig = roomSig(r); if (sig !== RO.sig) { RO.sig = sig; if (view === "room") render(); }
+}
+function roomItem() { const r = RO.srv; if (r.idx < 0 || !r.ids.length) return null; return duelItems([r.ids[r.idx]], (r.seed >>> 0) + r.idx * 7919)[0]; }
+function vRoom() {
+  if (!RO) { AMT = "salle"; return vAmis(); }
+  const r = RO.srv, L4 = ["A", "B", "C", "D"], host = r.members.find(m => m.host);
+  const top = `<div class="runner-top"><span class="progress-text"><button class="quit" data-act="rmQuit" aria-label="Quitter la salle">✕</button>Salle ${h(r.id)}</span><span class="ep">${r.members.filter(m => m.here).length} présent${r.members.filter(m => m.here).length > 1 ? "s" : ""}</span></div>`;
+  const mem = (showAns) => `<div class="rm-mem">${r.members.map(m => `<span class="rm-m${m.here ? "" : " off"}${r.phase === "q" && m.answered ? " done" : ""}">${duAv(m.name)}${h(m.me ? "Toi" : m.name)}${m.host ? ` <span class="host">· organise</span>` : ""}${showAns ? ` <b>${m.score}</b>` : ""}</span>`).join("")}</div>`;
+  if (r.phase === "lobby") {
+    const cfg = roomCfg(), cats = CATS.filter(c => (QBY[c.id] || []).length && !lockedCat(c.id)), pool = duelPool(cfg.cats).length;
+    return `<section class="runner stack">${top}
+      <div class="pf-set" style="padding:18px;display:grid;gap:12px;justify-items:center;text-align:center"><p style="margin:0">Code de la salle à donner à tes camarades :</p>
+        <div class="du-code" aria-label="Code ${h(r.id)}">${r.id.split("").map(c => `<span>${h(c)}</span>`).join("")}</div>
+        <div class="row" style="justify-content:center">${navigator.share ? `<button class="btn small" data-act="rmShare">Partager</button>` : `<button class="btn small" data-act="rmCopy">Copier le code</button>`}</div></div>
+      <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Dans la salle</h3>${mem(false)}</div>
+      ${r.host ? `<div class="pf-set" style="padding:16px;display:grid;gap:12px"><h3>Le quiz</h3>
+        <div><div class="label">Matières</div><div class="picker">${cats.map(c => `<button class="chip" data-act="rmCat" data-c="${c.id}" aria-pressed="${cfg.cats.includes(c.id)}"><span class="mono">${h(c.code)}</span>${h(c.name)}</button>`).join("")}</div></div>
+        <div class="row"><span class="label" style="margin:0">Questions</span><div class="pf-seg" role="group">${[5, 10, 15, 20].map(n => `<button type="button" data-act="rmN" data-n="${n}" aria-pressed="${cfg.n === n}">${n}</button>`).join("")}</div></div>
+        <div class="row"><button class="btn primary" data-act="rmStart" ${pool < 3 ? "disabled" : ""}>Lancer le quiz pour tout le monde</button></div></div>`
+        : `<div class="pf-set am-empty"><div class="du-wait" aria-hidden="true"><i></i><i></i><i></i></div><span>${h(host ? host.name : "L'organisateur")} va lancer le quiz…</span></div>`}
+    </section>`;
+  }
+  if (r.phase === "q" || r.phase === "reveal") {
+    const x = roomItem(); if (!x) return `<section class="runner">${top}<div class="empty">Question introuvable dans ta version : recharge la page.</div></section>`;
+    const it = x.it, c = CAT[it.c], mine = RO.local[r.idx] != null ? RO.local[r.idx] : r.mine ? r.mine.pos : null, rev = r.phase === "reveal";
+    const answered = r.members.filter(m => m.answered).length, pres = r.members.filter(m => m.here).length;
+    const opts = x.order.map((oi, p) => {
+      let cls = "opt rm-opt"; if (rev) { if (oi === 0) cls += " right"; else if (p === mine) cls += " wrong"; } else if (p === mine) cls += " picked";
+      const who = rev ? r.members.filter(m => m.pos === p) : [];
+      return `<button class="${cls}" data-act="rmPick" data-pos="${p}" ${mine != null || rev ? "disabled" : ""}><span class="k">${L4[p]}</span><span>${h(it.o[oi])}</span>${who.length ? `<span class="rm-who">${who.map(m => duAv(m.name)).join("")}</span>` : ""}</button>`;
+    }).join("");
+    const nbOk = rev ? r.members.filter(m => m.ok).length : 0;
+    return `<section class="runner">${top}
+      <div class="du-tt"><span>Question ${r.idx + 1} / ${r.n}</span>${rev ? `<span>${nbOk}/${r.members.filter(m => m.pos !== undefined).length} juste${nbOk > 1 ? "s" : ""}</span>` : `<span id="rmSec">${Math.ceil(r.left / 1000)} s</span>`}</div>
+      ${rev ? "" : `<div class="du-timer"><i id="rmBar" style="width:${r.left / r.T * 100}%"></i></div>`}
+      <div class="qcard"><span class="ep" style="align-self:flex-start">${h(c.code)} · ${h(c.name)}</span><p class="qtext">${h(it.q)}</p><div class="options">${opts}</div>
+        ${rev ? `<div class="feedback"><span class="verdict ${mine != null && x.order[mine] === 0 ? "ok" : "ko"}">${mine == null ? "Pas répondu" : x.order[mine] === 0 ? "Juste" : "À revoir"}</span><p class="muted">${h(it.e)}</p>${it.ch && CHID[it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(it.ch)}">${ICON.book}Revoir la fiche : ${h(CHID[it.ch].title)}</button>` : ""}</div>` : ""}
+      </div>
+      ${mem(rev)}
+      <div class="row">${rev ? (r.host ? `<button class="btn primary" data-act="rmNext">${r.idx + 1 >= r.n ? "Voir le bilan" : "Question suivante"}</button>` : `<span class="muted small">${h(host ? host.name : "L'organisateur")} passe à la suite…</span>`)
+        : `<span class="muted small">${mine != null ? `Réponse envoyée. ${answered}/${pres} ont répondu.` : "Touches 1 à 4 pour répondre."}</span>${r.host ? `<button class="btn small" data-act="rmNext">Afficher la réponse</button>` : ""}`}</div>
+    </section>`;
+  }
+  const rank = r.members.slice().sort((a, b) => b.score - a.score), medal = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+  const hard = (r.hist || []).map((x, i) => ({ i, ok: Object.values(x).filter(Boolean).length, n: Object.keys(x).length })).filter(q => q.n && q.ok / q.n < .5);
+  const items = duelItems(r.ids, 0);
+  return `<section class="runner stack">${top}
+    <div class="du-hero"><b style="font:800 1.4rem var(--f-display);position:relative;z-index:1">Bilan du groupe</b><p class="muted" style="margin:0;position:relative;z-index:1">${r.n} questions · ${r.members.length} participant${r.members.length > 1 ? "s" : ""}</p></div>
+    <ol class="rm-rank" style="list-style:none;padding:0;margin:0">${rank.map((m, i) => `<li class="${m.me ? "me" : ""}"><span>${medal(i)}</span>${duAv(m.name)}<b>${h(m.me ? "Toi" : m.name)}</b><span><b>${m.score}</b>/${r.n}</span></li>`).join("")}</ol>
+    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>À retravailler ensemble</h3>
+      ${hard.length ? hard.map(q => { const it = items[q.i] && items[q.i].it; return it ? `<div class="du-row" style="grid-template-columns:1fr auto"><span><b>${h(it.q)}</b><br><small class="muted">Réponse : ${h(it.o[0])} · ${q.ok}/${q.n} juste${q.ok > 1 ? "s" : ""}</small>${it.ch && CHID[it.ch] ? `<br><button class="btn small peek-cta" data-act="fichePeek" data-id="${h(it.ch)}">${ICON.book}Revoir la fiche</button>` : ""}</span></div>` : ""; }).join("") : `<p class="muted" style="margin:0">Aucune question ratée par la majorité du groupe. Bravo !</p>`}
+    </div>
+    <div class="row">${r.host ? `<button class="btn primary" data-act="rmNext">Nouvelle partie</button>` : ""}<button class="btn" data-act="rmQuit">Quitter la salle</button></div>
+  </section>`;
+}
+async function roomPick(pos) {
+  if (!RO) return; const r = RO.srv, N = ROOMN(); if (r.phase !== "q" || RO.local[r.idx] != null) return;
+  const x = roomItem(); if (!x) return;
+  const ok = x.order[pos] === 0; RO.local[r.idx] = pos;
+  recordQ(x.it, ok, x.it.o[x.order[pos]]); touch(); buzz(12);
+  render();
+  try { const j = await N.ans(r.id, r.idx, pos, ok); roomApply(j.room); } catch (e) {}
+}
+document.addEventListener("keydown", e => { if (view === "room" && RO && RO.srv.phase === "q" && /^[1-4]$/.test(e.key) && !e.target.closest("input,textarea")) roomPick(+e.key - 1); });
+function amisDeepLink() { try { const u = new URL(location.href); if (!u.searchParams.get("amis")) return; u.searchParams.delete("amis"); history.replaceState(null, "", u.pathname + u.search + u.hash); AMT = "amis"; setTimeout(() => go("amis"), 300); } catch (e) {} }
 
 /* ---------- Simulateur d'oral ---------- */
 let OR = null, OF = { e: "E6", n: 5, t: 120 }, orTick = null;
@@ -5807,7 +6034,6 @@ function vExHome() {
     </section>` : ""}
     ${EXT === "ctl" ? packHome() : ""}
     ${EXT === "oraux" ? oralHome() : ""}
-    ${EXT === "duel" ? duelHome() : ""}
     ${EXT === "redac" ? `<section class="stack">
       <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
       <div class="ex-grid">${REDAC.map(redCard).join("")}</div>
@@ -7081,7 +7307,7 @@ document.addEventListener("click", e => {
     case "pkCards": { const d = packData(S.packs[PK]); startCards(shuffle(d.fs).slice(0, Math.max(10, (P().clen || 30)))); break; }
     case "pkExam": { const d = packData(S.packs[PK]), n = Math.min(15, d.qs.length); startRun(shuffle(d.qs).slice(0, n), "exam"); if (R) { R.pack = PK; R.end = Date.now() + n * 60 * 1000; render(); } break; }
     case "pkOral": { const d = packData(S.packs[PK]); OR = { list: shuffle(d.oral).slice(0, 5).map(q => ({ q, ck: {}, done: false })), i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: "Contrôle" }; go("oral"); break; }
-    case "goClasse": go("classe"); break;
+    case "goClasse": AMT = "classement"; go("amis"); break;
     case "clJoin": { const v = (document.getElementById("clPseudo").value || "").replace(/[<>]/g, "").trim().slice(0, 24); if (v.length < 2) { toast("Choisis un pseudo d'au moins 2 caractères"); break; } S.cl = { on: true, p: v }; CL.at = 0; touch(); render(); loadClass(true); break; }
     case "clLeave": S.cl = { on: false, p: (S.cl || {}).p || "" }; CL.data = null; touch(); render(); break;
     case "clTab": CL.tab = b.dataset.v; render(); break;
@@ -7121,6 +7347,24 @@ document.addEventListener("click", e => {
     case "wkFiche": closeSheet(); fichePeek(b.dataset.id); break;
     case "fichePeek": fichePeek(b.dataset.id); break;
     case "peekClose": peekClose(); break;
+    case "amGo": AMT = b.dataset.t; if (view !== "amis") go("amis"); else render(); if (AMT === "amis") loadFriends(true); if (AMT === "duels") loadDuels(true); break;
+    case "frOpen": FRX = FRX === b.dataset.k ? null : b.dataset.k; render(); break;
+    case "frCopy": try { navigator.clipboard.writeText(FR.data.code); toast("Code ami copié"); } catch (e) {} break;
+    case "frShare": navigator.share({ title: "Grand Livre", text: "Ajoute-moi en ami sur le Grand Livre ! Mon code : " + FR.data.code, url: location.origin + "/?amis=1" }).catch(() => {}); break;
+    case "frAdd": { const N = FRN(), v = (document.getElementById("frCode") || {}).value || ""; if (!N) break; N.add(v).then(j => { toast(j.already ? "Vous êtes déjà amis" : j.accepted ? "Vous êtes maintenant amis !" : "Demande envoyée à " + (j.name || "ton camarade")); if (j.accepted) confettiBurst(40); loadFriends(true); }).catch(e => toast((e && e.message) || "Code introuvable.")); break; }
+    case "frYes": case "frNo": { const N = FRN(); if (N) N.respond(b.dataset.k, a === "frYes").then(() => { if (a === "frYes") { toast("Nouvel ami !"); confettiBurst(40); tone("ok"); } loadFriends(true); }).catch(() => {}); break; }
+    case "frDel": { if (!confirm("Retirer " + (b.dataset.name || "cet ami") + " de tes amis ?")) break; const N = FRN(); if (N) N.remove(b.dataset.k).then(() => { FRX = null; loadFriends(true); }).catch(() => {}); break; }
+    case "rmNew": case "rmWith": { const N = ROOMN(); if (!N) break; N.create().then(j => { roomEnter(j.room); if (a === "rmWith") toast("Donne le code " + j.room.id + " à " + (b.dataset.name || "ton ami")); }).catch(e => toast((e && e.message) || "Impossible d'ouvrir une salle.")); break; }
+    case "rmJoin": { const N = ROOMN(), v = String((document.getElementById("rmCode") || {}).value || "").trim().toUpperCase(); if (!N || v.length < 4) { toast("Tape le code de la salle."); break; } N.join(v).then(j => roomEnter(j.room)).catch(e => toast((e && e.message) || "Salle introuvable.")); break; }
+    case "rmCat": { const c = roomCfg(), k = b.dataset.c; c.cats = c.cats.includes(k) ? c.cats.filter(x => x !== k) : c.cats.concat(k); if (!c.cats.length) c.cats = [k]; touch(); render(); break; }
+    case "rmN": roomCfg().n = +b.dataset.n; touch(); render(); break;
+    case "rmStart": { const N = ROOMN(), c = roomCfg(), ids = duelPick(c.cats, c.n); if (!N || !RO) break; RO.local = {}; N.start(RO.srv.id, ids, c.cats).then(j => roomApply(j.room)).catch(e => toast((e && e.message) || "Lancement impossible.")); break; }
+    case "rmPick": roomPick(+b.dataset.pos); break;
+    case "rmNext": { const N = ROOMN(); if (!N || !RO) break; if (RO.srv.phase === "end") RO.local = {}; N.next(RO.srv.id).then(j => { roomApply(j.room); if (j.room.phase === "end") { confettiBurst(50); tone("lvl"); } }).catch(e => toast((e && e.message) || "Action impossible.")); break; }
+    case "rmShare": navigator.share({ title: "Réviser ensemble", text: "Rejoins ma salle de révision sur le Grand Livre : code " + RO.srv.id, url: location.origin + "/" }).catch(() => {}); break;
+    case "rmCopy": try { navigator.clipboard.writeText(RO.srv.id); toast("Code copié"); } catch (e) {} break;
+    case "rmQuit": { const N = ROOMN(); if (N && RO) N.leave(RO.srv.id).catch(() => {}); RO = null; roomStop(); AMT = "salle"; go("amis"); break; }
+    case "clFil": CL.fil = b.dataset.v; render(); break;
     case "duCat": { const c = duelCfg(), k = b.dataset.c; c.cats = c.cats.includes(k) ? c.cats.filter(x => x !== k) : c.cats.concat(k); if (!c.cats.length) c.cats = [k]; touch(); render(); break; }
     case "duN": duelCfg().n = +b.dataset.n; touch(); render(); break;
     case "duNew": duelCreate(); break;
@@ -7133,9 +7377,9 @@ document.addEventListener("click", e => {
     case "duSolo": { const N = DUEL_NET(); if (N && DU) N.start(DU.id).then(j => { DU.srv = j.duel; }).catch(() => {}); if (DU) { DU.stage = "count"; DU.startAt = Date.now() + 3000; render(); } break; }
     case "duShare": navigator.share({ title: "Duel Grand Livre", text: "Je te défie en duel sur le Grand Livre ! Code : " + DU.id, url: location.origin + "/?duel=" + DU.id }).catch(() => {}); break;
     case "duCopy": try { navigator.clipboard.writeText(DU.id); toast("Code copié"); } catch (e) {} break;
-    case "duQuit": { if (DU && DU.stage === "play" && !confirm("Quitter le duel ? Les questions restantes compteront comme fausses si tu ne reviens pas.")) break; duelStop(); DU = null; setExTab("duel"); go("ex"); loadDuels(true); break; }
-    case "duBack": duelStop(); DU = null; setExTab("duel"); go("ex"); loadDuels(true); break;
-    case "duAgain": { const was = DU; duelStop(); DU = null; if (!was || was.bot) { const c = duelCfg(), ids = duelPick(c.cats, c.n); duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); } else { const N = DUEL_NET(), c = { cats: was.srv && was.srv.cats && was.srv.cats.length ? was.srv.cats : duelCfg().cats }, ids = duelPick(c.cats, was.items.length); if (N && N.rematch) N.rematch(was.id, ids).then(j => { duelFromSrv(j.duel); toast("Revanche proposée !"); }).catch(e => { toast((e && e.message) || "Revanche impossible pour l'instant."); setExTab("duel"); go("ex"); }); else { setExTab("duel"); go("ex"); } } break; }
+    case "duQuit": { if (DU && DU.stage === "play" && !confirm("Quitter le duel ? Les questions restantes compteront comme fausses si tu ne reviens pas.")) break; duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); break; }
+    case "duBack": duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); break;
+    case "duAgain": { const was = DU; duelStop(); DU = null; if (!was || was.bot) { const c = duelCfg(), ids = duelPick(c.cats, c.n); duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); } else { const N = DUEL_NET(), c = { cats: was.srv && was.srv.cats && was.srv.cats.length ? was.srv.cats : duelCfg().cats }, ids = duelPick(c.cats, was.items.length); if (N && N.rematch) N.rematch(was.id, ids).then(j => { duelFromSrv(j.duel); toast("Revanche proposée !"); }).catch(e => { toast((e && e.message) || "Revanche impossible pour l'instant."); AMT = "duels"; go("amis"); }); else { AMT = "duels"; go("amis"); } } break; }
     case "tts": ttsToggle(b); break;
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn; ttsStop(); ttsToggle(bt); } break; }
     case "pkIcs": icsSheet(PK); break;
@@ -7195,11 +7439,13 @@ normS();
 render();
 initSync();
 duelDeepLink();
+amisDeepLink();
+setTimeout(() => { loadFriends(); loadDuels(); }, 1500);
 
 /* ---------- Glisser entre les onglets (carrousel : l'onglet voisin suit le doigt) ---------- */
 (() => {
-  const TABS = ["home", "cours", "fiches", "ex", "bts"];
-  const VIEWS = () => ({ home: vHome, cours: vCoursList, fiches: vFiches, ex: vExHome, bts: vBts });
+  const TABS = ["home", "cours", "fiches", "ex", "amis", "bts"];
+  const VIEWS = () => ({ home: vHome, cours: vCoursList, fiches: vFiches, ex: vExHome, amis: vAmis, bts: vBts });
   const view$ = () => document.getElementById("view");
   let sx = 0, sy = 0, st = 0, dx = 0, lock = null, active = false, busy = false, peek = null, peekDir = 0, topY = 0, keepY = 0;
   const calm = () => document.documentElement.classList.contains("no-motion") || RM;
