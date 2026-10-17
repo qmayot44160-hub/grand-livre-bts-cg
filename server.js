@@ -455,9 +455,17 @@ app.get("/api/inbox", auth, async (req, res, next) => {
       if (d.status === "done" || d.status === "declined" || Date.now() - d.created > 7 * 864e5) continue;
       if (d.b && d.b.id === me && !d.b.joined && !d.b.started && !d.b.ans.length) duels.push({ id: d.id, from: d.a.name, n: d.ids.length, at: d.created, live: d.status === "wait" && !d.a.started, score: d.a.done ? duelScore(d.a) : null });
     }
-    const friends = [];
-    for (const f of await store.friendsOf(me)) if (f.status === "pending" && f.b === me) { const u = await store.userById(f.a); if (u && !u.blocked) friends.push({ k: fk(u.id), name: await duelName(u), at: f.created }); }
-    res.json({ duels, friends });
+    const friends = [], accepted = [], results = [];
+    for (const f of await store.friendsOf(me)) {
+      if (f.status === "pending" && f.b === me) { const u = await store.userById(f.a); if (u && !u.blocked) friends.push({ k: fk(u.id), name: await duelName(u), at: f.created }); }
+      if (f.status === "ok" && f.a === me) { const u = await store.userById(f.b); if (u && !u.blocked) accepted.push({ k: fk(u.id), name: await duelName(u) }); }
+    }
+    for (const d of await store.duelsOf(me)) {
+      if (d.status !== "done" || Date.now() - d.created > 2 * 864e5) continue;
+      const mine = d.a.id === me ? d.a : d.b, other = d.a.id === me ? d.b : d.a; if (!mine || !other) continue;
+      results.push({ id: d.id, opp: other.name, me: duelScore(mine), them: duelScore(other), lastMine: (mine.at || 0) >= (other.at || 0) });
+    }
+    res.json({ duels, friends, accepted, results });
   } catch (e) { next(e); }
 });
 app.get("/api/duels", auth, async (req, res, next) => {

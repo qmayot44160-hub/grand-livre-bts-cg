@@ -5810,11 +5810,13 @@ async function inboxPoll() {
     const j = await N.inbox(), items = [];
     (j.duels || []).forEach(d => items.push({ key: "d:" + d.id, kind: "duel", id: d.id, name: d.from, sub: d.live ? `${d.n} questions · en direct, ton adversaire t'attend !` : `${d.n} questions${d.score != null ? ` · ${d.score} points à battre` : ""}` }));
     (j.friends || []).forEach(f => items.push({ key: "f:" + f.k + ":" + f.at, kind: "ami", k: f.k, name: f.name, sub: "veut t'ajouter en ami" }));
+    (j.accepted || []).forEach(f => items.push({ key: "a:" + f.k, kind: "ok", name: f.name, sub: "a accepté ta demande : vous êtes amis !" }));
+    (j.results || []).forEach(d => { if (!d.lastMine && !(DU && DU.id === d.id)) items.push({ key: "r:" + d.id, kind: "res", id: d.id, name: d.opp, sub: d.me > d.them ? `Tu gagnes ${d.me} à ${d.them} !` : d.me < d.them ? `${d.opp} gagne ${d.them} à ${d.me}.` : `Égalité ${d.me} partout.`, win: d.me > d.them }); else IB.seen.add("r:" + d.id); });
     const inv = (j.duels || []).length + (j.friends || []).length, b = document.getElementById("navAmis"); if (b) { b.hidden = !inv; b.textContent = inv; }
-    const fresh = items.filter(x => !IB.seen.has(x.key));
+    const fresh = items.filter(x => !IB.seen.has(x.key)), silent = IB.first && !IB.seen.size;
     if (fresh.length) {
       fresh.forEach(x => IB.seen.add(x.key)); ibSave();
-      if (!IB.first || fresh.some(x => x.kind === "duel")) fresh.forEach(x => IB.q.push(x));
+      fresh.forEach(x => { if (!silent || x.kind === "duel" || x.kind === "ami") IB.q.push(x); });
       DH.at = 0; FR.at = 0; loadDuels(true); loadFriends(true);
       ibNext();
     }
@@ -5828,15 +5830,21 @@ function ibNext() {
   if (ibBusy()) { setTimeout(ibNext, 4000); return; }
   const x = IB.q.shift(), el = document.createElement("div");
   el.className = "ib"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-label", x.kind === "duel" ? "Défi en duel" : "Demande d'ami");
-  el.innerHTML = `${duAv(x.name)}<div><b>${x.kind === "duel" ? "⚔️ " + h(x.name) + " te défie en duel !" : "🤝 " + h(x.name)}</b><small>${h(x.sub)}</small></div>
-    <div class="row">${x.kind === "duel" ? `<button class="btn small" data-ib="later">Plus tard</button><button class="btn small primary" data-ib="go">Jouer maintenant</button>` : `<button class="btn small" data-ib="no">Refuser</button><button class="btn small primary" data-ib="yes">Accepter</button>`}</div><div class="ib-bar"><i></i></div>`;
+  const title = x.kind === "duel" ? "⚔️ " + h(x.name) + " te défie en duel !" : x.kind === "ok" ? "🎉 " + h(x.name) : x.kind === "res" ? (x.win ? "🏆 " : "⚔️ ") + "Duel terminé contre " + h(x.name) : "🤝 " + h(x.name);
+  const btns = x.kind === "duel" ? `<button class="btn small" data-ib="later">Plus tard</button><button class="btn small primary" data-ib="go">Jouer maintenant</button>`
+    : x.kind === "ami" ? `<button class="btn small" data-ib="no">Refuser</button><button class="btn small primary" data-ib="yes">Accepter</button>`
+    : x.kind === "ok" ? `<button class="btn small" data-ib="later">OK</button><button class="btn small primary" data-ib="friends">Voir mes amis</button>`
+    : `<button class="btn small" data-ib="later">OK</button><button class="btn small primary" data-ib="res">Voir le résultat</button>`;
+  el.innerHTML = `${duAv(x.name)}<div><b>${title}</b><small>${h(x.sub)}</small></div><div class="row">${btns}</div><div class="ib-bar"><i></i></div>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in"));
-  tone("lvl"); buzz([60, 40, 60]);
+  tone("lvl"); buzz([60, 40, 60]); if (x.kind === "ok" || (x.kind === "res" && x.win)) confettiBurst(40);
   let done = false;
   const close = () => { if (done) return; done = true; el.classList.remove("in"); setTimeout(() => { el.remove(); ibNext(); }, 450); };
   el.addEventListener("click", e => {
     const a = e.target.closest("[data-ib]"); if (!a) return; const v = a.dataset.ib;
     if (v === "go") { duelStop(); DU = null; duelJoinCode(x.id); }
+    if (v === "friends") { AMT = "amis"; FR.at = 0; go("amis"); loadFriends(true); }
+    if (v === "res") { duelStop(); DU = null; const N = DUEL_NET(); if (N) N.get(x.id).then(j => duelFromSrv(j.duel)).catch(() => {}); }
     if (v === "yes" || v === "no") { const F = FRN(); if (F) F.respond(x.k, v === "yes").then(() => { if (v === "yes") { toast("Nouvel ami : " + x.name); confettiBurst(40); } FR.at = 0; loadFriends(true); }).catch(() => {}); }
     close();
   });
