@@ -3148,24 +3148,54 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
-const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", snd: "off", qlen: 10, clen: 30, name: "" };
+const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", snd: "on", qlen: 10, clen: 30, name: "" };
 /* Effets : sons, tampon, XP, niveau, visite guidée */
 const fxOn = () => !document.documentElement.classList.contains("no-motion") && !(typeof RM !== "undefined" && RM);
 let lastPt = { x: 0, y: 0, t: 0 };
 document.addEventListener("pointerdown", e => { lastPt = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
 document.addEventListener("keydown", () => { lastPt = { x: innerWidth / 2, y: innerHeight / 2, t: Date.now() }; }, true);
 let AC = null;
+/* Petits sons d'interface, synthétisés à la volée (aucun fichier audio) */
+const TONES = {
+  ok: [[660, .07, "sine", 0, .08], [990, .13, "sine", 0, .08]],
+  ko: [[290, .08, "triangle", 0, .07], [205, .17, "triangle", 0, .07]],
+  stamp: [[150, .05, "triangle", 0, .09], [95, .12, "triangle", 0, .09]],
+  lvl: [[523, .11], [659, .11], [784, .11], [1047, .3]],
+  xp: [[988, .045, "sine", 0, .06], [1319, .09, "sine", 0, .06]],
+  tick: [[1650, .022, "triangle", 0, .03]],
+  pop: [[420, .075, "sine", 880, .08]],
+  unpop: [[720, .07, "sine", 360, .06]],
+  nav: [[880, .04, "sine", 0, .035], [1175, .06, "sine", 0, .035]],
+  open: [[330, .11, "sine", 640, .045]],
+  notif: [[784, .12, "triangle", 0, .07], [1175, .32, "triangle", 0, .06]],
+  soft: [[560, .06, "sine", 0, .05]],
+  warn: [[880, .05, "square", 0, .02]],
+  go: [[1047, .08, "sine", 0, .08], [1568, .2, "sine", 0, .08]]
+};
 function tone(kind) {
   if ((S.pref || PREF_DEF).snd !== "on") return;
+  const now = performance.now();
+  if (kind !== "tick") tone.n = (tone.n || 0) + 1;
+  else if (now - (tone.lt || 0) < 45) return;
+  tone.lt = now;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
-    const seq = { ok: [[660, .07], [990, .12]], ko: [[200, .16]], stamp: [[150, .05], [95, .12]], lvl: [[523, .11], [659, .11], [784, .11], [1047, .3]], xp: [[1320, .04]] }[kind] || [];
-    let t = AC.currentTime;
-    seq.forEach(([f, d]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = kind === "stamp" || kind === "ko" ? "triangle" : "sine"; o.frequency.value = f;
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    let t = AC.currentTime + .005;
+    if (kind === "flip") { // froissement de carte : bruit blanc filtré
+      const len = Math.floor(AC.sampleRate * .09), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+      f.type = "bandpass"; f.frequency.setValueAtTime(1400, t); f.frequency.exponentialRampToValueAtTime(3200, t + .08); f.Q.value = .9; g.gain.value = .09;
+      src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t); return;
+    }
+    (TONES[kind] || []).forEach(([f, d, type, to, vol]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = type || "sine"; o.frequency.setValueAtTime(f, t);
+      if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol || .09, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + d);
       o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .03); t += d * .85; });
   } catch (e) {}
 }
+function secTick(ms, key) { // tic-tac discret sur les 5 dernières secondes d'un chrono
+  const sec = Math.ceil(ms / 1000); if (ms <= 0 || sec > 5 || secTick[key] === sec) return; secTick[key] = sec; tone("tick"); }
 function fxStamp(txt, sub) {
   buzz([12, 50, 30]); tone("stamp");
   if (!fxOn()) { toast(txt + (sub ? " · " + sub : "")); return; }
@@ -3357,6 +3387,7 @@ function renderTop() {
   if (s) s.textContent = !navigator.onLine ? "Hors connexion : ta progression est gardée sur cet appareil et sera envoyée au retour du réseau." : syncMode === "sync" ? (dirty ? "Enregistrement sur ton compte…" : "Ta progression est enregistrée sur ton compte.") : "Ta progression est enregistrée sur cet appareil.";
   document.documentElement.classList.toggle("is-offline", !navigator.onLine);
 }
+function migrateSnd() { if (S.sndv) return; S.sndv = 1; if (S.pref && S.pref.snd === "off") S.pref.snd = "on"; }
 function migrateXp() {
   if (S.xpv >= 2) return; S.xpv = 2;
   let est = 0;
@@ -3369,7 +3400,7 @@ function migrateXp() {
 }
 function render() {
   applyPrefs();
-  migrateXp();
+  migrateXp(); migrateSnd();
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
@@ -3535,7 +3566,7 @@ function startRun(items, mode) {
     examTick = setInterval(() => {
       const t = document.getElementById("timer");
       const left = Math.max(0, R.end - Date.now());
-      if (t) { t.textContent = timeLeft(); t.classList.toggle("low", left < 120000); }
+      if (t) { t.textContent = timeLeft(); t.classList.toggle("low", left < 120000); } if (left <= 60000 && left > 59000) tone("warn");
       if (left <= 0) finishExam();
     }, 1000);
   }
@@ -3933,7 +3964,7 @@ function vProfil() {
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
         <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse, tampon et niveau (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Visite guidée</b><span>Revoir la présentation de l'appli en 4 étapes.</span></div><button class="btn small" data-act="tourAgain">Relancer</button></div>
-        <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : bonne réponse, tampon, passage de niveau.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
+        <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : touches, cartes retournées, bonnes et mauvaises réponses, notifications, chronos, niveaux.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
         <div class="pf-row"><div><b>Prénom affiché</b><span>Affiché en haut de ton profil.</span></div><input id="pfName" class="pf-in" aria-label="Prénom affiché" maxlength="40" placeholder="Ton prénom" value="${h(p.name || "")}"></div>
@@ -4027,7 +4058,7 @@ function vCard() {
 
 function answerCard(knew) {
   const cur = C.q[C.i];
-  recordC(cur.it, knew); buzz(knew === true ? 12 : knew === "hard" ? 20 : [25, 35, 25]);
+  recordC(cur.it, knew); tone(knew === true ? "pop" : knew === "hard" ? "soft" : "unpop"); buzz(knew === true ? 12 : knew === "hard" ? 20 : [25, 35, 25]);
   if (knew) C.knew++; else { C.again++; if (cur.again < 2) C.q.push({ it: cur.it, again: cur.again + 1 }); }
   C.i++; C.flip = false; touch();
   if (C.i >= C.q.length) go("cardsEnd"); else render();
@@ -4359,7 +4390,7 @@ let FC = null, matSub = "fiches", GC = null, DF = null, defiTick = null, noteTim
 function toast(t) {
   let el = document.getElementById("toast");
   if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; el.setAttribute("role", "status"); document.body.appendChild(el); }
-  el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2000);
+  el.textContent = t; el.classList.add("show"); setTimeout(() => { if (performance.now() - (tone.lt || 0) > 120) tone("soft"); }, 0); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2000);
 }
 
 /* Rendu des blocs des fiches importées */
@@ -4625,7 +4656,7 @@ function startDefi(cats) {
   DF = { pool, i: 0, ok: 0, ko: 0, miss: [], end: Date.now() + 60000, last: null, cats, order: shuffle([0, 1, 2, 3]), done: false };
   defiTick = setInterval(() => {
     const t = document.getElementById("defiTimer"), left = Math.max(0, DF.end - Date.now());
-    if (t) { t.textContent = Math.ceil(left / 1000) + " s"; t.classList.toggle("low", left < 10000); const b = document.getElementById("defiBar"); if (b) b.style.width = (left / 600) + "%"; }
+    if (t) { t.textContent = Math.ceil(left / 1000) + " s"; t.classList.toggle("low", left < 10000); const b = document.getElementById("defiBar"); if (b) b.style.width = (left / 600) + "%"; } secTick(left, "df");
     if (left <= 0) finishDefi();
   }, 250);
   go("defi");
@@ -4795,7 +4826,7 @@ function bindFusion() {
 /* Cartes en 3D : la carte se retourne sans recharger la vue */
 function flipCard() {
   if (!C) return;
-  C.flip = !C.flip;
+  C.flip = !C.flip; tone("flip");
   const r = document.querySelector(".card-runner");
   if (r) { r.classList.toggle("flipped", C.flip); const c3 = r.querySelector(".card3d"); if (c3) c3.classList.toggle("is-flipped", C.flip); } else render();
 }
@@ -5566,12 +5597,12 @@ function duelLoop() {
   duTick = setInterval(() => {
     if (!DU || view !== "duel") return;
     if (DU.stage === "count") { const left = Math.ceil((DU.startAt - Date.now()) / 1000); const el = document.getElementById("duCount");
-      if (left <= 0) { DU.stage = "play"; DU.qT0 = Date.now(); if (DU.bot && !DU.botStart) DU.botStart = DU.qT0; render(); tone("lvl"); return; }
+      if (left <= 0) { DU.stage = "play"; DU.qT0 = Date.now(); if (DU.bot && !DU.botStart) DU.botStart = DU.qT0; render(); tone("go"); return; }
       if (el && el.dataset.n !== String(left)) { el.dataset.n = String(left); el.textContent = left; el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; tone("xp"); buzz(10); } return; }
     if (DU.stage === "play") {
       const el = document.getElementById("duBar"), tt = document.getElementById("duSec"), left = Math.max(0, DUEL_T * 1000 - (Date.now() - DU.qT0));
       if (el) el.style.width = (left / (DUEL_T * 10)) + "%";
-      if (tt) { const s = Math.ceil(left / 1000); tt.textContent = s + " s"; tt.classList.toggle("low", s <= 5); }
+      if (tt) { const s = Math.ceil(left / 1000); tt.textContent = s + " s"; tt.classList.toggle("low", s <= 5); } if (!DU.lock) secTick(left, "du" + DU.i);
       if (DU.bot) duelBoard();
       if (left <= 0 && !DU.lock) duelAnswer(-1);
     }
@@ -5864,7 +5895,7 @@ function askConfirm(title, text, ok, opts) {
     const key = e => { if (e.key === "Escape") done(false); };
     el.addEventListener("click", e => { const b = e.target.closest("[data-cf]"); if (b) done(b.dataset.cf === "1"); else if (e.target === el) done(false); });
     document.addEventListener("keydown", key);
-    document.body.appendChild(el); buzz(10);
+    document.body.appendChild(el); buzz(10); tone("open");
     setTimeout(() => { const b = el.querySelector('[data-cf="1"]'); if (b) b.focus({ preventScroll: true }); }, 30);
   });
 }
@@ -5909,7 +5940,7 @@ function ibNext() {
     : `<button class="btn small" data-ib="later">OK</button><button class="btn small primary" data-ib="res">Voir le résultat</button>`;
   el.innerHTML = `${duAv(x.name)}<div><b>${title}</b><small>${h(x.sub)}</small></div><div class="row">${btns}</div><div class="ib-bar"><i></i></div>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in"));
-  tone("lvl"); buzz([60, 40, 60]); if (x.kind === "ok" || (x.kind === "res" && x.win)) confettiBurst(40);
+  tone(x.kind === "ok" || (x.kind === "res" && x.win) ? "lvl" : "notif"); buzz([60, 40, 60]); if (x.kind === "ok" || (x.kind === "res" && x.win)) confettiBurst(40);
   let done = false;
   const close = () => { if (done) return; done = true; el.classList.remove("in"); setTimeout(() => { el.remove(); ibNext(); }, 450); };
   el.addEventListener("click", e => {
@@ -5973,7 +6004,7 @@ function oralTimer() {
     const el = document.getElementById("orTime"), cur = OR.list[OR.i]; if (!el || cur.done) return;
     const left = Math.max(0, Math.round((OR.end - Date.now()) / 1000));
     el.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
-    el.parentNode.classList.toggle("low", left <= 20);
+    el.parentNode.classList.toggle("low", left <= 20); if (left === 20) tone("warn"); secTick(left * 1000, "or" + OR.i);
     const bar = document.getElementById("orBar"); if (bar) bar.style.width = (100 - left / OR.t * 100) + "%";
     if (!left) { cur.done = true; buzz([40, 60, 40]); render(); }
   }, 250);
@@ -7529,7 +7560,7 @@ function schStart(id, mode) {
 }
 function schSet(i, k) { // place l'étiquette k de la banque dans la case i
   Object.keys(SC.place).forEach(j => { if (SC.place[j] === k) delete SC.place[j]; });
-  SC.place[i] = k; SC.pick = null; SC.slot = null; tone("xp"); buzz(8);
+  SC.place[i] = k; SC.pick = null; SC.slot = null; tone("pop"); buzz(8);
 }
 function schCheck() {
   const s = SCHBY[SC.id], nodes = schNodes(s), ids = [...SC.hide];
@@ -7601,6 +7632,8 @@ function vSchema() {
 
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
+  { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
+    if (el && !el.disabled) setTimeout(() => { if ((tone.n || 0) !== t0) return; const sh = document.getElementById("wkSheet"); tone(sh && !sh0 ? "open" : el.closest("[data-nav]") ? "nav" : "tick"); }, 0); }
   const nb = e.target.closest("[data-nav]");
   if (nb) { const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
   const b = e.target.closest("[data-act]"); if (!b) return;
@@ -7634,7 +7667,7 @@ document.addEventListener("click", e => {
     case "scMode": schStart(SC.id, b.dataset.m); render(); { const f = document.querySelector(".sc-seg"); if (f) f.scrollIntoView({ block: "nearest" }); } break;
     case "scBack": if (scFrom === "mat") go("mat"); else { setExTab("schemas"); go("ex"); } break;
     case "scChip": { const k = +b.dataset.k; if (SC.slot != null) schSet(SC.slot, k); else { SC.pick = SC.pick === k ? null : k; buzz(6); } render(); break; }
-    case "scSlot": { const i = +b.dataset.i; if (SC.place[i] != null && SC.pick == null) { delete SC.place[i]; SC.slot = i; } else if (SC.pick != null) schSet(i, SC.pick); else SC.slot = SC.slot === i ? null : i; render(); break; }
+    case "scSlot": { const i = +b.dataset.i; if (SC.place[i] != null && SC.pick == null) { delete SC.place[i]; SC.slot = i; tone("unpop"); } else if (SC.pick != null) schSet(i, SC.pick); else SC.slot = SC.slot === i ? null : i; render(); break; }
     case "scCheck": schCheck(); render(); { const f = document.querySelector(".sc-run .feedback"); if (f) f.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" }); } break;
     case "scReset": SC.place = {}; SC.pick = null; SC.slot = null; render(); break;
     case "scNext": { const l = SCH.filter(x => !lockedCat(x.cat)), i = l.findIndex(x => x.id === SC.id), nx = l[(i + 1) % l.length]; schStart(nx.id, "voir"); go("schema"); break; }
@@ -7699,7 +7732,7 @@ document.addEventListener("click", e => {
     case "startDue": { const d = dueCards(cardSel.length ? cardSel : null, true); startCards(shuffle(d.reviews).slice(0, 30).concat(shuffle(d.fresh).slice(0, 15)).slice(0, 30)); break; }
     case "startAllCards": startCards(shuffle(FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)))); break;
     case "chapToggle": { const k = b.dataset.k; chapSel = chapSel.includes(k) ? chapSel.filter(x => x !== k) : chapSel.concat(k); S.chap = chapSel.slice(); touch(); render(); break; }
-    case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); break; }
+    case "pref": { const pp = P(), k = b.dataset.k; let val = b.dataset.v; if (k === "qlen" || k === "clen") val = +val; pp[k] = val; if (k === "qlen") { quizLen = val; prefSeenQ = val; } touch(); render(); if (k === "snd" && val === "on") tone("ok"); break; }
     case "weakPick": weakSheet(b.dataset.k); break;
     case "pkNew": PB = { cat: "", chs: [], kw: "", name: "", date: "", i: null }; render(); setTimeout(() => { const e = document.getElementById("pkBuild"); if (e) e.scrollIntoView({ block: "start" }); }, 30); break;
     case "pbCat": PB.cat = b.dataset.c; PB.chs = []; render(); break;
