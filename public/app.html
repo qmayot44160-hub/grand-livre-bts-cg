@@ -3107,9 +3107,34 @@ function pickServer(loc, srv, uid) {
   if (!useSrv && sx > lx * 1.3 + 30) useSrv = true;
   return useSrv;
 }
+/* Fusion de deux progressions : on garde le meilleur de chacune, rien ne se perd */
+function mergeS(a, b) {
+  const A = a || {}, B = b || {}, newer = (A.u || 0) >= (B.u || 0) ? A : B, older = newer === A ? B : A;
+  const M = JSON.parse(JSON.stringify(newer)), o = JSON.parse(JSON.stringify(older));
+  Object.keys(o).forEach(k => { if (!(k in M)) M[k] = o[k]; });
+  ["xpv", "sndv"].forEach(k => { const v = Math.max(+A[k] || 0, +B[k] || 0); if (v) M[k] = v; });
+  const each = (k, pick) => { const x = M[k] || {}, y = o[k] || {}; Object.keys(y).forEach(id => { x[id] = id in x ? pick(x[id], y[id]) : y[id]; }); if (Object.keys(x).length) M[k] = x; };
+  const byN = (p, q) => (Array.isArray(p) && Array.isArray(q) ? ((q[0] || 0) > (p[0] || 0) ? q : p) : p);
+  each("q", byN); each("x", byN); each("cx", byN);
+  each("c", (p, q) => (q[0] || 0) > (p[0] || 0) || ((q[0] || 0) === (p[0] || 0) && (q[1] || 0) > (p[1] || 0)) ? q : p);
+  each("qd", (p, q) => ({ w: Math.max(p.w || 0, q.w || 0), ok: [...new Set([].concat(p.ok || [], q.ok || []))].sort((m, n) => m - n).slice(-6) }));
+  each("h", (p, q) => Math.max(+p || 0, +q || 0));
+  ["l", "fr", "frx", "ew", "dlog"].forEach(k => each(k, p => p));
+  each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
+  each("gc", (p, q) => Object.keys(q.ok || {}).length > Object.keys(p.ok || {}).length ? q : p);
+  each("sch", (p, q) => ({ t: Math.max(p.t || 0, q.t || 0), c: Math.max(p.c || 0, q.c || 0), d: Math.max(p.d || 0, q.d || 0) }));
+  M.xp = Math.max(+A.xp || 0, +B.xp || 0);
+  const sa = A.st || {}, sb = B.st || {}; M.st = (sa.d || 0) > (sb.d || 0) ? sa : (sb.d || 0) > (sa.d || 0) ? sb : { d: sa.d || 0, n: Math.max(sa.n || 0, sb.n || 0) };
+  if (A.df || B.df) M.df = Object.assign({}, older.df, newer.df, { best: Math.max((A.df || {}).best || 0, (B.df || {}).best || 0) });
+  if (A.dus || B.dus) { const da = A.dus || {}, db = B.dus || {}; M.dus = (da.w || 0) + (da.l || 0) + (da.d || 0) >= (db.w || 0) + (db.l || 0) + (db.d || 0) ? da : db; }
+  ["rp", "sit", "packs"].forEach(k => { if (!(M[k] || []).length && (o[k] || []).length) M[k] = o[k]; });
+  ["av", "cl", "bts", "pl", "last", "tour"].forEach(k => { if (M[k] == null && o[k] != null) M[k] = o[k]; });
+  M.v = 1; M.u = Math.max(A.u || 0, B.u || 0);
+  return M;
+}
 async function adoptServer(why) {
   try { const snap = await ref.get(); if (!snap.exists) return; const d = snap.data(); if (!d || d.v !== 1) return;
-    keepCopy(S); S = JSON.parse(JSON.stringify(d)); normS(); S.uid = syncUid; saveLocal(); render(); if (why) toast(why); } catch (e) {}
+    keepCopy(S); S = mergeS(S, d); normS(); S.uid = syncUid; saveLocal(); render(); dirty = true; setTimeout(flush, 500); if (why) toast(why); } catch (e) {}
 }
 
 function loadLocal() { try { const r = localStorage.getItem(LS_KEY); if (r) { const o = JSON.parse(r); if (o && o.v === 1) return o; } } catch (e) {} return null; }
@@ -3147,8 +3172,12 @@ async function initSync() {
     ref = r; syncMode = "sync"; syncUid = String(uid);
     if (snap.exists) {
       const d = snap.data();
-      if (d && d.v === 1 && pickServer(S, d, syncUid)) { if ((S.xp || 0) > 0) keepCopy(S); S = JSON.parse(JSON.stringify(d)); normS(); S.uid = syncUid; saveLocal(); render(); }
-      else { S.uid = syncUid; saveLocal(); if (!d || JSON.stringify(d) !== JSON.stringify(S)) { dirty = true; flush(); } }
+      if (d && d.v === 1) {
+        const fresh = !(S.xp > 0) && !Object.keys(S.q || {}).length && !Object.keys(S.l || {}).length;
+        if (fresh || JSON.stringify(d) === JSON.stringify(Object.assign({}, S, { uid: d.uid }))) { S = JSON.parse(JSON.stringify(d)); normS(); }
+        else { keepCopy(S); S = mergeS(S, d); normS(); dirty = true; } // les deux ont de la progression : on fusionne et on renvoie le tout
+        S.uid = syncUid; saveLocal(); render(); if (dirty) flush();
+      } else { S.uid = syncUid; saveLocal(); dirty = true; flush(); }
     } else { S.uid = syncUid; saveLocal(); if (S.u) { dirty = true; flush(); } }
     renderTop();
   } catch (e) { ref = null; syncMode = "local"; renderTop(); }
