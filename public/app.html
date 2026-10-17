@@ -299,6 +299,51 @@
   --gold: #f2c95c; --hl: rgba(255, 219, 77, .15); --hl-edge: #e3c240; --hl-band: rgba(227, 194, 64, .32); --card-line: #2b3459; --card-head: #d06a7c; --on-tint: #12142a;
   --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark; --ldm: 0;
 }
+/* Schémas de processus */
+.sc-how { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sc-how > span:not(.pill) { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: .9rem; }
+.sc-how > span b { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: .8rem; }
+.sc-title { margin: 0; font-family: var(--f-display); font-size: 1.3rem; line-height: 1.2; }
+.sc-seg { display: inline-flex; gap: 4px; padding: 4px; background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.sc-seg button { border: 0; background: none; font: inherit; font-weight: 700; font-size: .9rem; color: var(--muted); padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; min-height: 38px; transition: background .2s, color .2s; }
+.sc-seg button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.sc-tip { margin: 0; font-size: .88rem; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 10px; }
+.sc-flow { display: grid; padding: 16px 12px; background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; }
+.sc-row { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+@media (max-width: 560px) { .sc-row.n4 { grid-template-columns: 1fr 1fr; } .sc-row, .sc-arrows { gap: 7px; } .sc-flow { padding: 14px 8px; } .sc-row[style*="--n:3"] .sc-node { padding: 8px 5px; } .sc-row[style*="--n:3"] .sc-node b { font-size: .8rem; } .sc-row[style*="--n:3"] .sc-node small { font-size: .7rem; } }
+.sc-node { position: relative; display: grid; align-content: center; gap: 3px; text-align: center; min-height: 58px; padding: 10px 9px; border-radius: 12px; background: var(--sheet); border: 1.5px solid color-mix(in srgb, var(--c) 55%, var(--rule)); box-shadow: 0 1px 0 color-mix(in srgb, var(--c) 25%, transparent); font: inherit; color: var(--ink); min-width: 0; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+.sc-node b { font-weight: 800; font-size: .93rem; line-height: 1.25; }
+.sc-node small { color: var(--muted); font-size: .76rem; line-height: 1.3; }
+.sc-node.fix { background: color-mix(in srgb, var(--c) 9%, var(--sheet)); border-style: dashed; }
+.sc-node.slot { cursor: pointer; border-style: dashed; border-color: var(--rule-strong); background: var(--sheet); transition: border-color .15s, transform .12s, background .15s; }
+.sc-node.slot b { color: var(--muted); font-size: 1.1rem; }
+.sc-node.slot:hover { border-color: var(--accent); }
+.sc-node.slot:active { transform: scale(.97); }
+.sc-node.slot.filled { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.sc-node.slot.filled b { color: var(--ink); font-size: .93rem; }
+.sc-node.slot.sel { outline: 3px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+.sc-node.ok { border-color: var(--ok); background: var(--ok-bg); animation: scPop .35s ease; }
+.sc-node.ko { border-color: var(--bad); background: var(--bad-bg); animation: scShake .4s ease; }
+.sc-node.ko > b { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--bad); }
+.sc-fix { font-weight: 800; font-size: .84rem; color: var(--ok); }
+@keyframes scPop { 40% { transform: scale(1.04); } }
+@keyframes scShake { 20%, 60% { transform: translateX(-3px); } 40%, 80% { transform: translateX(3px); } }
+.sc-arrows { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; min-height: 38px; }
+.sc-ar { position: relative; grid-row: 1; }
+.sc-ar::before { content: ""; position: absolute; left: 50%; top: 4px; bottom: 9px; width: 2px; margin-left: -1px; background: var(--c); border-radius: 2px; }
+.sc-ar::after { content: ""; position: absolute; left: 50%; bottom: 3px; margin-left: -6px; border: 6px solid transparent; border-top: 7px solid var(--c); border-bottom: 0; }
+.sc-cap { grid-row: 1; grid-column: 1; align-self: center; justify-self: start; margin: 6px 0 10px calc(50% + 8px); max-width: calc(50% - 8px); font-style: normal; font-size: .76rem; font-weight: 700; line-height: 1.25; color: var(--c); background: var(--paper); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+.sc-arrows.par .sc-cap { grid-column: 1 / -1; justify-self: center; margin: 6px 0 10px; max-width: 46%; text-align: center; position: relative; z-index: 1; }
+.sc-key { border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 8%, var(--sheet)); border-radius: 4px 12px 12px 4px; padding: 10px 14px; display: grid; gap: 4px; }
+.sc-key b { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--c); } .sc-key p { margin: 0; font-weight: 600; line-height: 1.45; }
+.sc-bank { max-height: 32vh; overflow-y: auto; overscroll-behavior: contain; position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--sheet) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--rule); box-shadow: var(--lift); }
+.sc-chip { font: inherit; font-weight: 700; font-size: .86rem; color: var(--ink); background: var(--sheet); border: 1.5px solid var(--rule-strong); border-radius: 999px; padding: 8px 13px; cursor: pointer; text-align: left; min-height: 40px; transition: transform .12s, background .15s, border-color .15s; animation: scIn .25s ease; }
+.sc-chip:hover { border-color: var(--accent); }
+.sc-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); transform: translateY(-2px); box-shadow: var(--lift); }
+@keyframes scIn { from { opacity: 0; transform: scale(.9); } }
+@media (min-width: 900px) { .sc-bank { bottom: 12px; } }
+@media (prefers-reduced-motion: reduce) { .sc-node.ok, .sc-node.ko, .sc-chip { animation: none; } }
+
 /* Couleur de matière : chaque élément teinté reçoit --h (teinte) et --s (saturation) */
 .tinted, [style*="--h"] {
   --c: hsl(var(--h, 228) var(--s, 60%) calc(var(--l-strong) - var(--ld, 0%) * var(--ldm, 1)));
@@ -1557,7 +1602,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .ag-res { display: grid; gap: 6px; }
 
 /* Onglets de la page S'entraîner */
-.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .ex-tab:hover { border-color: var(--accent); }
 .ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -3251,6 +3296,7 @@ const ICON = {
   search: SVG('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/>'),
   target: SVG('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>'),
   calc: SVG('<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15v3M8.5 18h.01M12 18h.01"/>'),
+  schema: SVG('<rect x="8" y="3" width="8" height="5" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/><rect x="14" y="16" width="7" height="5" rx="1.5"/><path d="M12 8v4M6.5 16v-4h11v4"/>'),
   steps: SVG('<path d="M4 19h4.5v-4.5H13V10h4.5V5.5H20"/>'),
   archive: SVG('<rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/>'),
   errbook: SVG('<path d="M6.5 3.5H18a1 1 0 0 1 1 1V20H7.5a2 2 0 0 1-2-2V4.5a1 1 0 0 1 1-1Z"/><path d="M10 8.5l4.5 4.5M14.5 8.5 10 13"/>'),
@@ -3327,7 +3373,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -4226,6 +4272,7 @@ function matTrain(c) {
     </div>
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
     ${dosSection(c.id)}
+    ${SCH.some(x => x.cat === c.id) ? schHome(c.id) : ""}
     ${(GCBY[c.id] || []).length ? `<div class="ex-group"><h2>Exercices guidés</h2><p class="muted">Un exercice type examen découpé en étapes : tu rédiges, puis tu débloques le corrigé de chaque étape.</p><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></div>` : ""}
     ${anns.length ? `<div class="ex-group"><h2>Annales officielles</h2><p class="muted">Les exercices des vrais sujets qui portent sur ${h(c.name.toLowerCase())}. Compare ta copie au corrigé pour savoir quoi revoir.</p><div class="ann-flat">${anns.map(x => annRow(x, true)).join("")}</div></div>` : ""}`;
 }
@@ -5417,7 +5464,7 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; return t === "duel" ? "quiz" : t; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
@@ -6122,6 +6169,7 @@ function vExHome() {
       ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
     </section>` : ""}
     ${EXT === "ctl" ? packHome() : ""}
+    ${EXT === "schemas" ? schHome() : ""}
     ${EXT === "oraux" ? oralHome() : ""}
     ${EXT === "redac" ? `<section class="stack">
       <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
@@ -7289,6 +7337,268 @@ function vRedac() {
   </section>`;
 }
 
+/* ---------- Schémas : processus à voir, à compléter (à trous) ou à reconstruire ---------- */
+/* Chaque ligne : { a: légende de la flèche qui arrive sur la ligne, n: [[étiquette, précision, 0 = case fixe jamais masquée]] } */
+const SCH = [
+{ id: "sc-tva", cat: "p3", title: "Le mécanisme de la TVA", idee: "L'entreprise collecte la TVA sur ses ventes, récupère celle payée sur ses achats et ne reverse que la différence : c'est le consommateur final qui supporte vraiment la taxe.",
+  rows: [
+  { n: [["Ventes et prestations HT", "base imposable", 0]] },
+  { a: "× taux de TVA", n: [["TVA collectée", "44571 · facturée aux clients"], ["TVA déductible", "44562 (immobilisations) et 44566 (autres biens et services)"]] },
+  { a: "collectée − déductible", n: [["TVA à décaisser", "44551 · si collectée > déductible"], ["Crédit de TVA", "44567 · si déductible > collectée"]] },
+  { n: [["Paiement au Trésor", "avec la déclaration CA3 ou CA12"], ["Imputation ou remboursement", "sur les déclarations suivantes"]] },
+  { n: [["Le consommateur final supporte la taxe", "l'entreprise n'est qu'un collecteur", 0]] }],
+  leurres: ["TVA à récupérer sur le client", "Produit de TVA (compte 7)"],
+  retenir: "TVA due = TVA collectée − TVA déductible. Si le résultat est négatif, c'est un crédit de TVA (44567)." },
+
+{ id: "sc-tva-exig", cat: "p3", title: "Exigibilité de la TVA : à quelle date est-elle due ?", idee: "Le fait générateur et l'exigibilité dépendent de la nature de l'opération : on ne déclare pas la TVA d'une prestation au même moment que celle d'une livraison.",
+  rows: [
+  { n: [["Nature de l'opération", "", 0]] },
+  { a: "biens ou services ?", n: [["Livraison de biens", "marchandises, produits finis"], ["Prestation de services", "travaux, conseil, transport…"]] },
+  { a: "la TVA est exigible", n: [["À la livraison", "transfert du pouvoir de disposer du bien"], ["À l'encaissement", "acomptes compris"]] },
+  { a: "option possible ?", n: [["Aucune option", "la livraison fixe la date"], ["Option pour les débits", "TVA exigible dès la facturation"]] },
+  { a: "on déclare", n: [["Sur la déclaration de la période d'exigibilité", "CA3 du mois concerné", 0]] }],
+  leurres: ["À la commande", "À la date du devis"],
+  retenir: "Biens : TVA exigible à la livraison. Services : à l'encaissement, sauf option pour les débits." },
+
+{ id: "sc-tva-ded", cat: "p3", title: "Peut-on déduire cette TVA ?", idee: "La TVA payée à un fournisseur n'est récupérable que si trois conditions sont réunies, et certaines dépenses en sont exclues par la loi.",
+  rows: [
+  { n: [["Dépense supportée par l'entreprise", "", 0]] },
+  { a: "trois conditions cumulatives", n: [["Dépense pour l'activité taxable", "nécessaire à l'exploitation"], ["Facture conforme", "mentions obligatoires, TVA apparente"], ["TVA exigible chez le fournisseur", "livraison faite ou prestation payée"]] },
+  { a: "sauf exclusions légales", n: [["TVA déductible", "44562 ou 44566"], ["TVA non récupérable", "véhicules de tourisme, cadeaux au-delà de 73 € TTC par an et par bénéficiaire, logement des dirigeants"]] },
+  { a: "conséquence comptable", n: [["Déduite sur la déclaration", "le mois où elle devient exigible chez le fournisseur"], ["Incluse dans le coût", "la charge ou l'immobilisation est comptée TTC"]] }],
+  leurres: ["Paiement comptant obligatoire", "Fournisseur établi en France"],
+  retenir: "Déductible = activité taxable + facture conforme + TVA exigible chez le fournisseur. Exclue : la TVA s'ajoute au coût." },
+
+{ id: "sc-tva-reg", cat: "p3", title: "Régimes de TVA et déclarations", idee: "Le régime dépend du chiffre d'affaires : plus il est élevé, plus les déclarations sont fréquentes. Les seuils changent souvent, vérifie ceux de l'année.",
+  rows: [
+  { n: [["Chiffre d'affaires de l'entreprise", "comparé aux seuils en vigueur", 0]] },
+  { a: "du plus petit au plus grand", n: [["Franchise en base", "pas de TVA facturée ni récupérée"], ["Réel simplifié", "une déclaration CA12 par an"], ["Réel normal", "une déclaration CA3 par mois"]] },
+  { a: "en pratique", n: [["Mention « TVA non applicable »", "art. 293 B du CGI, sur chaque facture"], ["Acomptes : 55 % en juillet, 40 % en décembre", "sur la TVA de l'année précédente"], ["Paiement chaque mois", "trimestriel possible si la TVA annuelle est inférieure à 4 000 €"]] }],
+  leurres: ["Déclaration 2065", "Acomptes de 25 % chaque trimestre"],
+  retenir: "Franchise : pas de TVA. Réel simplifié : CA12 + acomptes 55 % / 40 %. Réel normal : CA3 mensuelle." },
+
+{ id: "sc-is", cat: "p3", title: "Du résultat comptable à l'impôt sur les sociétés", idee: "Le fisc ne taxe pas directement le résultat comptable : on le corrige par des réintégrations et des déductions extra-comptables (tableau 2058-A) pour obtenir le résultat fiscal.",
+  rows: [
+  { n: [["Résultat comptable", "bénéfice ou perte de l'exercice"]] },
+  { a: "corrections extra-comptables (2058-A)", n: [["+ Réintégrations", "charges non déductibles : amendes, IS, taxes sur les véhicules, amortissements excédentaires des voitures…"], ["− Déductions", "produits non imposables ou déjà taxés : dividendes du régime mère-fille, reprises déjà taxées…"]] },
+  { a: "=", n: [["Résultat fiscal", "base de l'impôt"]] },
+  { a: "positif ou négatif ?", n: [["Bénéfice fiscal", "imposable à l'IS"], ["Déficit fiscal", "reporté en avant, ou en arrière sur option (carry-back)"]] },
+  { a: "calcul", n: [["IS = 15 % jusqu'à 42 500 € puis 25 %", "taux réduit réservé aux PME éligibles"], ["Pas d'IS à payer", "le déficit réduira les bénéfices futurs"]] }],
+  leurres: ["+ Dotations aux amortissements", "Résultat d'exploitation"],
+  retenir: "Résultat fiscal = résultat comptable + réintégrations − déductions. IS : 15 % jusqu'à 42 500 € (PME éligible), 25 % au-delà." },
+
+{ id: "sc-is-cal", cat: "p3", title: "Calendrier de paiement de l'IS (clôture au 31 décembre)", idee: "L'IS se paie d'avance par quatre acomptes calculés sur l'exercice précédent, puis on régularise avec le solde une fois le vrai résultat connu.",
+  rows: [
+  { n: [["IS de référence (exercice précédent)", "acomptes dus s'il dépasse 3 000 €", 0]] },
+  { a: "4 acomptes de 25 %", n: [["15 mars", "acompte n° 1"], ["15 juin", "acompte n° 2"], ["15 septembre", "acompte n° 3"], ["15 décembre", "acompte n° 4"]] },
+  { a: "à la clôture", n: [["Calcul de l'IS réel de l'exercice", "sur le résultat fiscal", 0]] },
+  { a: "l'année suivante", n: [["Déclaration de résultat 2065", "début mai"], ["Solde le 15 mai", "IS réel − acomptes versés (relevé 2572)"]] },
+  { a: "selon le solde", n: [["Complément à payer", "si l'IS dépasse les acomptes"], ["Excédent remboursé", "si les acomptes dépassent l'IS"]] }],
+  leurres: ["15 janvier", "Déclaration CA3"],
+  retenir: "Acomptes : 15/03, 15/06, 15/09, 15/12 (25 % chacun). Solde : 15 mai N+1 avec le relevé 2572." },
+
+{ id: "sc-ir", cat: "p3", title: "Calcul de l'impôt sur le revenu", idee: "On additionne les revenus de chaque catégorie après leurs abattements, on enlève les charges déductibles, puis on applique le barème par part grâce au quotient familial.",
+  rows: [
+  { n: [["Revenus catégoriels", "salaires, BIC, BNC, revenus fonciers…"]] },
+  { a: "après abattements propres à chaque catégorie", n: [["Revenu brut global", "ex. : 10 % de frais professionnels sur les salaires"]] },
+  { a: "− charges déductibles", n: [["Revenu net imposable", "pensions alimentaires, versements PER…"]] },
+  { a: "÷ nombre de parts", n: [["Quotient familial", "revenu pour une part"]] },
+  { a: "on applique", n: [["Barème progressif par tranches", "de 0 % à 45 %"]] },
+  { a: "× nombre de parts", n: [["Impôt brut", "dans la limite du plafonnement du quotient familial"]] },
+  { a: "− décote, réductions et crédits d'impôt", n: [["Impôt net", "payé via le prélèvement à la source"]] }],
+  leurres: ["Résultat fiscal", "Taux unique de 30 %"],
+  retenir: "Revenus → revenu brut global → revenu net imposable → ÷ parts → barème → × parts → − réductions et crédits = impôt net." },
+
+{ id: "sc-fact", cat: "p1", title: "Calcul d'une facture de vente", idee: "Les réductions s'appliquent dans un ordre précis : d'abord les commerciales, puis la financière, ensuite les frais de port, enfin la TVA.",
+  rows: [
+  { n: [["Montant brut HT", "quantité × prix unitaire"]] },
+  { a: "− remise, rabais, ristourne (en cascade)", n: [["Net commercial", "après réductions commerciales"]] },
+  { a: "− escompte de règlement", n: [["Net financier", "après réduction financière"]] },
+  { a: "+ frais de port", n: [["Total HT", "base de calcul de la TVA"]] },
+  { a: "+ TVA", n: [["Net à payer TTC", "montant réglé par le client"]] }],
+  leurres: ["Marge commerciale", "Prix de revient"],
+  retenir: "Brut → réductions commerciales → net commercial → escompte → net financier → + port → total HT → + TVA → TTC." },
+
+{ id: "sc-vente", cat: "p1", title: "Le cycle de vente, de la commande à l'encaissement", idee: "Chaque étape produit un document, et la facture déclenche l'écriture. Le règlement solde ensuite la créance client.",
+  rows: [
+  { n: [["Commande du client", "bon de commande, devis accepté"]] },
+  { n: [["Livraison", "bon de livraison signé"]] },
+  { a: "écriture de vente", n: [["Facture de vente", "411 au débit, 70x et 44571 au crédit"]] },
+  { a: "mode de règlement", n: [["Règlement direct", "virement ou chèque : 512 / 411"], ["Effet de commerce (LCR)", "413, puis encaissement ou escompte"]] },
+  { n: [["Lettrage du compte client", "la créance est soldée", 0]] }],
+  leurres: ["Facture d'avoir", "Bon de réception"],
+  retenir: "Commande → livraison → facture (écriture) → règlement ou effet → lettrage." },
+
+{ id: "sc-inv", cat: "p2", title: "Des travaux d'inventaire aux comptes annuels", idee: "À la clôture, on corrige la balance pour qu'elle donne une image fidèle, puis on établit les trois documents des comptes annuels.",
+  rows: [
+  { n: [["Balance avant inventaire", "", 0]] },
+  { a: "écritures d'inventaire", n: [["Amortissements", "681 / 28x"], ["Dépréciations", "681 ou 686 / 29x, 39x, 49x"], ["Provisions pour risques et charges", "681 / 15x"], ["Régularisations", "CCA, PCA, charges à payer, produits à recevoir"]] },
+  { n: [["Balance après inventaire", "", 0]] },
+  { a: "comptes annuels", n: [["Bilan", "patrimoine à la clôture"], ["Compte de résultat", "charges et produits de l'exercice"], ["Annexe", "complète et explique les deux autres"]] }],
+  leurres: ["Rapprochement bancaire", "Tableau de financement"],
+  retenir: "Inventaire = amortir, déprécier, provisionner, régulariser. Comptes annuels = bilan + compte de résultat + annexe." },
+
+{ id: "sc-affect", cat: "p2", title: "Affectation du résultat", idee: "L'assemblée générale décide quoi faire du bénéfice, mais la loi impose d'abord d'apurer les pertes passées et de doter la réserve légale.",
+  rows: [
+  { n: [["Bénéfice de l'exercice", "compte 120"]] },
+  { a: "d'abord", n: [["− Report à nouveau débiteur", "on apure les pertes antérieures"]] },
+  { a: "obligation légale", n: [["− Réserve légale", "5 % du bénéfice jusqu'à 10 % du capital"]] },
+  { a: "selon statuts et AG", n: [["− Réserves statutaires et facultatives", "1063 et 1068"]] },
+  { a: "le reste", n: [["Dividendes", "457 Associés – dividendes à payer"], ["Report à nouveau créditeur", "110"]] }],
+  leurres: ["Capital social", "Provision réglementée"],
+  retenir: "Bénéfice − pertes antérieures − réserve légale − autres réserves → dividendes et report à nouveau." },
+
+{ id: "sc-paie", cat: "p4", title: "Du salaire brut au net payé", idee: "Le brut sert de base à deux calculs : ce que touche le salarié et ce que coûte vraiment l'embauche à l'employeur.",
+  rows: [
+  { n: [["Salaire de base", "contrat de travail"]] },
+  { a: "+ heures supplémentaires, primes, avantages en nature", n: [["Salaire brut", "base des cotisations"]] },
+  { a: "deux calculs", n: [["− Cotisations salariales, CSG et CRDS", "retraite, santé… CSG/CRDS sur 98,25 % du brut"], ["+ Cotisations patronales", "maladie, retraite, chômage, accidents du travail…"]] },
+  { a: "on obtient", n: [["Net à payer avant impôt", "ce que le salarié aurait sans impôt"], ["Coût total employeur", "brut + cotisations patronales"]] },
+  { a: "− prélèvement à la source", n: [["Net payé au salarié", "virement sur son compte", 0]] }],
+  leurres: ["Salaire net imposable", "Taxe d'apprentissage"],
+  retenir: "Brut − cotisations salariales − CSG/CRDS = net avant impôt ; − PAS = net payé. Coût employeur = brut + cotisations patronales." },
+
+{ id: "sc-dsn", cat: "p4", title: "La DSN, du bulletin aux organismes", idee: "Une seule déclaration mensuelle, issue du logiciel de paie, informe tous les organismes sociaux et le fisc.",
+  rows: [
+  { n: [["Paie du mois", "bulletins établis", 0]] },
+  { a: "transmission en ligne", n: [["DSN mensuelle", "le 5 ou le 15 du mois suivant selon l'effectif"]] },
+  { a: "répartie vers", n: [["URSSAF", "cotisations de sécurité sociale, CSG et CRDS"], ["Retraite complémentaire", "Agirc-Arrco"], ["Administration fiscale", "prélèvement à la source reversé"]] }],
+  leurres: ["Greffe du tribunal de commerce", "Déclaration CA3"],
+  retenir: "DSN = déclaration unique mensuelle (5 ou 15 du mois suivant) vers URSSAF, retraite complémentaire, fisc…" },
+
+{ id: "sc-cout", cat: "p5", title: "La méthode des coûts complets", idee: "On accumule les charges étape par étape, de l'achat jusqu'à la vente, pour savoir ce que coûte vraiment chaque produit et ce qu'il rapporte.",
+  rows: [
+  { n: [["Coût d'achat", "prix d'achat + charges d'approvisionnement"]] },
+  { a: "sorties de stock valorisées au CMUP", n: [["Coût de production", "matières consommées + MOD + charges de production"]] },
+  { a: "+ coût de distribution", n: [["Coût de revient", "coût de production des produits vendus + distribution"]] },
+  { a: "chiffre d'affaires − coût de revient", n: [["Résultat analytique", "par produit"]] }],
+  leurres: ["Marge sur coût variable", "Valeur ajoutée"],
+  retenir: "Coût d'achat → coût de production → coût de revient → résultat analytique = CA − coût de revient." },
+
+{ id: "sc-sr", cat: "p5", title: "Seuil de rentabilité", idee: "On sépare les charges variables des charges fixes pour trouver le chiffre d'affaires à partir duquel l'entreprise ne perd plus d'argent.",
+  rows: [
+  { n: [["Chiffre d'affaires", "", 0]] },
+  { a: "− charges variables", n: [["Marge sur coût variable", "MCV"]] },
+  { a: "÷ chiffre d'affaires", n: [["Taux de MCV", "MCV / CA"]] },
+  { a: "charges fixes ÷ taux de MCV", n: [["Seuil de rentabilité", "CA pour lequel le résultat est nul"]] },
+  { a: "on en déduit", n: [["Point mort", "SR / CA × 12 mois"], ["Marge de sécurité", "CA − SR"]] }],
+  leurres: ["Excédent brut d'exploitation", "Coût de revient"],
+  retenir: "MCV = CA − CV ; SR = CF / taux de MCV ; point mort = SR / CA × 12." },
+
+{ id: "sc-sig", cat: "p6", title: "La cascade des SIG", idee: "Les soldes intermédiaires de gestion découpent le compte de résultat étape par étape pour voir où l'entreprise gagne ou perd de l'argent.",
+  rows: [
+  { n: [["Marge commerciale", "ventes de marchandises − coût d'achat des marchandises vendues"], ["Production de l'exercice", "vendue + stockée + immobilisée"]] },
+  { a: "− consommations en provenance des tiers", n: [["Valeur ajoutée", "richesse créée"]] },
+  { a: "+ subventions d'exploitation − impôts et taxes − charges de personnel", n: [["Excédent brut d'exploitation", "EBE"]] },
+  { a: "+ reprises et autres produits − dotations et autres charges", n: [["Résultat d'exploitation", "activité courante"]] },
+  { a: "± résultat financier", n: [["Résultat courant avant impôts", "RCAI"]] },
+  { a: "± résultat exceptionnel − participation − IS", n: [["Résultat de l'exercice", "bénéfice ou perte"]] }],
+  leurres: ["Capacité d'autofinancement", "Fonds de roulement"],
+  retenir: "Marge + production → VA → EBE → résultat d'exploitation → RCAI → résultat de l'exercice." },
+
+{ id: "sc-caf", cat: "p6", title: "La CAF par la méthode additive", idee: "On part du résultat et on neutralise tout ce qui n'est pas de l'argent encaissé ou décaissé : dotations, reprises et cessions.",
+  rows: [
+  { n: [["Résultat de l'exercice", "", 0]] },
+  { a: "on neutralise les calculés", n: [["+ Dotations", "amortissements, dépréciations, provisions"], ["− Reprises", "sur amortissements, dépréciations, provisions"]] },
+  { a: "on neutralise les cessions", n: [["+ Valeur comptable des éléments cédés", "compte 675"], ["− Produits des cessions", "compte 775"], ["− Quote-part des subventions virée au résultat", "compte 777"]] },
+  { a: "=", n: [["Capacité d'autofinancement", "CAF"]] },
+  { a: "− dividendes versés", n: [["Autofinancement", "reste pour financer l'entreprise"]] }],
+  leurres: ["+ Charges de personnel", "− Dotations"],
+  retenir: "CAF = résultat + dotations − reprises + VCEAC − PCEA − QP subventions. Autofinancement = CAF − dividendes." },
+
+{ id: "sc-bf", cat: "p6", title: "Bilan fonctionnel : FRNG, BFR et trésorerie", idee: "Le haut du bilan finance le long terme, le bas finance le cycle d'exploitation : la trésorerie est ce qui reste entre les deux.",
+  rows: [
+  { n: [["Ressources stables − emplois stables", "haut du bilan"], ["Actif circulant − dettes circulantes", "hors trésorerie"]] },
+  { a: "=", n: [["FRNG", "fonds de roulement net global"], ["BFR", "besoin en fonds de roulement"]] },
+  { a: "FRNG − BFR", n: [["Trésorerie nette", "aussi = trésorerie active − trésorerie passive"]] },
+  { a: "selon le signe", n: [["Trésorerie positive", "le FRNG couvre le BFR"], ["Trésorerie négative", "dépendance aux concours bancaires"]] }],
+  leurres: ["Capacité d'autofinancement", "Excédent brut d'exploitation"],
+  retenir: "FRNG = ressources stables − emplois stables ; BFR = actif circulant − dettes circulantes ; trésorerie = FRNG − BFR." }
+];
+const SCHBY = Object.fromEntries(SCH.map(s => [s.id, s]));
+const schNodes = s => s.rows.flatMap((r, ri) => r.n.map(n => ({ t: n[0], s: n[1] || "", fix: n[2] === 0, r: ri })));
+let SC = null, scFrom = "ex";
+function schStart(id, mode) {
+  const s = SCHBY[id]; if (!s) return;
+  const nodes = schNodes(s), blk = nodes.map((n, i) => n.fix ? -1 : i).filter(i => i >= 0);
+  let hide = [];
+  if (mode === "trous") { const k = Math.max(3, Math.round(blk.length * .45)); hide = shuffle(blk).slice(0, Math.min(k, blk.length)); }
+  else if (mode === "cons") hide = blk.slice();
+  const lr = shuffle(s.leurres || []).slice(0, mode === "cons" ? 3 : 2);
+  SC = { id, mode, hide: new Set(hide), place: {}, pick: null, slot: null, done: false, bank: shuffle(hide.map(i => nodes[i].t).concat(lr)) };
+}
+function schSet(i, k) { // place l'étiquette k de la banque dans la case i
+  Object.keys(SC.place).forEach(j => { if (SC.place[j] === k) delete SC.place[j]; });
+  SC.place[i] = k; SC.pick = null; SC.slot = null; tone("xp"); buzz(8);
+}
+function schCheck() {
+  const s = SCHBY[SC.id], nodes = schNodes(s), ids = [...SC.hide];
+  const good = ids.filter(i => SC.place[i] != null && SC.bank[SC.place[i]] === nodes[i].t).length, pc = Math.round(good / ids.length * 100);
+  SC.done = true; SC.pc = pc; SC.good = good;
+  S.sch = S.sch || {}; const r = S.sch[s.id] = S.sch[s.id] || {}, key = SC.mode === "cons" ? "c" : "t", first = !(r[key] >= 80);
+  r[key] = Math.max(r[key] || 0, pc); r.d = dayNum();
+  if (first && pc >= 80) { S.xp += key === "c" ? 25 : 15; setTimeout(() => fxStamp(key === "c" ? "Schéma construit" : "Schéma complété", pc + " % de bonnes cases"), 150); }
+  else S.xp += pc >= 50 ? 3 : 1;
+  if (pc === 100) setTimeout(() => confettiBurst(), 200);
+  tone(pc >= 80 ? "ok" : "ko"); dayLog().e++; bumpStreak(); touch(); renderTop();
+}
+function schFlow(s) {
+  const nodes = schNodes(s); let gi = 0;
+  const play = SC && SC.id === s.id && SC.mode !== "voir";
+  return `<div class="sc-flow" style="${hueStyle(s.cat)}">${s.rows.map((row, ri) => {
+    const n = row.n.length, prev = ri ? s.rows[ri - 1].n.length : 0, par = ri && n === prev && n > 1 && n <= 3;
+    const arrows = ri ? `<div class="sc-arrows${par ? " par" : ""}" style="--n:${par ? n : 1}">${Array.from({ length: par ? n : 1 }, (_, k) => `<span class="sc-ar" style="grid-column:${k + 1}" aria-hidden="true"></span>`).join("")}${row.a ? `<em class="sc-cap">${h(row.a)}</em>` : ""}</div>` : "";
+    const cells = row.n.map(() => {
+      const i = gi++, nd = nodes[i], hid = play && SC.hide.has(i);
+      if (!hid) return `<div class="sc-node${nd.fix ? " fix" : ""}"><b>${h(nd.t)}</b>${nd.s ? `<small>${h(nd.s)}</small>` : ""}</div>`;
+      const k = SC.place[i], lab = k != null ? SC.bank[k] : "";
+      if (SC.done) { const ok = lab === nd.t;
+        return `<div class="sc-node ${ok ? "ok" : "ko"}"><b>${lab ? h(lab) : "Case vide"}</b>${ok ? "" : `<span class="sc-fix">Réponse : ${h(nd.t)}</span>`}${nd.s ? `<small>${h(nd.s)}</small>` : ""}</div>`; }
+      const hint = SC.mode === "trous" && nd.s;
+      return `<button class="sc-node slot${k != null ? " filled" : ""}${SC.slot === i ? " sel" : ""}" data-act="scSlot" data-i="${i}" aria-label="${k != null ? "Case remplie : " + h(lab) + ". Touche pour la vider" : "Case vide n° " + (i + 1)}"><b>${k != null ? h(lab) : "?"}</b>${hint ? `<small>${h(nd.s)}</small>` : ""}</button>`;
+    }).join("");
+    return arrows + `<div class="sc-row${n === 4 ? " n4" : ""}" style="--n:${n}">${cells}</div>`;
+  }).join("")}</div>`;
+}
+function schCard(s) {
+  const r = (S.sch || {})[s.id] || {};
+  const st = r.c >= 80 ? "Construit seul ✓" : r.t >= 80 ? "Trous complétés ✓" : r.t || r.c ? `Meilleur score : ${Math.max(r.t || 0, r.c || 0)} %` : `${schNodes(s).length} cases`;
+  return `<button class="ex-card sc-card" style="${hueStyle(s.cat)}" data-act="scOpen" data-sid="${s.id}" data-cat="${s.cat}"><span class="mini">${h(CAT[s.cat].code)}</span><b>${h(s.title)}</b><span class="muted">${st}</span></button>`;
+}
+function schHome(cat) {
+  const cats = CATS.filter(c => SCH.some(s => s.cat === c.id) && (!cat || c.id === cat));
+  const nOk = SCH.filter(s => ((S.sch || {})[s.id] || {}).c >= 80).length;
+  return `<section class="stack">
+    ${cat ? `<div class="ex-group"><h2>Schémas</h2><p class="muted">Visualise le processus, puis reconstitue-le : à trous ou entièrement seul.</p>` : `<div class="sec-head"><h2>Schémas de processus</h2><p>Pour comprendre d'un coup d'œil comment s'enchaîne un processus. Regarde le schéma, puis entraîne-toi : <b>à trous</b> (quelques cases à remettre) ou <b>à construire</b> (toutes les cases, avec des pièges).</p></div>
+    <div class="sc-how"><span><b>1</b> Regarde</span><span><b>2</b> Complète les trous</span><span><b>3</b> Reconstruis-le seul</span>${nOk ? `<span class="pill">${nOk}/${SCH.length} construits seul</span>` : ""}</div>`}
+    ${cats.map(c => `<div class="ex-group" style="${hueStyle(c.id)}">${cat ? "" : `<h3><span class="tabcode">${h(c.code)}</span> ${h(c.name)}</h3>`}<div class="ex-grid">${SCH.filter(s => s.cat === c.id).map(schCard).join("")}</div></div>`).join("")}
+    ${cat ? "</div>" : ""}
+  </section>`;
+}
+function vSchema() {
+  const s = SC && SCHBY[SC.id]; if (!s) return vExHome();
+  const ids = [...SC.hide], left = ids.filter(i => SC.place[i] == null).length, used = new Set(Object.values(SC.place));
+  const modes = [["voir", "Voir"], ["trous", "À trous"], ["cons", "À construire"]];
+  return `<section class="runner ex-runner sc-run">
+    <div class="runner-top"><button class="btn small" data-act="scBack">← Schémas</button><span class="ep">${h(CAT[s.cat].code)} · ${h(CAT[s.cat].name)}</span></div>
+    <div class="qcard">
+      <span class="eyebrow">Schéma</span>
+      <h2 class="sc-title">${h(s.title)}</h2>
+      <p class="muted">${h(s.idee)}</p>
+      <div class="seg sc-seg" role="tablist" aria-label="Mode">${modes.map(([k, l]) => `<button role="tab" data-act="scMode" data-m="${k}" aria-selected="${SC.mode === k}">${l}</button>`).join("")}</div>
+      ${SC.mode === "cons" && !SC.done && !Object.keys(SC.place).length ? `<p class="sc-tip">Astuce : refais-le d'abord sur une feuille de mémoire, puis place les étiquettes pour te faire corriger. Attention, ${(s.leurres || []).length ? "quelques étiquettes sont des pièges" : "aucune étiquette n'est de trop"}.</p>` : ""}
+      ${SC.mode === "trous" && !SC.done && !Object.keys(SC.place).length ? `<p class="sc-tip">Touche une étiquette, puis la case où elle va. Les précisions sous les cases t'aident. Deux étiquettes sont des pièges.</p>` : ""}
+      ${schFlow(s)}
+      ${SC.mode !== "voir" && !SC.done ? `<div class="sc-bank" aria-label="Étiquettes à placer">${SC.bank.map((t, k) => used.has(k) ? "" : `<button class="sc-chip" data-act="scChip" data-k="${k}" aria-pressed="${SC.pick === k}">${h(t)}</button>`).join("") || `<span class="muted small">Toutes les étiquettes sont placées.</span>`}</div>` : ""}
+      ${SC.done ? `<div class="feedback"><span class="verdict ${SC.pc >= 80 ? "ok" : "ko"}">${SC.good}/${ids.length} cases justes · ${SC.pc} %</span><p>${SC.pc === 100 ? "Parfait, tu maîtrises ce schéma." : SC.pc >= 80 ? "Très bien, regarde les cases en rouge." : "Relis le schéma complet, puis recommence."}</p></div>` : ""}
+      ${SC.mode === "voir" || SC.done ? `<div class="sc-key" style="${hueStyle(s.cat)}"><b>À retenir</b><p>${h(s.retenir)}</p></div>` : ""}
+    </div>
+    <div class="row">${SC.mode === "voir" ? `<button class="btn primary" data-act="scMode" data-m="trous">Compléter les trous</button><button class="btn" data-act="scMode" data-m="cons">Le construire seul</button>`
+      : SC.done ? `<button class="btn primary" data-act="scMode" data-m="${SC.mode}">Recommencer</button>${SC.mode === "trous" ? `<button class="btn" data-act="scMode" data-m="cons">Passer à « À construire »</button>` : ""}<button class="btn" data-act="scMode" data-m="voir">Voir le schéma complet</button><button class="btn" data-act="scNext">Schéma suivant</button>`
+      : `<button class="btn primary" data-act="scCheck" ${left === ids.length ? "disabled" : ""}>${left ? `Corriger (${left} case${left > 1 ? "s" : ""} vide${left > 1 ? "s" : ""})` : "Corriger"}</button><button class="btn" data-act="scReset" ${Object.keys(SC.place).length ? "" : "disabled"}>Tout retirer</button>`}</div>
+  </section>`;
+}
+
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
   const nb = e.target.closest("[data-nav]");
@@ -7320,6 +7630,14 @@ document.addEventListener("click", e => {
       const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
+    case "scOpen": scFrom = view === "mat" ? "mat" : "ex"; schStart(b.dataset.sid, "voir"); go("schema"); break;
+    case "scMode": schStart(SC.id, b.dataset.m); render(); { const f = document.querySelector(".sc-seg"); if (f) f.scrollIntoView({ block: "nearest" }); } break;
+    case "scBack": if (scFrom === "mat") go("mat"); else { setExTab("schemas"); go("ex"); } break;
+    case "scChip": { const k = +b.dataset.k; if (SC.slot != null) schSet(SC.slot, k); else { SC.pick = SC.pick === k ? null : k; buzz(6); } render(); break; }
+    case "scSlot": { const i = +b.dataset.i; if (SC.place[i] != null && SC.pick == null) { delete SC.place[i]; SC.slot = i; } else if (SC.pick != null) schSet(i, SC.pick); else SC.slot = SC.slot === i ? null : i; render(); break; }
+    case "scCheck": schCheck(); render(); { const f = document.querySelector(".sc-run .feedback"); if (f) f.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" }); } break;
+    case "scReset": SC.place = {}; SC.pick = null; SC.slot = null; render(); break;
+    case "scNext": { const l = SCH.filter(x => !lockedCat(x.cat)), i = l.findIndex(x => x.id === SC.id), nx = l[(i + 1) % l.length]; schStart(nx.id, "voir"); go("schema"); break; }
     case "rdShow": RD.text = document.getElementById("rdText").value; RD.shown = true; render(); break;
     case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); touch(); go("ex"); break; }
     case "coursCat": openMat(cat, "lecons"); break;
