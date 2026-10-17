@@ -3155,43 +3155,62 @@ let lastPt = { x: 0, y: 0, t: 0 };
 document.addEventListener("pointerdown", e => { lastPt = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
 document.addEventListener("keydown", () => { lastPt = { x: innerWidth / 2, y: innerHeight / 2, t: Date.now() }; }, true);
 let AC = null;
-/* Petits sons d'interface, synthétisés à la volée (aucun fichier audio) */
+/* Petits sons d'interface, synthétisés à la volée (aucun fichier audio).
+   Timbre doux type carillon / marimba : sinusoïde + harmoniques faibles, filtre passe-bas, attaque lente et légère réverbération. */
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12); // numéro MIDI → Hz
+// [note MIDI, départ (s), durée (s), volume, glissement en demi-tons]
 const TONES = {
-  ok: [[660, .07, "sine", 0, .08], [990, .13, "sine", 0, .08]],
-  ko: [[290, .08, "triangle", 0, .07], [205, .17, "triangle", 0, .07]],
-  stamp: [[150, .05, "triangle", 0, .09], [95, .12, "triangle", 0, .09]],
-  lvl: [[523, .11], [659, .11], [784, .11], [1047, .3]],
-  xp: [[988, .045, "sine", 0, .06], [1319, .09, "sine", 0, .06]],
-  tick: [[1650, .022, "triangle", 0, .03]],
-  pop: [[420, .075, "sine", 880, .08]],
-  unpop: [[720, .07, "sine", 360, .06]],
-  nav: [[880, .04, "sine", 0, .035], [1175, .06, "sine", 0, .035]],
-  open: [[330, .11, "sine", 640, .045]],
-  notif: [[784, .12, "triangle", 0, .07], [1175, .32, "triangle", 0, .06]],
-  soft: [[560, .06, "sine", 0, .05]],
-  warn: [[880, .05, "square", 0, .02]],
-  go: [[1047, .08, "sine", 0, .08], [1568, .2, "sine", 0, .08]]
+  ok: [[76, 0, .45, .07], [83, .09, .6, .07]],
+  ko: [[64, 0, .35, .05], [60, .12, .5, .05]],
+  stamp: [[48, 0, .35, .09], [43, .06, .5, .07]],
+  lvl: [[72, 0, .5, .06], [76, .11, .5, .06], [79, .22, .5, .06], [84, .33, .9, .07]],
+  xp: [[88, 0, .25, .035], [95, .06, .35, .03]],
+  tick: [[91, 0, .08, .028]],
+  pop: [[72, 0, .3, .075, 7]],
+  unpop: [[79, 0, .28, .06, -7]],
+  nav: [[84, 0, .24, .04], [88, .05, .32, .035]],
+  open: [[67, 0, .42, .055, 5]],
+  notif: [[79, 0, .6, .06], [86, .13, .9, .05]],
+  soft: [[81, 0, .32, .045]],
+  warn: [[81, 0, .35, .04], [81, .18, .4, .035]],
+  go: [[79, 0, .4, .06], [91, .1, .7, .06]]
 };
+function audioOut() { // sortie commune : compresseur doux + petite réverbération
+  if (audioOut.n) return audioOut.n;
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -24; comp.ratio.value = 3; comp.connect(AC.destination);
+  const dry = AC.createGain(); dry.gain.value = .85; dry.connect(comp);
+  const len = Math.floor(AC.sampleRate * 1.1), ir = AC.createBuffer(2, len, AC.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  const rev = AC.createConvolver(); rev.buffer = ir; const wet = AC.createGain(); wet.gain.value = .22; rev.connect(wet); wet.connect(comp);
+  const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800; lp.Q.value = .3; lp.connect(dry); lp.connect(rev);
+  return audioOut.n = lp;
+}
+function chime(out, f, t, d, vol, glide) {
+  [[1, 1], [2, .28], [3, .07], [4.2, .03]].forEach(([m, a]) => { // harmoniques légèrement inharmoniques : timbre de petite cloche
+    const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.setValueAtTime(f * m, t);
+    if (glide) o.frequency.exponentialRampToValueAtTime(f * m * Math.pow(2, glide / 12), t + Math.min(.12, d * .5));
+    const dd = d / Math.sqrt(m); // les aigus s'éteignent plus vite
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol * a, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dd);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + dd + .05); });
+}
 function tone(kind) {
   if ((S.pref || PREF_DEF).snd !== "on") return;
   const now = performance.now();
   if (kind !== "tick") tone.n = (tone.n || 0) + 1;
-  else if (now - (tone.lt || 0) < 45) return;
+  else if (now - (tone.lt || 0) < 60) return;
   tone.lt = now;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
-    let t = AC.currentTime + .005;
-    if (kind === "flip") { // froissement de carte : bruit blanc filtré
-      const len = Math.floor(AC.sampleRate * .09), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const out = audioOut(), t = AC.currentTime + .01;
+    if (kind === "flip") { // feuille qui glisse : souffle filtré, sans claquement
+      const len = Math.floor(AC.sampleRate * .16), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
-      f.type = "bandpass"; f.frequency.setValueAtTime(1400, t); f.frequency.exponentialRampToValueAtTime(3200, t + .08); f.Q.value = .9; g.gain.value = .09;
-      src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t); return;
+      f.type = "bandpass"; f.Q.value = .7; f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(1900, t + .14);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.08, t + .05); g.gain.exponentialRampToValueAtTime(.0001, t + .16);
+      src.buffer = buf; src.connect(f); f.connect(g); g.connect(out); src.start(t); return;
     }
-    (TONES[kind] || []).forEach(([f, d, type, to, vol]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = type || "sine"; o.frequency.setValueAtTime(f, t);
-      if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol || .09, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + d);
-      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .03); t += d * .85; });
+    (TONES[kind] || []).forEach(([n, st, d, vol, gl]) => chime(out, NOTE(n), t + st, d, vol, gl));
   } catch (e) {}
 }
 function secTick(ms, key) { // tic-tac discret sur les 5 dernières secondes d'un chrono
