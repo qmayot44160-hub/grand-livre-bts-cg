@@ -1691,6 +1691,27 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .pl-h.ok i { background: var(--ok); } .pl-h.ko i { background: var(--bad); }
 @media (max-width: 560px) { .pl-t { grid-template-columns: auto minmax(0, 1fr); } .pl-t > .btn { grid-column: 2; justify-self: start; } }
 
+/* Bulles d'explication */
+.gt { all: unset; cursor: pointer; color: inherit; border-bottom: 1.5px dotted var(--accent); text-decoration: none; border-radius: 2px; transition: background .15s; }
+.gt:hover, .gt:focus-visible { background: var(--accent-soft); outline: none; }
+.gt.f::after { content: "ƒ"; font-size: .65em; font-weight: 800; color: var(--accent); vertical-align: super; margin-left: 1px; }
+.gt-pop { position: fixed; z-index: 90; background: var(--sheet); color: var(--ink); border: 1px solid var(--rule-strong); border-top: 4px solid var(--c, var(--accent)); border-radius: 14px; box-shadow: 0 16px 40px rgba(10,14,30,.25); padding: 12px 14px; display: grid; gap: 8px; font-size: .9rem; line-height: 1.45; opacity: 0; transform: translateY(4px) scale(.98); transition: opacity .15s, transform .18s; max-height: 60vh; overflow: auto; }
+.gt-pop.in { opacity: 1; transform: none; }
+.gt-pop p { margin: 0; } .gt-h { display: flex; align-items: center; gap: 8px; } .gt-h b { flex: 1; font-size: 1rem; }
+.gt-x { border: 0; background: none; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--muted); padding: 2px 6px; }
+.gt-f { background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; display: grid; gap: 3px; } .gt-f span { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); } .gt-f p { font-weight: 700; } .gt-f small { color: var(--muted); }
+.gt-pop .btn { justify-self: start; }
+/* Détail des calculs */
+.qx { border: 1px solid var(--rule); border-left: 4px solid var(--accent); background: var(--paper); border-radius: 4px 12px 12px 4px; padding: 10px 12px; display: grid; gap: 6px; }
+.qx-t { font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+.qx-f { margin: 0; font-weight: 700; } .qx-f span { display: inline-block; font-size: .72rem; background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
+.qx ol { margin: 0; padding-left: 1.3em; display: grid; gap: 3px; } .qx-w { margin: 0; font-size: .88rem; color: var(--muted); }
+/* Fiche ciblée */
+.peek-hit { background: color-mix(in srgb, var(--gold) 28%, transparent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 28%, transparent); border-radius: 6px; animation: peekHit 1.6s ease 2; }
+@keyframes peekHit { 50% { background: color-mix(in srgb, var(--gold) 55%, transparent); } }
+/* Flashcards : recto en question */
+.front-k { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--c, var(--accent)); }
+
 /* Profil : onglets et version compacte */
 .pf-more { color: rgba(255,255,255,.85); }
 .pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
@@ -3266,7 +3287,7 @@ let examTick = null;
 let quizSel = [];    // matières choisies pour le quiz
 let quizLen = 10;
 let cardSel = [];
-const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", snd: "on", qlen: 10, clen: 30, name: "" };
+const PREF_DEF = { theme: "light", fs: "m", motion: "on", vib: "on", snd: "on", gt: "on", qlen: 10, clen: 30, name: "" };
 /* Effets : sons, tampon, XP, niveau, visite guidée */
 const fxOn = () => !document.documentElement.classList.contains("no-motion") && !(typeof RM !== "undefined" && RM);
 let lastPt = { x: 0, y: 0, t: 0 };
@@ -3553,6 +3574,7 @@ function render() {
   bindFusion();
   bindAnn();
   fx3d();
+  gtClose(); requestAnimationFrame(() => glossify(v));
 }
 
 /* Intercalaires de matière */
@@ -3737,7 +3759,8 @@ function vRun() {
       <span class="verdict ${ok ? "ok" : "ko"}">${ok ? "Juste" : "À revoir"}</span>
       ${ok ? "" : `<p><b>Bonne réponse :</b> ${h(it.o[0])}</p>`}
       <p class="muted">${h(it.e)}</p>
-      ${!ok && it.ch && CHID[it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(it.ch)}">${ICON.book}Revoir la fiche : ${h(CHID[it.ch].title)}</button>` : ""}
+      ${qxHTML(it)}
+      ${!ok && it.ch && CHID[it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(it.ch)}" data-hint="${h(it.o[0] + "\u241E" + it.q + " " + it.e)}">${ICON.book}Revoir la fiche : ${h(CHID[it.ch].title)}</button>` : ""}
       <button class="rep-btn" data-act="report" data-t="q" data-id="${h(it.id)}" data-l="${h(String(it.q).slice(0, 140))}">Signaler une erreur</button>
     </div>` : "";
   const head = R.mode === "exam"
@@ -3873,7 +3896,8 @@ function vResult() {
       ${x.pick !== null ? `<p class="y">Ta réponse : ${h(x.it.o[x.order[x.pick]])}</p>` : `<p class="y">Pas de réponse</p>`}
       <p class="a">Bonne réponse : ${h(x.it.o[0])}</p>
       <p class="e">${h(x.it.e)}</p>
-      ${x.it.ch && CHID[x.it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(x.it.ch)}">${ICON.book}Revoir la fiche</button>` : ""}
+      ${qxHTML(x.it)}
+      ${x.it.ch && CHID[x.it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(x.it.ch)}" data-hint="${h(x.it.o[0] + "\u241E" + x.it.q + " " + x.it.e)}">${ICON.book}Revoir la fiche</button>` : ""}
       <button class="rep-btn" data-act="report" data-t="q" data-id="${h(x.it.id)}" data-l="${h(String(x.it.q).slice(0, 140))}">Signaler une erreur</button>
     </div>`).join("");
   return `<section class="runner">
@@ -4128,6 +4152,7 @@ function vProfil() {
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
         <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse, tampon et niveau (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Visite guidée</b><span>Revoir la présentation de l'appli en 4 étapes.</span></div><button class="btn small" data-act="tourAgain">Relancer</button></div>
+        <div class="pf-row"><div><b>Bulles d'explication</b><span>Touche un mot souligné en pointillés (vocabulaire ou calcul) pour voir sa définition et comment le calculer.</span></div>${seg("gt", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : touches, cartes retournées, bonnes et mauvaises réponses, notifications, chronos, niveaux.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
@@ -4208,7 +4233,7 @@ function vCard() {
   return `<section class="runner card-runner${C.flip ? " flipped" : ""}" style="${hueStyle(it.c)}">
     <div class="runner-top"><span class="progress-text">Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
-      <div class="face face-front bristol">${head}<div class="bristol-body"><p class="front">${h(it.f)}</p><span class="hint">Touche ou clique pour retourner la carte</span></div></div>
+      <div class="face face-front bristol">${head}<div class="bristol-body">${(() => { const cq = cardQ(it); return `<span class="front-k">${h(cq.k)}</span><p class="front">${h(cq.q)}</p>`; })()}<span class="hint">Touche ou clique pour retourner la carte</span></div></div>
       <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span><span class="stamp hd" aria-hidden="true">Difficile</span></div>
     </div>
     <div class="after-flip">
@@ -4665,7 +4690,7 @@ function ttsToggle(btn) {
 if (TTS_OK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {} document.addEventListener("visibilitychange", () => { if (document.hidden && ttsRun && /iPhone|iPad/.test(navigator.userAgent)) ttsStop(); }); window.addEventListener("pagehide", () => ttsStop()); }
 
 let peekT = null;
-function fichePeek(id) {
+function fichePeek(id, hint) {
   const c = CHID[id]; if (!c) return;
   if (lockedCat(c.cat)) return lockSheet(c.cat);
   closeSheet(); peekClose(true);
@@ -4680,6 +4705,7 @@ function fichePeek(id) {
       <div class="row peek-foot"><button class="btn primary" data-act="peekClose">Reprendre</button><button class="btn" data-act="peekFull" data-id="${h(id)}">Ouvrir en grand</button></div></div>
   </div>`;
   document.body.appendChild(el); document.documentElement.classList.add("peek-open");
+  peekTarget(el.querySelector(".peek-body"), hint); glossify(el);
   el.addEventListener("click", e => { if (e.target === el) peekClose(); });
   el.querySelectorAll("[data-widget]").forEach(w => { const f = typeof MATHS !== "undefined" && MATHS.WIDGETS[w.dataset.widget]; if (f) { try { f(w); } catch (x) { w.remove(); } } });
   requestAnimationFrame(() => el.classList.add("in"));
@@ -7699,7 +7725,7 @@ const SCH = [
   rows: [
   { n: [["Résultat de l'exercice", "", 0]] },
   { a: "on neutralise les calculés", n: [["+ Dotations", "amortissements, dépréciations, provisions"], ["− Reprises", "sur amortissements, dépréciations, provisions"]] },
-  { a: "on neutralise les cessions", n: [["+ Valeur comptable des éléments cédés", "compte 675"], ["− Produits des cessions", "compte 775"], ["− Quote-part des subventions virée au résultat", "compte 777"]] },
+  { a: "on neutralise les cessions", n: [["+ Valeur comptable des éléments cédés", "compte 657 (PCG 2025)"], ["− Produits des cessions", "compte 757"], ["− Quote-part des subventions virée au résultat", "compte 747"]] },
   { a: "=", n: [["Capacité d'autofinancement", "CAF"]] },
   { a: "− dividendes versés", n: [["Autofinancement", "reste pour financer l'entreprise"]] }],
   leurres: ["+ Charges de personnel", "− Dotations"],
@@ -8228,6 +8254,256 @@ function plSection() {
   </section>`;
 }
 
+/* ---------- Corrections détaillées des questions de calcul : formule, étapes, piège ---------- */
+const QX = {
+  p2q1: { f: "Dotation = valeur d'origine ÷ durée × mois d'utilisation ÷ 12", s: ["Annuité pleine : 12 000 ÷ 5 = 2 400 €", "Mise en service le 1er avril → avril à décembre = 9 mois", "Dotation de N : 2 400 × 9/12 = 1 800 €"], w: "En linéaire, le prorata part de la date de mise en service (pas d'achat)." },
+  p3q2: { f: "TVA à décaisser = collectée − déductible (biens et services + immobilisations) − crédit antérieur", s: ["Déductible totale : 9 000 + 4 000 = 13 000 €", "18 000 − 13 000 = 5 000 €", "On retire le crédit du mois précédent : 5 000 − 1 000 = 4 000 € (44551)"], w: "N'oublie ni la TVA sur immobilisations (44562) ni le crédit antérieur (44567)." },
+  p5q8: { f: "Coût de chômage = charges fixes − charges fixes imputées ; CIR = activité réelle ÷ activité normale", s: ["CIR = 800 ÷ 1 000 = 0,8", "Charges fixes imputées : 50 000 × 0,8 = 40 000 €", "Coût de chômage : 50 000 − 40 000 = 10 000 €"], w: "Sous-activité (CIR < 1) = coût de chômage ; suractivité (CIR > 1) = boni." },
+  p5q10: { f: "Écart sur quantité = (Qr − Qp) × Pp", s: ["Qr − Qp = 1 100 − 1 000 = 100 kg", "100 × 4 € (prix préétabli) = 400 €", "Consommé plus que prévu → défavorable"], w: "Pour l'écart sur quantité, on valorise au prix PRÉÉTABLI, jamais au prix réel." },
+  p6q13: { f: "a = C × i ÷ (1 − (1 + i)^−n)", s: ["1,05^−4 = 1 ÷ 1,05⁴ = 1 ÷ 1,2155 = 0,8227", "1 − 0,8227 = 0,1773", "100 000 × 0,05 = 5 000 ; 5 000 ÷ 0,1773 ≈ 28 201 €"], w: "À la calculatrice : 1,05 ^ (−4). L'annuité contient intérêts + remboursement du capital." },
+  maq1: { f: "Coefficient global = produit des coefficients", s: ["+20 % → × 1,20 ; −20 % → × 0,80", "1,20 × 0,80 = 0,96", "0,96 − 1 = −0,04 → −4 %"], w: "Une hausse puis une baisse du même taux ne s'annulent pas." },
+  maq3: { f: "(1 + t)ⁿ = valeur finale ÷ valeur initiale", s: ["121 ÷ 100 = 1,21", "1 + t = 1,21^(1/2) = 1,1", "t = 0,10 → 10 % par an"], w: "On ne divise pas l'évolution totale (21 %) par 2." },
+  maq8: { f: "Cn = C0 × (1 + t)ⁿ", s: ["1,04³ = 1,04 × 1,04 × 1,04 = 1,124864", "5 000 × 1,124864 = 5 624,32 €"], w: "Intérêts composés : les intérêts produisent eux-mêmes des intérêts." },
+  maq11: { f: "E(X) = n × p", s: ["n = 50 ; p = 0,2", "50 × 0,2 = 10"], w: "Écart type : √(n p (1 − p)) = √8 ≈ 2,83." },
+  meq1: { f: "Temps par point = durée totale ÷ nombre de points", s: ["4 h 30 = 270 minutes", "270 ÷ 20 = 13,5 → environ 13 minutes"], w: "Le barème guide ton temps : un exercice sur 4 points ne mérite pas une heure." },
+  p1q23: { f: "Brut − remise = net commercial ; − escompte = net financier ; + port = total HT", s: ["Remise : 8 000 × 5 % = 400 → net commercial 7 600 €", "Escompte : 7 600 × 2 % = 152 → net financier 7 448 €", "+ port 120 € = 7 568 € HT (TVA 1 513,60 € ; TTC 9 081,60 €)"], w: "L'escompte se calcule sur le net commercial, et le port s'ajoute APRÈS l'escompte." },
+  p2q21: { f: "Taux dégressif = 100 ÷ n × coefficient ; dotation = base × taux × mois ÷ 12", s: ["Taux : 100 ÷ 5 × 1,75 = 35 %", "Prorata : avril à décembre = 9 mois (mois d'acquisition compté en entier)", "24 000 × 35 % × 9/12 = 6 300 €"], w: "Dégressif : prorata depuis le 1er jour du mois d'ACQUISITION ; linéaire : depuis la mise en service." },
+  p2q23: { f: "Dépréciation = créance HT × % de perte", s: ["HT = 3 600 ÷ 1,2 = 3 000 €", "3 000 × 40 % = 1 200 € (6817 / 491)"], w: "Jamais sur le TTC : la TVA sera récupérée si la créance devient irrécouvrable." },
+  p3q23: { f: "TVA à décaisser = collectée − déductible − crédit antérieur", s: ["Déductible : 8 000 + 4 800 = 12 800 €", "17 000 − 12 800 = 4 200 €", "4 200 − 1 300 = 2 900 € (44551)"], w: "Additionne d'abord toutes les TVA déductibles." },
+  p4q21: { f: "36e à 43e heure : +25 % ; à partir de la 44e : +50 %", s: ["45 h − 35 h = 10 heures sup : 8 à +25 %, 2 à +50 %", "Taux majorés : 15 × 1,25 = 18,75 € ; 15 × 1,5 = 22,50 €", "8 × 18,75 = 150 € ; 2 × 22,50 = 45 € → total 195 €"], w: "Sans accord collectif : 25 % pour les 8 premières heures sup, 50 % ensuite." },
+  p4q23: { f: "Coût employeur = salaire brut + cotisations patronales", s: ["2 500 + 1 000 = 3 500 €"], w: "Le net à payer (ce que touche le salarié) est bien plus bas que le coût employeur." },
+  p5q20: { f: "Écart sur prix = (Pr − Pp) × Qr", s: ["Pr − Pp = 4,20 − 4 = 0,20 €", "0,20 × 1 100 kg (quantité RÉELLE) = 220 €", "Payé plus cher que prévu → défavorable"], w: "Écart sur prix : quantité réelle ; écart sur quantité : prix préétabli." },
+  maq19: { f: "t = (VF ÷ VI)^(1/n) − 1", s: ["276 000 ÷ 240 000 = 1,15", "1,15^(1/2) = 1,0724", "1,0724 − 1 = 0,0724 → 7,24 % par an"], w: "On ne divise pas 15 % par 2 : les évolutions se multiplient." },
+  maq20: { f: "P(X ≥ 1) = 1 − P(X = 0) = 1 − (1 − p)ⁿ", s: ["1 − 0,08 = 0,92", "0,92^50 ≈ 0,0155", "1 − 0,0155 ≈ 0,985"], w: "« Au moins un » → passe toujours par l'événement contraire." },
+  maq21: { f: "Environ 95 % des valeurs dans [μ − 2σ ; μ + 2σ]", s: ["2σ = 2 × 6 = 12", "45 − 12 = 33 ; 45 + 12 = 57"], w: "± 1σ : 68 % ; ± 2σ : 95 % ; ± 3σ : 99,7 %." },
+  p1q27: { f: "Coefficient global = (1 − r1) × (1 − r2)", s: ["0,90 × 0,95 = 0,855", "1 − 0,855 = 0,145 → 14,5 % de réduction"], w: "Pas 15 % : la 2e remise porte sur un montant déjà réduit." },
+  p1q49: { f: "Cascade : chaque remise sur le montant précédent", s: ["1 000 × 0,90 = 900 €", "900 × 0,95 = 855 €"], w: "1 000 × 0,85 = 850 € serait faux." },
+  p1q57: { f: "HT = TTC ÷ (1 + taux)", s: ["1 200 ÷ 1,20 = 1 000 €", "Vérification : 1 000 × 20 % = 200 € de TVA"], w: "1 200 × 80 % = 960 € est le piège classique." },
+  p1q60: { f: "TVA à décaisser = collectée − déductible − crédit antérieur", s: ["8 000 − 5 000 = 3 000 €", "3 000 − 1 000 = 2 000 € (crédit du 44551)"], w: "Le crédit du mois précédent (44567) vient en déduction." },
+  p2q36: { f: "Dotation = base × taux linéaire × mois ÷ 12", s: ["Taux linéaire : 100 ÷ 4 = 25 %", "Juillet à décembre : 6 mois", "12 000 × 25 % × 6/12 = 1 500 €"], w: "Prorata sur la durée réelle d'utilisation la 1re année." },
+  p2q55: { f: "Dépréciation = HT × % de perte", s: ["HT = 2 400 ÷ 1,2 = 2 000 €", "2 000 × 50 % = 1 000 €"], w: "La base est hors taxes." },
+  p2q60: { f: "CCA = prime × mois de l'exercice suivant ÷ 12", s: ["Septembre à décembre N : 4 mois sur N", "Janvier à août N+1 : 8 mois", "2 400 × 8/12 = 1 600 € (486 / 616)"], w: "La CCA est la part de la charge qui concerne l'exercice SUIVANT." },
+  p4q41: { f: "Heures sup : 8 premières à +25 %, suivantes à +50 %", s: ["45 − 35 = 10 h sup : 8 à +25 %, 2 à +50 %", "14 × 1,25 = 17,50 € ; 14 × 1,5 = 21 €", "8 × 17,50 = 140 € ; 2 × 21 = 42 € → 182 €"], w: "Les heures sup se comptent par semaine, au-delà de 35 h." },
+  p5q30: { f: "CUMP = (valeur SI + valeur entrées) ÷ (quantité SI + quantité entrées)", s: ["Valeur SI : 100 × 10 = 1 000 € ; entrées : 200 × 11,50 = 2 300 €", "Quantités : 100 + 200 = 300", "3 300 ÷ 300 = 11 €"], w: "On pondère par les quantités : ce n'est pas la moyenne des deux prix (10,75 €)." },
+  p5q38: { f: "SR = charges fixes ÷ taux de MCV", s: ["MCV = 500 000 − 300 000 = 200 000 €", "Taux de MCV = 200 000 ÷ 500 000 = 40 %", "SR = 120 000 ÷ 0,40 = 300 000 €"], w: "Au SR, la MCV couvre exactement les charges fixes : résultat nul." },
+  p5q39: { f: "Indice de sécurité = (CA − SR) ÷ CA", s: ["Marge de sécurité : 500 000 − 300 000 = 200 000 €", "200 000 ÷ 500 000 = 40 %"], w: "Le CA peut baisser de 40 % avant d'atteindre les pertes." },
+  p5q45: { f: "SR en quantité = charges fixes ÷ MCV unitaire", s: ["60 000 ÷ 15 = 4 000 unités"], w: "Chaque unité vendue « rembourse » 15 € de charges fixes." },
+  p5q50: { f: "Écart global = somme algébrique des écarts", s: ["Défavorable = +, favorable = −", "500 − 420 = 80 € → défavorable"], w: "On compense un écart défavorable par un favorable." },
+  p6q28: { f: "CAF = résultat + dotations − reprises − produits de cession + VNC des éléments cédés", s: ["36 000 + 25 000 = 61 000", "61 000 − 2 000 (reprises) = 59 000", "59 000 − 8 000 (prix de cession) + 5 000 (VNC) = 56 000 €"], w: "On neutralise la cession : on retire le prix (757) et on rajoute la valeur comptable (657, PCG 2025)." },
+  p6q41: { f: "Délai clients = créances clients TTC ÷ CA TTC × 360", s: ["CA TTC = 400 000 × 1,2 = 480 000 €", "60 000 ÷ 480 000 = 0,125", "0,125 × 360 = 45 jours"], w: "Compare TTC avec TTC : les créances clients sont TTC." },
+  p6q51: { f: "Valeur actuelle = montant × (1 + t)^−n", s: ["1,1² = 1,21", "10 000 ÷ 1,21 = 8 264,46 €"], w: "Actualiser = diviser par (1 + t)ⁿ, l'inverse de capitaliser." },
+  p6q57: { f: "Intérêts de l'année = capital restant dû × taux", s: ["1re année : capital restant dû = 100 000 €", "100 000 × 5 % = 5 000 €"], w: "Les années suivantes, les intérêts baissent car le capital restant dû diminue." },
+  maq23: { f: "Effectif = total × pourcentage", s: ["40 % = 0,40", "0,40 × 250 = 100 cadres"], w: "" },
+  maq26: { f: "Prix initial = prix soldé ÷ (1 − taux de remise)", s: ["−30 % → coefficient 0,70", "84 ÷ 0,70 = 120 €"], w: "84 + 30 % = 109,20 € est faux : les 30 % portaient sur le prix initial." },
+  maq27: { f: "Proportion de proportion = produit des proportions", s: ["0,30 × 0,20 = 0,06 → 6 %"], w: "" },
+  maq28: { f: "Taux de marge = marge ÷ coût d'achat HT", s: ["Marge = 100 − 80 = 20 €", "20 ÷ 80 = 25 %"], w: "Taux de MARQUE = marge ÷ prix de vente = 20 %." },
+  maq29: { f: "HT = TTC ÷ 1,2", s: ["360 ÷ 1,2 = 300 €"], w: "" },
+  maq30: { f: "Taux d'évolution = (VA − VD) ÷ VD", s: ["56 000 − 50 000 = 6 000", "6 000 ÷ 50 000 = 0,12 → +12 %"], w: "On divise toujours par la valeur de DÉPART." },
+  maq34: { f: "1 + t = (coefficient global)^(1/n)", s: ["+21 % → coefficient 1,21", "√1,21 = 1,1 → +10 % par an"], w: "Pas 10,5 % : on ne divise pas 21 par 2." },
+  maq36: { f: "Taux = (indice d'arrivée − indice de départ) ÷ indice de départ", s: ["132 − 120 = 12 points", "12 ÷ 120 = 0,10 → +10 %"], w: "12 points d'indice ≠ 12 % quand on ne part pas de 100." },
+  maq37: { f: "Écart en points = différence ; évolution en % = différence ÷ départ", s: ["25 − 20 = 5 points", "5 ÷ 20 = 0,25 → +25 %"], w: "« Points » et « % » ne disent pas la même chose." },
+  maq45: { f: "Moyenne = somme ÷ effectif", s: ["8 + 10 + 12 + 14 + 16 = 60", "60 ÷ 5 = 12"], w: "" },
+  maq52: { f: "Prévision : remplacer x dans y = ax + b", s: ["16 × 5 = 80", "80 + 85 = 165"], w: "" },
+  maq57: { f: "P(A ∪ B) = P(A) + P(B) − P(A ∩ B)", s: ["0,5 + 0,4 = 0,9", "0,9 − 0,2 = 0,7"], w: "On retire l'intersection, sinon elle est comptée deux fois." },
+  maq58: { f: "P_B(A) = P(A ∩ B) ÷ P(B)", s: ["0,12 ÷ 0,4 = 0,3"], w: "" },
+  maq62: { f: "Probabilités totales : somme des branches de l'arbre", s: ["Pros en retard : 0,6 × 0,3 = 0,18", "Particuliers en retard : 0,4 × 0,1 = 0,04", "0,18 + 0,04 = 0,22"], w: "" },
+  maq64: { f: "Suite arithmétique : uₙ = u₀ + n × r", s: ["5 × 15 = 75", "600 + 75 = 675"], w: "" },
+  maq65: { f: "Suite géométrique : uₙ = u₀ × qⁿ", s: ["1,05² = 1,1025", "1 000 × 1,1025 = 1 102,50"], w: "" },
+  maq68: { f: "1 + 2 + … + n = n × (n + 1) ÷ 2", s: ["100 × 101 = 10 100", "10 100 ÷ 2 = 5 050"], w: "" },
+  maq70: { f: "Intérêts composés : C × (1 + t)ⁿ", s: ["1,04³ = 1,124864", "1 000 × 1,124864 = 1 124,86 €"], w: "" },
+  maq71: { f: "Intérêts simples : C × (1 + n × t)", s: ["3 × 0,04 = 0,12", "1 000 × 1,12 = 1 120 €"], w: "Les intérêts simples ne produisent pas d'intérêts." },
+  maq72: { f: "Valeur actuelle = C × (1 + t)^−n", s: ["1,1² = 1,21", "10 000 ÷ 1,21 = 8 264,46 €"], w: "" },
+  maq77: { f: "Sommet d'une parabole : x = −b ÷ (2a)", s: ["a = −2 ; b = 40", "−40 ÷ (2 × −2) = −40 ÷ −4 = 10"], w: "a < 0 : la parabole a un maximum." },
+  maq93: { f: "ln(aⁿ) = n × ln a", s: ["8 = 2³", "ln 8 = 3 × 0,693 = 2,079"], w: "" },
+  p2q91: { f: "Dotation = min(5 % du bénéfice ; 10 % du capital − réserve existante)", s: ["5 % × 60 000 = 3 000 €", "Plafond : 10 % × 200 000 = 20 000 € ; déjà 19 000 € → il manque 1 000 €", "On retient le plus petit : 1 000 €"], w: "La réserve légale s'arrête à 10 % du capital." },
+  p4q84: { f: "1/4 de mois par année jusqu'à 10 ans, puis 1/3 de mois par année au-delà", s: ["10 premières années : 10 × 1/4 × 2 400 = 6 000 €", "2 années suivantes : 2 × 1/3 × 2 400 = 1 600 €", "Total : 7 600 €"], w: "Le salaire de référence est le plus favorable : moyenne des 12 ou des 3 derniers mois." },
+  p5q59: { f: "Boni = charges fixes imputées − charges fixes réelles", s: ["Imputées : 60 000 × 1,1 = 66 000 €", "66 000 − 60 000 = 6 000 € de boni"], w: "CIR > 1 : suractivité, les charges fixes sont « sur-imputées »." },
+  p5q62: { f: "Coût de l'inducteur = coût de l'activité ÷ nombre d'inducteurs", s: ["18 000 ÷ 600 = 30 € par réception"], w: "" },
+  p5q67: { f: "Prévision = tendance × coefficient saisonnier", s: ["50 000 × 0,8 = 40 000 €"], w: "Coefficient < 1 : trimestre plus faible que la moyenne." },
+  p6q63: { f: "Délai de récupération : quand le cumul des flux atteint l'investissement", s: ["Fin d'année 1 : 20 000 ; année 2 : 40 000 ; année 3 : 60 000", "60 000 = investissement → 3 ans"], w: "" },
+  p3q102: { f: "Base de l'IS = résultat fiscal − déficit reportable imputé", s: ["Imputation possible jusqu'à 1 M€ (+ 50 % au-delà) : ici tout le déficit passe", "120 000 − 50 000 = 70 000 €"], w: "Le report en avant n'a pas de limite de durée." },
+  p3q106: { f: "Quotient familial = revenu net imposable ÷ nombre de parts", s: ["60 000 ÷ 2 = 30 000 €", "On applique le barème à 30 000 €, puis on multiplie l'impôt obtenu par 2"], w: "" },
+  p2q103: { f: "Intérêts courus = capital × taux × mois courus ÷ 12", s: ["Dernière échéance : 1er octobre → octobre, novembre, décembre = 3 mois", "50 000 × 4 % × 3/12 = 500 € (661 / 1688)"], w: "Ce sont des intérêts de N payés en N+1 : charge à payer." },
+  p2q105: { f: "Quote-part virée = subvention ÷ durée d'amortissement", s: ["9 000 ÷ 5 = 1 800 € par an (139 / 747)"], w: "La subvention passe en résultat au même rythme que l'amortissement du bien." },
+  p4q89: { f: "Règle du dixième = 10 % de la rémunération de référence, au prorata des jours pris", s: ["30 000 × 10 % = 3 000 € pour 30 jours ouvrables", "3 000 × 12 ÷ 30 = 1 200 €"], w: "On retient le plus favorable entre dixième et maintien de salaire." },
+  p4q95: { f: "Turnover = ((entrées + sorties) ÷ 2) ÷ effectif moyen × 100", s: ["(6 + 4) ÷ 2 = 5", "5 ÷ 40 = 0,125 → 12,5 %"], w: "" },
+  p4q96: { f: "Taux d'absentéisme = heures d'absence ÷ heures théoriques × 100", s: ["300 ÷ 12 000 = 0,025 → 2,5 %"], w: "" },
+  p6q74: { f: "VA = marge commerciale + production − consommations en provenance des tiers", s: ["80 000 + 0 = 80 000 €", "80 000 − 30 000 = 50 000 €"], w: "" },
+  p6q75: { f: "EBE = VA + subventions d'exploitation − impôts et taxes − charges de personnel", s: ["50 000 + 2 000 = 52 000", "52 000 − 3 000 − 35 000 = 14 000 €"], w: "L'EBE ne tient compte ni des dotations ni du financier." },
+  p6q79: { f: "BFRE = (stocks + créances clients) − (fournisseurs + dettes fiscales et sociales)", s: ["Emplois : 40 000 + 60 000 = 100 000 €", "Ressources : 35 000 + 15 000 = 50 000 €", "100 000 − 50 000 = 50 000 €"], w: "" },
+  p6q80: { f: "Durée de stockage = stock moyen ÷ coût d'achat des marchandises vendues × 360", s: ["30 000 ÷ 360 000 = 0,0833", "× 360 = 30 jours"], w: "Le stock tourne 360 ÷ 30 = 12 fois par an." },
+  p6q81: { f: "Rf = Re + (Re − i) × D ÷ CP", s: ["Re − i = 10 − 4 = 6 points", "6 × 0,5 = 3 points", "10 + 3 = 13 %"], w: "Si Re > i, l'endettement augmente la rentabilité des actionnaires (effet de levier)." },
+  p6q83: { f: "VAN = somme des flux actualisés − investissement", s: ["6 000 ÷ 1,1 = 5 454,55 €", "6 000 ÷ 1,21 = 4 958,68 €", "5 454,55 + 4 958,68 − 10 000 = 413,23 €"], w: "VAN > 0 : le projet est rentable au taux de 10 %." },
+  p5q72: { f: "Résultat analytique = (prix de vente − coût de revient unitaire) × quantité", s: ["50 − 45 = 5 € par unité", "5 × 2 000 = 10 000 €"], w: "" },
+  p5q73: { f: "Écart sur temps = (Tr − Tp) × taux préétabli", s: ["520 − 500 = 20 h", "20 × 15 = 300 € → défavorable"], w: "" },
+  p5q74: { f: "Stock d'alerte = stock de sécurité + consommation pendant le délai de livraison", s: ["Consommation pendant le délai : 20 × 5 = 100", "50 + 100 = 150 unités"], w: "" },
+  p5q75: { f: "Q* = √(2 × D × coût de commande ÷ coût de possession unitaire)", s: ["2 × 12 000 × 100 = 2 400 000", "2 400 000 ÷ 2 = 1 200 000", "√1 200 000 ≈ 1 095 unités (≈ 11 commandes par an)"], w: "" },
+  p5q76: { f: "Encaissement = ventes TTC × part encaissée ce mois-là", s: ["60 % à 30 jours → encaissés en avril", "12 000 × 60 % = 7 200 €"], w: "" },
+  p2q113: { f: "Dépréciation = coût − valeur actuelle (si inférieure)", s: ["10 000 − 8 500 = 1 500 € (6817 / 397)"], w: "" },
+  p2q118: { f: "Intérêts courus = capital × taux × mois ÷ 12", s: ["Du 1er mai au 31 décembre : 8 mois", "60 000 × 5 % × 8/12 = 2 000 € (661 / 1688)"], w: "" },
+  p2q126: { f: "Dépréciation = VNC − valeur actuelle ; valeur actuelle = max(valeur vénale ; valeur d'usage)", s: ["Valeur actuelle : max(12 000 ; 15 000) = 15 000 €", "18 000 − 15 000 = 3 000 €"], w: "On retient la PLUS ÉLEVÉE des deux valeurs." },
+  p4q97: { f: "Retenue = salaire × heures d'absence ÷ heures réelles du mois", s: ["2 100 × 14 = 29 400", "29 400 ÷ 168 = 175 €"], w: "Diviseur = heures réelles du mois, pas 151,67 h." },
+  p6q86: { f: "Taux de marge = marge ÷ coût d'achat", s: ["Marge = 100 − 80 = 20 €", "20 ÷ 80 = 25 %"], w: "Taux de marque = 20 ÷ 100 = 20 %." },
+  p6q91: { f: "BFRE en jours de CA = BFRE ÷ CA HT × 360", s: ["50 000 ÷ 600 000 = 0,0833", "× 360 = 30 jours"], w: "" },
+  p6q92: { f: "Délai fournisseurs = dettes fournisseurs TTC ÷ achats TTC × 360", s: ["Achats TTC : 450 000 × 1,2 = 540 000 €", "45 000 ÷ 540 000 × 360 = 30 jours"], w: "TTC avec TTC." },
+  p6q93: { f: "Rf = Re + (Re − i) × D ÷ CP", s: ["12 − 5 = 7 points", "7 × 1 = 7 points", "12 + 7 = 19 %"], w: "" },
+  p6q95: { f: "IP = 1 + VAN ÷ investissement", s: ["10 000 ÷ 50 000 = 0,2", "1 + 0,2 = 1,2"], w: "IP > 1 : le projet crée de la valeur." },
+  p6q98: { f: "Coût après impôt = intérêts × (1 − taux d'IS)", s: ["Économie d'IS : 4 000 × 25 % = 1 000 €", "4 000 − 1 000 = 3 000 €"], w: "" }
+};
+
+/* ---------- Bulles d'explication : vocabulaire du cours et calculs ---------- */
+/* Formules à connaître : « comment le calculer » + petit exemple */
+const GLF = [
+  [["net commercial"], "Brut HT − réductions commerciales (remise, rabais, ristourne) appliquées en cascade.", "1 000 € − 10 % = 900 € ; − 5 % = 855 €."],
+  [["net financier"], "Net commercial − escompte de règlement (calculé sur le net commercial).", "855 € − 2 % (17,10 €) = 837,90 €."],
+  [["TVA à décaisser"], "TVA collectée − TVA déductible (biens et services + immobilisations) − crédit de TVA antérieur.", "18 000 − 9 000 − 4 000 − 1 000 = 4 000 €."],
+  [["crédit de TVA"], "Quand la TVA déductible dépasse la TVA collectée : déductible − collectée (compte 44567), à imputer sur les déclarations suivantes ou à se faire rembourser.", "Collectée 5 000, déductible 7 000 → crédit 2 000 €."],
+  [["prorata temporis"], "Montant annuel × nombre de mois concernés ÷ 12.", "Annuité 2 400 € sur 9 mois : 2 400 × 9/12 = 1 800 €."],
+  [["amortissement linéaire", "annuité"], "Valeur d'origine ÷ durée d'utilisation (taux = 100 ÷ durée), au prorata la 1re année depuis la mise en service.", "12 000 € sur 5 ans → 2 400 € par an."],
+  [["amortissement dégressif", "taux dégressif"], "Taux = 100 ÷ durée × coefficient (1,25 ; 1,75 ; 2,25) appliqué à la VNC ; prorata depuis le 1er jour du mois d'acquisition.", "5 ans → 20 % × 1,75 = 35 %."],
+  [["valeur nette comptable", "VNC"], "Valeur d'origine − amortissements cumulés (− dépréciations).", "10 000 − 4 000 = 6 000 €."],
+  [["résultat de cession", "plus-value", "moins-value"], "Prix de cession − VNC du bien cédé.", "Prix 7 000 − VNC 6 000 = plus-value de 1 000 €."],
+  [["charge constatée d'avance", "CCA"], "Charge × part qui concerne l'exercice suivant (en mois) ÷ 12. Débit 486, crédit du compte de charge.", "Prime 2 400 € payée le 1er septembre : 2 400 × 8/12 = 1 600 €."],
+  [["produit constaté d'avance", "PCA"], "Produit × part qui concerne l'exercice suivant. Débit du compte de produit, crédit 487.", "Loyer de 6 mois encaissé en novembre : 4 mois sur N+1."],
+  [["dépréciation"], "Créance : HT × % de perte probable. Immobilisation ou stock : valeur comptable − valeur actuelle (si inférieure).", "Créance 1 200 € TTC, perte 50 % : 1 000 × 50 % = 500 €."],
+  [["réserve légale"], "5 % du bénéfice (diminué des pertes antérieures) tant qu'elle n'atteint pas 10 % du capital.", "Bénéfice 60 000 → 3 000 €, dans la limite du plafond."],
+  [["résultat fiscal"], "Résultat comptable + réintégrations (charges non déductibles) − déductions (produits non imposables).", "100 000 + 8 000 − 3 000 = 105 000 €."],
+  [["impôt sur les sociétés", "IS"], "15 % jusqu'à 42 500 € de bénéfice (PME éligible), puis 25 % au-delà.", "80 000 € : 6 375 + 9 375 = 15 750 €."],
+  [["acompte d'IS", "acomptes"], "IS : 4 acomptes de 25 % de l'IS de référence (15/03, 15/06, 15/09, 15/12). TVA réel simplifié : 55 % en juillet, 40 % en décembre.", "IS de référence 20 000 € → 5 000 € par acompte."],
+  [["quotient familial"], "Revenu net imposable ÷ nombre de parts ; on applique le barème au quotient, puis × nombre de parts.", "60 000 ÷ 2 parts = 30 000 €."],
+  [["salaire brut"], "Salaire de base + heures supplémentaires + primes + avantages en nature.", "2 000 + 150 de HS + 100 de prime = 2 250 €."],
+  [["heures supplémentaires"], "Au-delà de 35 h par semaine : +25 % de la 36e à la 43e heure, +50 % ensuite (sauf accord).", "Taux 15 € → 18,75 € puis 22,50 € de l'heure."],
+  [["CSG", "CRDS"], "Assiette = 98,25 % du brut ; CSG 9,2 % + CRDS 0,5 % = 9,7 %.", "2 000 € × 98,25 % × 9,7 % = 190,61 €."],
+  [["net à payer"], "Salaire brut − cotisations salariales − CSG/CRDS − prélèvement à la source.", "2 250 − 500 − 90 = 1 660 €."],
+  [["coût employeur", "coût total employeur"], "Salaire brut + cotisations patronales.", "2 500 + 1 000 = 3 500 €."],
+  [["marge sur coût variable", "MCV"], "Chiffre d'affaires − charges variables ; taux de MCV = MCV ÷ CA.", "500 000 − 300 000 = 200 000 € (40 %)."],
+  [["seuil de rentabilité", "SR"], "Charges fixes ÷ taux de marge sur coût variable (en quantité : CF ÷ MCV unitaire).", "120 000 ÷ 40 % = 300 000 €."],
+  [["point mort"], "Seuil de rentabilité ÷ CA × 12 mois (ou × 360 jours).", "300 000 ÷ 500 000 × 12 = 7,2 mois."],
+  [["marge de sécurité", "indice de sécurité"], "Marge de sécurité = CA − SR ; indice = marge de sécurité ÷ CA.", "(500 000 − 300 000) ÷ 500 000 = 40 %."],
+  [["CMUP", "CUMP", "coût moyen unitaire pondéré"], "(Valeur du stock initial + valeur des entrées) ÷ (quantités initiales + quantités entrées).", "(1 000 + 2 300) ÷ 300 = 11 €."],
+  [["écart sur quantité"], "(Quantité réelle − quantité préétablie) × prix préétabli. Positif = défavorable.", "(1 100 − 1 000) × 4 = 400 € D."],
+  [["écart sur prix"], "(Prix réel − prix préétabli) × quantité réelle.", "(4,20 − 4) × 1 100 = 220 € D."],
+  [["coût de revient"], "Coût de production des produits vendus + coût de distribution.", "Résultat analytique = CA − coût de revient."],
+  [["valeur ajoutée", "VA"], "Marge commerciale + production de l'exercice − consommations en provenance des tiers.", "80 000 + 0 − 30 000 = 50 000 €."],
+  [["excédent brut d'exploitation", "EBE"], "VA + subventions d'exploitation − impôts et taxes − charges de personnel.", "50 000 + 2 000 − 3 000 − 35 000 = 14 000 €."],
+  [["capacité d'autofinancement", "CAF"], "Résultat + dotations − reprises + VNC des éléments cédés − produits de cession − quote-part des subventions virée au résultat.", "36 000 + 25 000 − 2 000 + 5 000 − 8 000 = 56 000 €."],
+  [["fonds de roulement net global", "FRNG"], "Ressources stables − emplois stables.", "500 000 − 400 000 = 100 000 €."],
+  [["besoin en fonds de roulement", "BFR"], "Actif circulant (stocks + créances, hors trésorerie) − dettes circulantes (fournisseurs, fiscales et sociales).", "100 000 − 50 000 = 50 000 €."],
+  [["trésorerie nette"], "FRNG − BFR (ou trésorerie active − trésorerie passive).", "100 000 − 50 000 = 50 000 €."],
+  [["délai clients", "délai de crédit clients"], "Créances clients TTC ÷ CA TTC × 360 jours.", "60 000 ÷ 480 000 × 360 = 45 jours."],
+  [["délai fournisseurs"], "Dettes fournisseurs TTC ÷ achats TTC × 360 jours.", "45 000 ÷ 540 000 × 360 = 30 jours."],
+  [["taux de marge"], "Marge ÷ coût d'achat HT.", "(100 − 80) ÷ 80 = 25 %."],
+  [["taux de marque"], "Marge ÷ prix de vente HT.", "(100 − 80) ÷ 100 = 20 %."],
+  [["coefficient multiplicateur"], "Prix de vente ÷ prix d'achat ; pour une évolution de t % : 1 + t.", "Hausse de 20 % → × 1,20."],
+  [["taux d'évolution"], "(Valeur d'arrivée − valeur de départ) ÷ valeur de départ.", "(56 000 − 50 000) ÷ 50 000 = +12 %."],
+  [["intérêts composés"], "Capital × (1 + taux)^nombre de périodes.", "1 000 × 1,04³ = 1 124,86 €."],
+  [["valeur actuelle", "actualisation"], "Montant futur × (1 + taux)^−n.", "10 000 × 1,1^−2 = 8 264,46 €."],
+  [["annuité constante"], "a = C × i ÷ (1 − (1 + i)^−n).", "100 000 € à 5 % sur 4 ans ≈ 28 201 €."],
+  [["valeur actuelle nette", "VAN"], "Somme des flux nets actualisés − investissement initial.", "5 454,55 + 4 958,68 − 10 000 = 413,23 €."],
+  [["rentabilité financière"], "Résultat net ÷ capitaux propres ; effet de levier : Rf = Re + (Re − i) × D ÷ CP.", "10 + (10 − 4) × 0,5 = 13 %."],
+  [["stock d'alerte"], "Stock de sécurité + consommation pendant le délai de livraison.", "50 + 20 × 5 = 150 unités."],
+  [["quantité économique", "formule de Wilson"], "Q* = √(2 × demande annuelle × coût d'une commande ÷ coût de possession unitaire).", "√(2 × 12 000 × 100 ÷ 2) ≈ 1 095."]
+];
+const nk = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+let GLX = null, GLRE = null;
+function glBuild() {
+  if (GLX) return; GLX = {};
+  const GEN = new Set("environnement innovation investissement responsabilite responsabilites coordination construction introduction conclusion performance representation traitement integration proportion plateforme competence competences entrepreneur problematique processus strategie ressources declaration exceptionnel contractuelle independance opportunite paraphrase reintegration regroupement extracontractuelle responsabilite indenombrable".split(" "));
+  const put = (term, e, prio) => { term = String(term).replace(/\(.*?\)/g, "").replace(/[()]/g, "").trim(); if (term.length < 2 || term.split(/\s+/).length > 5 || /\d\)?$/.test(term) && !/^[A-Z]/.test(term) || /^\d+$/.test(term)) return;
+    if (/^(à|a|de|du|des|en|le|la|les|l'|d'|et|ou|sur|par|pour|au|aux)\s/i.test(term) || /^[a-zéèàç]/.test(term) && term.split(/\s+/).length < 2) return;
+    if (!/\s/.test(term) && prio < 3) { const acr = /^[A-Z][A-Z0-9&.-]{1,7}$/.test(term); if (!acr && (!/^[A-ZÉÈ]/.test(term) || term.length < 9 || GEN.has(nk(term)))) return; } const k = nk(term); const cur = GLX[k]; if (!cur || cur.p < prio) GLX[k] = Object.assign({ t: term, p: prio }, e); else if (cur && !cur.f && e.f) Object.assign(cur, { f: e.f, x: e.x }); };
+  FS.forEach(x => { const f = String(x.f || ""); if (x.c === "an" || /[:·]/.test(f) || f.length > 40) return; const words = f.split(/\s+/).length, acr = /^[A-Z0-9]{2,6}$/.test(f); if (words === 1 && !acr && f.length < 7) return; f.split(/\s*\/\s*/).forEach(t => put(t, { d: x.b, ch: x.ch, c: x.c }, 1)); });
+  CHAP.forEach(c => (c.sections || []).forEach(s => (s.b || []).forEach(b => { if (b[0] !== "d") return; String(b[1]).split(/\s*\/\s*/).forEach(t => put(t, { d: b[2], ch: c.id, c: c.cat }, 2)); })));
+  GLF.forEach(([names, f, x]) => names.forEach(n => { const k = nk(n); if (GLX[k]) Object.assign(GLX[k], { f, x }); else GLX[k] = { t: n, p: 3, f, x, d: "" }; }));
+  const terms = Object.values(GLX).map(e => e.t).filter(t => t.length >= 2).sort((a, b) => b.length - a.length);
+  const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/'/g, "['’]");
+  try { GLRE = new RegExp("(?<![\\p{L}\\p{N}])(" + terms.map(esc).join("|") + ")(?![\\p{L}\\p{N}])", "giu"); } catch (e) { GLRE = null; }
+}
+const GL_ZONES = ".feedback, .qx, .cx-corr, .face-back .back, .more-box, .ex-corr, .sc-key, .review-item .e, .lesson .md p, .lesson .md li, .lesson .md td, .gc-corr, .pl-phase";
+function glossify(root) {
+  if (S.pref && S.pref.gt === "off") return; glBuild(); if (!GLRE || !root) return;
+  root.querySelectorAll(GL_ZONES).forEach(zone => {
+    if (zone.dataset.gl || (zone.parentElement && zone.parentElement.closest(GL_ZONES))) return; zone.dataset.gl = "1";
+    const seen = new Set(); let n = 0;
+    const tw = document.createTreeWalker(zone, NodeFilter.SHOW_TEXT, { acceptNode: t => t.parentElement.closest("a, button, h1, h2, h3, h4, summary, label, code, kbd, input, textarea, .gt, .verdict, .md-label, strong, b") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const nodes = []; while (tw.nextNode()) nodes.push(tw.currentNode);
+    for (const node of nodes) {
+      if (n >= 10) break; const txt = node.nodeValue; GLRE.lastIndex = 0; let m, last = 0; const frag = document.createDocumentFragment(); let hit = false;
+      while ((m = GLRE.exec(txt)) && n < 10) {
+        const raw = m[1], k = nk(raw), e = GLX[k]; if (!e || seen.has(k)) continue;
+        if (/^[A-Z0-9]{2,6}$/.test(e.t) && raw !== e.t) continue; // sigles : casse exacte
+        seen.add(k); n++; hit = true;
+        frag.append(txt.slice(last, m.index)); const bt = document.createElement("button"); bt.className = "gt" + (e.f ? " f" : ""); bt.dataset.act = "gt"; bt.dataset.k = k; bt.type = "button"; bt.textContent = raw; frag.append(bt); last = m.index + raw.length;
+      }
+      if (hit) { frag.append(txt.slice(last)); node.replaceWith(frag); }
+    }
+  });
+}
+function gtClose() { const p = document.getElementById("gtPop"); if (p) p.remove(); document.removeEventListener("keydown", gtKey); }
+function gtKey(e) { if (e.key === "Escape") gtClose(); }
+function gtShow(b) {
+  glBuild(); const e = GLX[b.dataset.k]; if (!e) return; const same = document.getElementById("gtPop"); gtClose(); if (same && same.dataset.k === b.dataset.k) return;
+  const p = document.createElement("div"); p.id = "gtPop"; p.className = "gt-pop"; p.dataset.k = b.dataset.k; p.setAttribute("role", "dialog");
+  if (e.c && CAT[e.c]) p.setAttribute("style", hueStyle(e.c));
+  p.innerHTML = `<div class="gt-h"><b>${h(e.t)}</b>${e.c && CAT[e.c] ? `<span class="tabcode">${h(CAT[e.c].code)}</span>` : ""}<button class="gt-x" data-act="gtClose" aria-label="Fermer">×</button></div>
+    ${e.d ? `<p>${h(e.d)}</p>` : ""}
+    ${e.f ? `<div class="gt-f"><span>Comment le calculer</span><p>${h(e.f)}</p>${e.x ? `<small>Exemple : ${h(e.x)}</small>` : ""}</div>` : ""}
+    ${e.ch && CHID[e.ch] ? `<button class="btn small" data-act="fichePeek" data-id="${h(e.ch)}" data-hint="${h(e.t + " " + (e.d || ""))}">${ICON.book}Voir dans la fiche</button>` : ""}`;
+  document.body.appendChild(p);
+  const r = b.getBoundingClientRect(), W = Math.min(340, window.innerWidth - 24), H = p.offsetHeight;
+  let left = Math.min(Math.max(12, r.left + r.width / 2 - W / 2), window.innerWidth - W - 12), top = r.bottom + 8;
+  if (top + H > window.innerHeight - 12) top = Math.max(12, r.top - H - 8);
+  p.style.width = W + "px"; p.style.left = left + "px"; p.style.top = top + "px";
+  requestAnimationFrame(() => p.classList.add("in")); tone("soft");
+  document.addEventListener("keydown", gtKey);
+}
+document.addEventListener("pointerdown", e => { if (!e.target.closest("#gtPop, .gt")) gtClose(); }, true);
+window.addEventListener("scroll", () => gtClose(), { passive: true });
+
+/* Revoir la fiche : on ouvre directement sur le passage qui contient la réponse */
+const STOPW = new Set("dans pour avec sans sont elle elles leur leurs mais plus moins comme entre cette celui celle ceux quel quelle quels quelles dont donc tout tous toute toutes faut peut doit être avoir fait sont suis lors chez vers aussi ainsi alors très bien même autre autres selon après avant depuis pendant encore quand".split(" "));
+function hintTokens(s) { return nk(s).replace(/[^a-z0-9%,.' -]/g, " ").split(/[\s']+/).map(w => w.replace(/^[.,]+|[.,]+$/g, "")).filter(w => (w.length >= 4 && !STOPW.has(w)) || /^\d{3,}$/.test(w)); }
+function peekTarget(body, hint) {
+  if (!hint || !body) return;
+  const [ans, ...rest] = String(hint).split("\u241E"), ta = new Set(hintTokens(ans)), tq = new Set(hintTokens(rest.join(" ")));
+  let best = null, bs = 0;
+  body.querySelectorAll(".md p, .md li, .md tr, .md blockquote, .md pre").forEach(el => {
+    if (el.querySelector("p, li, tr") && el.tagName !== "TR") return;
+    const words = new Set(hintTokens(el.textContent)); let s = 0;
+    ta.forEach(w => { if (words.has(w)) s += 3; }); tq.forEach(w => { if (words.has(w)) s += 1; });
+    s = s / (1 + el.textContent.length / 600); if (s > bs) { bs = s; best = el; }
+  });
+  if (!best || bs < 2.5) return;
+  const tgt = best.tagName === "TR" ? best.closest("table") || best : best;
+  best.classList.add("peek-hit");
+  setTimeout(() => { const top = tgt.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 60; body.scrollTo({ top: Math.max(0, top), behavior: RM ? "auto" : "smooth" }); }, 380);
+}
+
+/* Flashcards : formuler le recto comme une vraie question */
+function cardQ(it) {
+  const f = String(it.f || "").replace(/^T\d\s*·\s*/, "").trim(), b = String(it.b || ""), lc = f.charAt(0).toLowerCase() + f.slice(1);
+  if (it.c === "an") return { k: "Traduis", q: f };
+  let m = f.match(/^(.*?)\s*:\s*(\d+)\s+(.+)$/); if (m) return { k: "Cite", q: `${m[2]} ${m[3]} : ${m[1]}` };
+  if (/^(les|la|le)\s+\d+\s/i.test(f) || /^(exemples?|liste|types?|conditions?|étapes?|principes?|sources?|critères?|caractères?|éléments?|missions?|fonctions?|obligations?|droits?)\b/i.test(f)) return { k: "Cite", q: lc };
+  if (/^(rédiger|calculer|construire|analyser|présenter|identifier|choisir|réussir|gérer|organiser|comparer|interpréter|lire|faire|traiter|structurer|argumenter|préparer|utiliser|réviser|éviter|distinguer|comptabiliser|déterminer|appliquer|évaluer|mesurer|justifier|répondre|reconnaître|passer|enregistrer|établir|vérifier|contrôler)\b/i.test(f)) return { k: "Méthode", q: `Comment ${lc} ?` };
+  if (/^écritures?\b/i.test(f)) return { k: "Écriture", q: `Quelle est l'${lc} ?` };
+  if (/^(formule|taux|coût|seuil|calcul|écart|montant)/i.test(f) || /^[A-Za-z*()\s']{1,12}=/.test(b)) return { k: "Formule", q: `Comment calcule-t-on : ${lc} ?` };
+  if (/\b\d{3,6}\b[^.]{0,30}(débit|crédit|\/)|au (débit|crédit)/i.test(b) && !/:/.test(f)) return { k: "Écriture", q: `Comment l'enregistre-t-on : ${lc} ?` };
+  if (/:/.test(f)) return { k: "Explique", q: f };
+  if (/\s\/\s/.test(f)) { const p = f.split(/\s\/\s/); return { k: "Différencie", q: p.length > 2 ? p.slice(0, -1).join(", ") + " et " + p[p.length - 1] : p.join(" et ") }; }
+  if (/,/.test(f) && f.split(",").length <= 3 && f.split(",").every(x => x.trim().split(/\s+/).length <= 3)) return { k: "Différencie", q: f.replace(/,\s*([^,]+)$/, " et $1") };
+  if (/^[A-Z0-9][A-Z0-9&.-]{1,7}$/.test(f)) return { k: "Que signifie", q: `${f} ? Que faut-il en retenir ?` };
+  if ((it.c === "ce" || it.c === "cg") && /^[A-ZÉ][\wé'-]+(\s(&|et)\s[A-ZÉ][\wé'-]+)?$/.test(f)) return { k: "Explique", q: `Qui est ou que désigne « ${f} » ?` };
+  if (f.split(/\s+/).length <= 5) return { k: "Définis", q: f };
+  return { k: "Explique", q: f };
+}
+
+/* Correction détaillée d'une question de calcul */
+function qxHTML(it) {
+  const x = QX[it.id]; if (!x) return "";
+  return `<div class="qx"><span class="qx-t">Détail du calcul</span><p class="qx-f"><span>Formule</span>${h(x.f)}</p><ol>${x.s.map(s => `<li>${h(s)}</li>`).join("")}</ol>${x.w ? `<p class="qx-w">⚠️ ${h(x.w)}</p>` : ""}</div>`;
+}
+
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
@@ -8399,7 +8675,9 @@ document.addEventListener("click", e => {
     case "exTab": { setExTab(b.dataset.t); if (view !== "ex") go("ex"); else { render(); const n = document.querySelector(".ex-tabs"), y = n ? n.getBoundingClientRect().top + window.scrollY - 70 : 0; if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y) }); } break; }
     case "wkClose": closeSheet(); break;
     case "wkFiche": closeSheet(); fichePeek(b.dataset.id); break;
-    case "fichePeek": fichePeek(b.dataset.id); break;
+    case "fichePeek": gtClose(); fichePeek(b.dataset.id, b.dataset.hint); break;
+    case "gt": gtShow(b); break;
+    case "gtClose": gtClose(); break;
     case "peekClose": peekClose(); break;
     case "amGo": AMT = b.dataset.t; if (view !== "amis") go("amis"); else render(); if (AMT === "amis") loadFriends(true); if (AMT === "duels") loadDuels(true); break;
     case "frOpen": FRX = FRX === b.dataset.k ? null : b.dataset.k; render(); break;
