@@ -91,6 +91,7 @@
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
+  if (!GUEST) window.GL_AV = function () { return api("GET", "/api/avatars"); };
   if (!GUEST) window.GL_FRIENDS = {
     list: function () { return api("GET", "/api/friends"); },
     add: function (code) { return api("POST", "/api/friends/add", { code: code }); },
@@ -299,6 +300,29 @@
   --gold: #f2c95c; --hl: rgba(255, 219, 77, .15); --hl-edge: #e3c240; --hl-band: rgba(227, 194, 64, .32); --card-line: #2b3459; --card-head: #d06a7c; --on-tint: #12142a;
   --l-strong: 74%; --l-soft: 19%; --l-mid: 31%; --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .25); color-scheme: dark; --ldm: 0;
 }
+/* Avatars illustrés */
+.av-svg { width: 100%; height: 100%; display: block; }
+.du-av.has-av { background: none; padding: 0; overflow: hidden; }
+.du-av.xs { width: 22px; height: 22px; font-size: .6rem; }
+.pf-av { position: relative; border: 0; cursor: pointer; padding: 0; transition: transform .15s; }
+.pf-av:hover { transform: scale(1.04); } .pf-av:active { transform: scale(.97); }
+.pf-av.has-av { background: none; }
+.pf-av.has-av > .av-svg { border-radius: 50%; }
+.pf-av-ed { position: absolute; right: -2px; bottom: -2px; width: 24px; height: 24px; border-radius: 50%; background: #fff; color: #2c43c6; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.pf-av-ed svg { width: 13px; height: 13px; }
+.who-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; flex: none; margin-left: -4px; }
+.who-av[hidden] { display: none; }
+.av-box { width: min(640px, 100%); }
+.av-grp { display: grid; gap: 8px; } .av-grp h3 { margin: 6px 0 0; font-size: .95rem; }
+.av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 8px; }
+.av-pick { font: inherit; color: var(--ink); background: var(--paper); border: 2px solid transparent; border-radius: 14px; padding: 8px 4px 6px; display: grid; justify-items: center; gap: 4px; cursor: pointer; transition: transform .15s, border-color .15s, background .15s; }
+.av-pick .av-svg, .av-ini { width: 58px; height: 58px; border-radius: 50%; }
+.av-ini { display: grid; place-items: center; font: 800 1.2rem var(--f-display); background: linear-gradient(145deg, #ffd66b, #f2a93b); color: #3a2600; }
+.av-pick small { font-size: .72rem; line-height: 1.2; text-align: center; color: var(--muted); font-weight: 600; }
+.av-pick:hover { transform: translateY(-2px); border-color: var(--rule-strong); }
+.av-pick[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.av-pick[aria-pressed="true"] small { color: var(--accent); }
+
 /* Schémas de processus */
 .sc-how { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sc-how > span:not(.pill) { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: .9rem; }
@@ -1655,7 +1679,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
       <button class="nav-btn" data-nav="bts"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>Mon BTS</button>
     </nav>
     <button class="gs-btn" data-act="gsOpen" aria-label="Rechercher dans tout le Grand Livre (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
-    <button class="who" data-nav="profil" title="Mon profil : niveau, points et réglages"><span class="lvl" id="lvlName">Stagiaire</span><span class="xp" id="xpTop">0 XP</span></button>
+    <button class="who" data-nav="profil" title="Mon profil : niveau, points et réglages"><span class="who-av" id="whoAv" hidden></span><span class="lvl" id="lvlName">Stagiaire</span><span class="xp" id="xpTop">0 XP</span></button>
   </div>
 </header>
 <main class="wrap" id="view"></main>
@@ -3399,6 +3423,7 @@ function renderTop() {
     requestAnimationFrame(() => { const n = document.querySelector(".ex-tabs"), c = n && n.querySelector('[aria-current="page"]'); if (n && c && n.scrollWidth > n.clientWidth) n.scrollLeft = c.offsetLeft - 16; }); }
   const L = levelOf(S.xp);
   $("#lvlName").textContent = L.name;
+  { const w = document.getElementById("whoAv"), a = avMine(); if (w && w.dataset.av !== a) { w.dataset.av = a; w.innerHTML = a ? avSvg(a) : ""; w.hidden = !a; } }
   if (!document.querySelector(".fx-xp")) $("#xpTop").textContent = S.xp + " XP";
   const cur = navOf(view);
   document.querySelectorAll(".nav-btn").forEach(b => b.setAttribute("aria-current", b.dataset.nav === cur ? "page" : "false"));
@@ -3954,7 +3979,7 @@ function vProfil() {
   const mastNote = anyWorked && !anyMast ? `<p class="muted small pf-note">« Maîtrisé » ne compte que ce que tu as réussi <b>deux jours différents, à au moins 3 jours d'écart</b> : c'est la preuve que c'est retenu, pas juste vu. ${firstOk ? `Tes premières questions pourront devenir acquises à partir du <b>${dayLabel(firstOk + 3)}</b> : la révision des acquis te les reproposera.` : ""}</p>` : "";
   return `<section class="pf-hero">
       <div class="pf-id">
-        <div class="pf-av" aria-hidden="true">${h(ini)}</div>
+        <button class="pf-av${avMine() ? " has-av" : ""}" data-act="avPick" aria-label="Choisir mon avatar">${avMine() ? avSvg(avMine()) : h(ini)}<span class="pf-av-ed" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z"/></svg></span></button>
         <div class="pf-who"><span class="eyebrow">Mon profil</span><h1>${name ? h(name) : "Ton profil"}</h1><p class="pf-lvl">${h(L.name)} · <b>${S.xp} XP</b></p></div>
         ${dl !== null ? `<div class="pf-count"><b>J-${dl}</b><span>avant les écrits</span></div>` : ""}
       </div>
@@ -5526,7 +5551,7 @@ const duelCfg = () => { S.duf = S.duf || { cats: ["p1", "p2", "p3"], n: 10 }; re
 const duScore = (ans, t) => ans.reduce((s, ok, i) => s + (ok ? 100 + Math.max(0, 50 - Math.floor((t[i] || 0) / 1000) * 3) : 0), 0);
 const duHue = s => { let x = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) % 360; return x; };
 const duIni = n => String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-const duAv = (n, cls) => `<span class="du-av${cls ? " " + cls : ""}" style="--ah:${duHue(n)}" aria-hidden="true">${h(duIni(n))}</span>`;
+const duAv = (n, cls) => { const a = typeof avOf === "function" ? avOf(n) : ""; return a ? `<span class="du-av has-av${cls ? " " + cls : ""}" aria-hidden="true">${avSvg(a)}</span>` : `<span class="du-av${cls ? " " + cls : ""}" style="--ah:${duHue(n)}" aria-hidden="true">${h(duIni(n))}</span>`; };
 function duelStop() { clearInterval(duTick); duTick = null; clearInterval(duPoll); duPoll = null; }
 function duelPool(cats) { return QS.filter(x => cats.includes(x.c) && !lockedCat(x.c) && x.o && x.o.length === 4); }
 function duelPick(cats, n) { const p = shuffle(duelPool(cats)); return p.slice(0, n).map(x => x.id); }
@@ -5570,7 +5595,7 @@ function duelHome() {
       <div><div class="label">Matières</div><div class="picker">${cats.map(c => `<button class="chip" data-act="duCat" data-c="${c.id}" aria-pressed="${cfg.cats.includes(c.id)}"><span class="mono">${h(c.code)}</span>${h(c.name)}</button>`).join("")}</div></div>
       <div class="row"><span class="label" style="margin:0">Questions</span><div class="pf-seg" role="group">${[5, 10, 15].map(n => `<button type="button" data-act="duN" data-n="${n}" aria-pressed="${cfg.n === n}">${n}</button>`).join("")}</div><span class="muted small">${pool} questions disponibles</span></div>
       ${N ? `<div class="row"><button class="btn primary" data-act="duNew" ${pool < cfg.n ? "disabled" : ""}>${ICON.duel}Créer un duel avec un code</button><button class="btn" data-act="duBot" ${pool < cfg.n ? "disabled" : ""}>Contre le Grand Livre</button></div>
-        ${DH.mates.length ? `<div><div class="label">Ou défie directement un camarade du classement</div><div class="du-mates">${DH.mates.map(m => `<button class="chip" data-act="duMate" data-k="${h(m.k)}" ${pool < cfg.n ? "disabled" : ""}><span class="du-av" style="width:22px;height:22px;font-size:.6rem;--ah:${duHue(m.p)}" aria-hidden="true">${h(duIni(m.p))}</span>${h(m.p)}</button>`).join("")}</div></div>` : `<p class="muted small" style="margin:0">Les camarades qui ont rejoint le classement de la classe apparaîtront ici pour être défiés directement.</p>`}`
+        ${DH.mates.length ? `<div><div class="label">Ou défie directement un camarade du classement</div><div class="du-mates">${DH.mates.map(m => `<button class="chip" data-act="duMate" data-k="${h(m.k)}" ${pool < cfg.n ? "disabled" : ""}>${duAv(m.p, "xs")}${h(m.p)}</button>`).join("")}</div></div>` : `<p class="muted small" style="margin:0">Les camarades qui ont rejoint le classement de la classe apparaîtront ici pour être défiés directement.</p>`}`
         : `<div class="row"><button class="btn primary" data-act="duBot" ${pool < cfg.n ? "disabled" : ""}>${ICON.duel}Duel contre le Grand Livre</button></div><p class="muted small" style="margin:0">${isGuest() ? "Crée ton compte pour défier tes camarades." : "Les duels entre camarades se jouent sur le site partagé du Grand Livre. Ici, affronte un adversaire virtuel."}</p>`}
     </div>
     ${N ? `<div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Rejoindre un duel</h3><p class="muted small" style="margin:0">Ton camarade t'a donné un code de 5 caractères.</p>
@@ -5746,6 +5771,7 @@ function amisBadge() {
   if (b) { b.hidden = !n; b.textContent = n; }
 }
 async function loadFriends(force) {
+  if (force) avLoad(true);
   const N = FRN(); if (!N || FR.busy) return;
   if (!force && FR.data && Date.now() - FR.at < 30000) return;
   FR.busy = true;
@@ -5924,7 +5950,7 @@ const IB = { seen: (() => { try { return new Set(JSON.parse(localStorage.getItem
 function ibSave() { try { localStorage.setItem("gl-inbox-seen", JSON.stringify([...IB.seen].slice(-80))); } catch (e) {} }
 async function inboxPoll() {
   const N = DUEL_NET(); if (!N || !N.inbox || IB.busy || document.hidden) return;
-  IB.busy = true;
+  IB.busy = true; avLoad();
   try {
     const j = await N.inbox(), items = [];
     if (j.fsig) { if (IB.fsig && j.fsig !== IB.fsig) { FR.at = 0; FRX = null; loadFriends(true); } IB.fsig = j.fsig; }
@@ -7649,6 +7675,88 @@ function vSchema() {
   </section>`;
 }
 
+/* ---------- Avatars : dessins originaux inspirés des grands univers de la pop culture ---------- */
+const AVK = (() => {
+  const E = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+  const eyes = (y = 35, c = "#2b2440", dx = 6.5, r = 2.4) => E(32 - dx, y, r, c) + E(32 + dx, y, r, c) + E(32 - dx + .8, y - .9, .8, "#fff") + E(32 + dx + .8, y - .9, .8, "#fff");
+  const smile = (y = 42, c = "#2b2440", w = 5) => `<path d="M${32 - w} ${y}q${w} ${w * .8} ${w * 2} 0" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"/>`;
+  const blush = (y = 40, c = "#ff8fa3") => `<ellipse cx="22" cy="${y}" rx="3" ry="1.8" fill="${c}" opacity=".5"/><ellipse cx="42" cy="${y}" rx="3" ry="1.8" fill="${c}" opacity=".5"/>`;
+  const head = (c, y = 37, rx = 15, ry = 16) => `<ellipse cx="32" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}"/>`;
+  const body = c => `<path d="M10 64c2-11 10-16 22-16s20 5 22 16z" fill="${c}"/>`;
+  const S1 = "#ffd9b8", S2 = "#e8b48c", S3 = "#b07a52", S4 = "#7a4f33";
+  const A = {
+    /* Science-fiction */
+    astro: { n: "Astronaute", g: "sf", bg: ["#16213e", "#2c3e80"], d: body("#e9edf5") + `<circle cx="32" cy="34" r="20" fill="#f4f6fb" stroke="#c9d1e3" stroke-width="2"/><rect x="17" y="24" width="30" height="21" rx="10" fill="#26315e"/><path d="M21 28q6-3 12 0" stroke="#8fb4ff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/>` + E(26, 35, 2, "#ffd36b") + E(38, 35, 2, "#ffd36b") + `<rect x="27" y="52" width="10" height="5" rx="1.5" fill="#ff6b6b"/>` + E(12, 14, 1.2, "#fff") + E(52, 10, 1, "#fff") + E(56, 24, .8, "#fff") },
+    robot: { n: "Robot", g: "sf", bg: ["#0f3d3e", "#167d7f"], d: body("#9aa7b8") + `<line x1="32" y1="9" x2="32" y2="17" stroke="#9aa7b8" stroke-width="2.5"/>` + E(32, 8, 3, "#ff5e7e") + `<rect x="16" y="17" width="32" height="28" rx="8" fill="#c8d2df"/><rect x="20" y="24" width="24" height="11" rx="5.5" fill="#1d2433"/>` + E(26, 29.5, 3, "#5ef2ff") + E(38, 29.5, 3, "#5ef2ff") + `<rect x="25" y="38" width="14" height="3" rx="1.5" fill="#7d8899"/><rect x="12" y="26" width="4" height="10" rx="2" fill="#9aa7b8"/><rect x="48" y="26" width="4" height="10" rx="2" fill="#9aa7b8"/>` },
+    alien: { n: "Extraterrestre", g: "sf", bg: ["#1b1035", "#4a2a8c"], d: body("#5a3fa8") + `<path d="M24 16 19 7M40 16l5-9" stroke="#7be08a" stroke-width="2.5" stroke-linecap="round"/>` + E(19, 7, 3, "#c6ff8a") + E(45, 7, 3, "#c6ff8a") + `<path d="M32 14c11 0 17 8 17 17 0 11-9 19-17 19s-17-8-17-19c0-9 6-17 17-17z" fill="#7be08a"/><ellipse cx="25" cy="32" rx="5" ry="7" transform="rotate(-20 25 32)" fill="#14102a"/><ellipse cx="39" cy="32" rx="5" ry="7" transform="rotate(20 39 32)" fill="#14102a"/>` + E(24, 29, 1.4, "#fff") + E(40, 29, 1.4, "#fff") + `<path d="M29 43q3 2 6 0" stroke="#2f6b3a" stroke-width="2" fill="none" stroke-linecap="round"/>` },
+    pilote: { n: "Pilote de l'espace", g: "sf", bg: ["#2b1b3d", "#d35454"], d: body("#2f3b55") + head(S2) + `<path d="M15 34c0-12 7-19 17-19s17 7 17 19v-4H15z" fill="#3d4a66"/><rect x="15" y="29" width="34" height="9" rx="4.5" fill="#ff9b3d"/><rect x="18" y="31" width="28" height="5" rx="2.5" fill="#ffd36b" opacity=".6"/>` + smile(44, "#5a3a2a", 4) + `<rect x="28" y="50" width="8" height="8" rx="2" fill="#ff9b3d"/>` },
+    /* Fantasy */
+    mage: { n: "Magicien", g: "fa", bg: ["#1d1a4d", "#4b3fb8"], d: body("#4b3fb8") + head(S1, 39, 13, 14) + `<path d="M18 33 33 3l14 30z" fill="#2e2a8c"/><path d="M14 34h36" stroke="#2e2a8c" stroke-width="5" stroke-linecap="round"/>` + `<path d="m30 14 1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8-2.1-1.9 2.8-.3z" fill="#ffd36b"/>` + E(38, 24, 1.2, "#ffd36b") + eyes(39, "#2b2440", 5.5, 2) + `<path d="M20 44c3 14 21 14 24 0-4 3-8 2-12 2s-8 1-12-2z" fill="#f2f2f7"/><path d="M27 45q5-3 10 0" stroke="#f2f2f7" stroke-width="3" stroke-linecap="round"/>` },
+    elfe: { n: "Elfe", g: "fa", bg: ["#123d2a", "#2f8a5b"], d: body("#2f8a5b") + `<path d="M14 30c-4-2-8-8-9-12 5 2 9 5 11 9zM50 30c4-2 8-8 9-12-5 2-9 5-11 9z" fill="${S1}"/>` + `<path d="M16 30c0-12 7-18 16-18s16 6 16 18v20c-3-6-3-14-3-14H19s0 8-3 14z" fill="#f6dc8a"/>` + head(S1, 36, 13, 15) + `<path d="M19 30c4-8 22-8 26 0-6-4-20-4-26 0z" fill="#f6dc8a"/><path d="M20 26q12-6 24 0" stroke="#6fcf97" stroke-width="2.5" fill="none"/>` + E(32, 22, 2, "#9be0b8") + eyes(36, "#2d6a4f", 5.5, 2.2) + smile(43, "#8a4b3a", 3.5) },
+    chevalier: { n: "Chevalier", g: "fa", bg: ["#3a2a1a", "#a5652e"], d: body("#8d99ae") + `<path d="M32 4c4 2 6 6 5 11-3-2-7-2-10 0-1-5 1-9 5-11z" fill="#e63946"/><path d="M16 28c0-10 7-15 16-15s16 5 16 15v16c0 4-7 8-16 8s-16-4-16-8z" fill="#c0c8d4"/><rect x="18" y="31" width="28" height="4" rx="2" fill="#2b2f3a"/><path d="M32 35v14" stroke="#9aa3b2" stroke-width="2"/>` + E(22, 42, 1, "#2b2f3a") + E(22, 46, 1, "#2b2f3a") + E(42, 42, 1, "#2b2f3a") + E(42, 46, 1, "#2b2f3a") },
+    dragon: { n: "Petit dragon", g: "fa", bg: ["#3d0f1f", "#b23a48"], d: body("#2a9d5c") + `<path d="M20 20 15 7l11 8zM44 20l5-13-11 8z" fill="#f4d35e"/><ellipse cx="32" cy="36" rx="17" ry="15" fill="#3cc47c"/><ellipse cx="32" cy="43" rx="10" ry="7" fill="#a6f0c6"/>` + E(28, 42, 1.3, "#1d5c3a") + E(36, 42, 1.3, "#1d5c3a") + eyes(31, "#1d1d2b", 7, 3) + `<path d="M24 22l3 4 3-4 2 4 2-4 3 4 3-4" fill="none" stroke="#2a9d5c" stroke-width="2" stroke-linejoin="round"/><path d="M28 48q4 2 8 0" stroke="#1d5c3a" stroke-width="2" fill="none" stroke-linecap="round"/>` },
+    /* Manga et animé */
+    ninja: { n: "Ninja", g: "ma", bg: ["#111827", "#374151"], d: body("#1f2937") + head("#1f2937", 36, 16, 17) + `<rect x="17" y="29" width="30" height="11" rx="5.5" fill="${S2}"/>` + `<path d="M26 33l5 2M38 33l-5 2" stroke="#1f2937" stroke-width="1.6" stroke-linecap="round"/>` + E(26, 35.5, 2, "#1f2937") + E(38, 35.5, 2, "#1f2937") + `<rect x="15" y="22" width="34" height="5" rx="2" fill="#e63946"/><path d="M47 24l9-3-6 7z" fill="#e63946"/>` },
+    samourai: { n: "Samouraï", g: "ma", bg: ["#3b0d0d", "#9b2226"], d: body("#264653") + `<path d="M23 15c0-6 18-6 18 0" fill="#1b1b2b"/><rect x="27" y="7" width="10" height="7" rx="3" fill="#1b1b2b"/>` + head(S1, 37, 14, 15) + `<path d="M18 30c2-10 26-10 28 0-6-5-22-5-28 0z" fill="#1b1b2b"/><rect x="17" y="27" width="30" height="4" rx="2" fill="#f1f1f1"/>` + `<path d="M24 34l5 1.5M40 34l-5 1.5" stroke="#1b1b2b" stroke-width="1.8" stroke-linecap="round"/>` + E(27, 37.5, 1.8, "#1b1b2b") + E(37, 37.5, 1.8, "#1b1b2b") + `<path d="M29 44h6" stroke="#8a4b3a" stroke-width="2" stroke-linecap="round"/>` },
+    heroine: { n: "Héroïne manga", g: "ma", bg: ["#3d1356", "#e05aa7"], d: body("#ffffff") + `<path d="M27 52h10l-5 6z" fill="#e05aa7"/>` + `<path d="M12 40c-2-16 6-28 20-28s22 12 20 28l-5-6-3 8-3-10H22l-3 10-3-8z" fill="#ff7bbd"/>` + head(S1, 38, 13, 14) + `<path d="M17 32c2-10 10-14 15-14s13 4 15 14l-6-6-2 5-4-7-3 6-3-6-4 7-2-5z" fill="#ff7bbd"/>` + `<ellipse cx="26" cy="38" rx="3" ry="4" fill="#5b2a86"/><ellipse cx="38" cy="38" rx="3" ry="4" fill="#5b2a86"/>` + E(27, 36.5, 1.3, "#fff") + E(39, 36.5, 1.3, "#fff") + blush(43) + `<path d="M30 45q2 1.5 4 0" stroke="#8a4b3a" stroke-width="1.6" fill="none" stroke-linecap="round"/>` },
+    kitsune: { n: "Masque de renard", g: "ma", bg: ["#2a1a3d", "#c75b39"], d: body("#c0392b") + `<path d="M17 24 14 8l12 9zM47 24l3-16-12 9z" fill="#fdfdfd"/><path d="M17 22 16 12l7 6zM47 22l1-10-7 6z" fill="#e74c3c"/><path d="M15 30c0-9 8-14 17-14s17 5 17 14c0 8-9 18-17 22-8-4-17-14-17-22z" fill="#fdfdfd"/>` + `<path d="M21 31q4-3 8 1M43 31q-4-3-8 1" stroke="#c0392b" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 24q3-2 5 0M42 24q-3-2-5 0" stroke="#e74c3c" stroke-width="2" fill="none" stroke-linecap="round"/>` + E(32, 44, 2, "#2b2440") + `<path d="M26 38q6 3 12 0" stroke="#c0392b" stroke-width="1.6" fill="none"/>` },
+    /* Super-héros */
+    masque: { n: "Héros masqué", g: "sh", bg: ["#0d1b4c", "#1e56c8"], d: `<path d="M6 64c3-14 12-20 26-20s23 6 26 20z" fill="#d62839"/>` + body("#1e56c8") + `<path d="M26 50l6 6 6-6" fill="#ffd166"/>` + head(S2, 35) + `<path d="M17 29c0-10 6-15 15-15s15 5 15 15c-4-5-10-6-15-6s-11 1-15 6z" fill="#2b1d16"/>` + `<path d="M16 33c5-3 11-3 16 1 5-4 11-4 16-1-1 4-5 7-9 6-3 0-5-2-7-3-2 1-4 3-7 3-4 1-8-2-9-6z" fill="#d62839"/>` + E(25, 35, 1.8, "#fff") + E(39, 35, 1.8, "#fff") + smile(43, "#5a3a2a", 4) },
+    etoile: { n: "Héroïne étoile", g: "sh", bg: ["#2d0b3a", "#7b2cbf"], d: body("#7b2cbf") + `<path d="m32 49 2 4 4.5.5-3.3 3 1 4.5-4.2-2.4-4.2 2.4 1-4.5-3.3-3 4.5-.5z" fill="#ffd166"/>` + `<path d="M14 44c-3-18 5-30 18-30s21 12 18 30c-2-6-3-10-3-10H17s-1 4-3 10z" fill="#f4a261"/>` + head(S3, 36, 14, 15) + `<path d="M18 30c3-8 9-11 14-11s11 3 14 11c-6-3-10-6-14-6s-8 3-14 6z" fill="#f4a261"/><rect x="17" y="31" width="30" height="7" rx="3.5" fill="#ffd166"/>` + E(25, 34.5, 1.7, "#2b2440") + E(39, 34.5, 1.7, "#2b2440") + smile(43, "#4a2a1a", 4) },
+    ombre: { n: "Justicier de l'ombre", g: "sh", bg: ["#0b0b14", "#2d2f45"], d: body("#24263a") + `<path d="M12 46c0-22 8-34 20-34s20 12 20 34c-4-4-6-10-6-10H18s-2 6-6 10z" fill="#3a3d5c"/>` + head(S2, 37, 13, 14) + `<path d="M19 33c4-3 9-3 13 0 4-3 9-3 13 0v4c-4 2-9 2-13-1-4 3-9 3-13 1z" fill="#1a1b2b"/>` + E(26, 35, 1.6, "#9ad1ff") + E(38, 35, 1.6, "#9ad1ff") + `<path d="M28 44q4 1.5 8 0" stroke="#5a3a2a" stroke-width="2" fill="none" stroke-linecap="round"/>` },
+    /* Jeux vidéo */
+    pixel: { n: "Héros 8 bits", g: "jv", bg: ["#1a2f1a", "#3f8f3f"], d: (() => { const P = ["...HHHHHH...", "..HHHHHHHH..", "..HSSSSSSH..", "..SSESSESS..", "..SSSSSSSS..", "...SSMMSS...", "....SSSS....", "..TTTYYTTT..", ".TTTTYYTTTT.", ".TTTTTTTTTT."], C = { H: "#2d1b4e", S: "#f3c39a", E: "#1b1b2b", M: "#d9777f", T: "#2a9d8f", Y: "#ffd166" };
+      return P.map((r, y) => [...r].map((c, x) => C[c] ? `<rect x="${8 + x * 4}" y="${12 + y * 4.4}" width="4.1" height="4.5" fill="${C[c]}"/>` : "").join("")).join(""); })() },
+    joueur: { n: "Joueur pro", g: "jv", bg: ["#10182b", "#00b4d8"], d: body("#222b45") + head(S3, 37) + `<path d="M17 33c0-12 6-18 15-18s15 6 15 18c-3-7-9-10-15-10s-12 3-15 10z" fill="#1b1b2b"/>` + `<path d="M14 38v-6c0-11 8-18 18-18s18 7 18 18v6" stroke="#e9ecf5" stroke-width="3.5" fill="none"/><rect x="11" y="33" width="7" height="12" rx="3" fill="#00e0ff"/><rect x="46" y="33" width="7" height="12" rx="3" fill="#00e0ff"/><path d="M15 44q3 7 11 7" stroke="#e9ecf5" stroke-width="2" fill="none"/>` + E(26, 51, 1.8, "#00e0ff") + eyes(36, "#1b1b2b", 6, 2.2) + smile(42, "#3a2414", 4) },
+    slime: { n: "Gelée gluante", g: "jv", bg: ["#0b2545", "#13315c"], d: `<path d="M10 54c0-14 9-30 22-30s22 16 22 30c0 4-4 6-22 6s-22-2-22-6z" fill="#4cc9f0"/><path d="M16 46c1-8 6-16 12-18" stroke="#c9f4ff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>` + eyes(44, "#0b2545", 7, 3) + `<path d="M28 51q4 3 8 0" stroke="#0b2545" stroke-width="2.2" fill="none" stroke-linecap="round"/>` + blush(49, "#ff8fab") },
+    manette: { n: "Manette", g: "jv", bg: ["#2b2d42", "#ef233c"], d: `<path d="M14 26h36c6 0 10 6 10 14 0 9-4 14-8 14-5 0-6-7-11-7H23c-5 0-6 7-11 7-4 0-8-5-8-14 0-8 4-14 10-14z" fill="#edf2f4"/><path d="M18 33v10M13 38h10" stroke="#2b2d42" stroke-width="3.5" stroke-linecap="round"/>` + E(44, 34, 2.6, "#ef233c") + E(50, 39, 2.6, "#06d6a0") + E(38, 39, 2.6, "#118ab2") + E(44, 44, 2.6, "#ffd166") + `<rect x="28" y="32" width="8" height="3" rx="1.5" fill="#8d99ae"/>` },
+    /* Horreur */
+    vampire: { n: "Vampire", g: "ho", bg: ["#1a0b14", "#6a040f"], d: `<path d="M8 64c2-14 10-20 24-20s22 6 24 20z" fill="#1b1b2b"/><path d="M14 46l18 6 18-6-6 18H20z" fill="#9d0208"/>` + head("#e9e4f0", 36) + `<path d="M17 32c0-12 6-18 15-18s15 6 15 18c-3-4-6-6-9-6l-6 7-6-7c-3 0-6 2-9 6z" fill="#1b1b2b"/>` + `<path d="M25 36l-4-2M39 36l4-2" stroke="#1b1b2b" stroke-width="1.6" stroke-linecap="round"/>` + E(26, 37, 2, "#c1121f") + E(38, 37, 2, "#c1121f") + `<path d="M26 44q6 3 12 0" stroke="#5a1a2a" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 45l1.3 3 1.2-2.6M36 45l-1.3 3-1.2-2.6" fill="#fff" stroke="#fff" stroke-width="1"/>` },
+    zombie: { n: "Zombie", g: "ho", bg: ["#13200f", "#4f6d2f"], d: body("#5e548e") + head("#9cc58a", 37) + `<path d="M17 30c2-9 8-14 15-14s13 5 15 14l-4-3-3 4-4-5-4 4-4-4-3 4z" fill="#4a3b2a"/><path d="M38 26l6 6M40 30l2-2M42 32l-2 2" stroke="#3a5a2a" stroke-width="1.4"/>` + E(25, 36, 3, "#fff") + E(25, 36, 1.2, "#1b1b2b") + E(39, 37, 2.2, "#fff") + E(39.5, 37.5, 1, "#1b1b2b") + `<path d="M25 45h14" stroke="#2f3f22" stroke-width="2" stroke-linecap="round"/><path d="M28 43v4M32 43v4M36 43v4" stroke="#2f3f22" stroke-width="1.2"/>` },
+    fantome: { n: "Fantôme", g: "ho", bg: ["#1b1f3a", "#4b5694"], d: `<path d="M14 58V34c0-12 8-20 18-20s18 8 18 20v24l-5-4-4 4-5-4-4 4-4-4-5 4-4-4z" fill="#f8f9ff"/>` + `<ellipse cx="26" cy="34" rx="3" ry="4.2" fill="#1b1f3a"/><ellipse cx="38" cy="34" rx="3" ry="4.2" fill="#1b1f3a"/><ellipse cx="32" cy="44" rx="3.2" ry="4" fill="#1b1f3a"/>` + blush(39, "#b8c0ff") },
+    citrouille: { n: "Citrouille", g: "ho", bg: ["#1d0f2e", "#5a189a"], d: `<path d="M32 18c1-5 4-8 8-9" stroke="#3a7d44" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="38" rx="11" ry="16" fill="#f77f00"/><ellipse cx="42" cy="38" rx="11" ry="16" fill="#f77f00"/><ellipse cx="32" cy="38" rx="10" ry="17" fill="#fc9e3a"/>` + `<path d="m21 33 4-6 4 6zM35 33l4-6 4 6z" fill="#3a1a00"/><path d="M20 42c4 7 20 7 24 0l-3 2-3-2-3 3-3-3-3 3-3-3-3 2z" fill="#3a1a00"/>` },
+    /* Aventure */
+    pirate: { n: "Pirate", g: "av", bg: ["#0b3954", "#087e8b"], d: body("#f1f1f1") + `<path d="M22 50h20l-2 14H24z" fill="#c0392b" opacity=".0"/>` + head(S2, 38) + `<path d="M16 32c0-11 7-16 16-16s16 5 16 16z" fill="#c0392b"/><path d="M47 30l7 3-6 4z" fill="#c0392b"/>` + E(24, 25, 1.3, "#fff") + E(30, 22, 1.3, "#fff") + E(37, 24, 1.3, "#fff") + `<path d="M17 33l26 6" stroke="#1b1b2b" stroke-width="1.5"/><ellipse cx="38" cy="38" rx="4.2" ry="3.6" fill="#1b1b2b"/>` + E(26, 38, 2.2, "#1b1b2b") + `<path d="M24 46q8 4 16-1" stroke="#5a3a2a" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 48c3 6 17 6 20 0" fill="#4a2c1a" opacity=".85"/>` },
+    detective: { n: "Détective", g: "av", bg: ["#2b2118", "#7f5539"], d: body("#9c6644") + head(S1, 38, 14, 15) + `<path d="M15 30c1-10 8-15 17-15s16 5 17 15z" fill="#b08968"/><path d="M12 31h40" stroke="#7f5539" stroke-width="4" stroke-linecap="round"/><path d="M24 17l-4-5M40 17l4-5" stroke="#7f5539" stroke-width="2.5" stroke-linecap="round"/>` + eyes(38, "#2b2440", 6, 2) + `<path d="M28 45q4 2 8 0" stroke="#8a4b3a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="47" cy="49" r="6" fill="#bde0fe" fill-opacity=".5" stroke="#3a2a1a" stroke-width="2.4"/><path d="M51.5 53.5 57 59" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>` },
+    cowboy: { n: "Cow-boy", g: "av", bg: ["#5f0f40", "#e36414"], d: body("#2a6f97") + `<path d="M26 50l6 5 6-5" fill="#e63946"/>` + head(S2, 38) + `<path d="M9 28c6 4 40 4 46 0-2 5-8 7-23 7s-21-2-23-7z" fill="#8b5a2b"/><path d="M19 29c0-10 5-17 13-17s13 7 13 17c-8 2-18 2-26 0z" fill="#a47148"/><path d="M19 26c8 2 18 2 26 0" stroke="#5a3a1a" stroke-width="2.5"/>` + eyes(39, "#2b2440", 6, 2) + `<path d="M26 46q6 3 12 0" stroke="#5a3a2a" stroke-width="2" fill="none" stroke-linecap="round"/>` },
+    explo: { n: "Exploratrice", g: "av", bg: ["#283618", "#606c38"], d: body("#bc6c25") + `<path d="M16 46c-2-8 0-14 3-16M48 46c2-8 0-14-3-16" stroke="#6b3e26" stroke-width="5" stroke-linecap="round"/>` + head(S3, 38, 14, 15) + `<path d="M12 31c6 3 34 3 40 0-2 4-7 6-20 6s-18-2-20-6z" fill="#dda15e"/><path d="M18 31c0-10 6-16 14-16s14 6 14 16c-8 2-20 2-28 0z" fill="#fefae0"/><path d="M18 28c8 2 20 2 28 0" stroke="#bc6c25" stroke-width="2.5"/>` + eyes(39, "#2b2440", 6, 2) + smile(45, "#4a2a1a", 4) },
+    /* Mèmes et animaux */
+    chat: { n: "Chat", g: "an", bg: ["#3a2e5c", "#7c6cf0"], d: `<path d="M14 30 12 10l14 10zM50 30l2-20-14 10z" fill="#f4a261"/><path d="M15 28 14 15l8 7zM49 28l1-13-8 7z" fill="#ffcdb2"/><ellipse cx="32" cy="40" rx="20" ry="18" fill="#f4a261"/><path d="M24 26l2 5M32 24v6M40 26l-2 5" stroke="#e07a2f" stroke-width="2.4" stroke-linecap="round"/>` + `<ellipse cx="24" cy="39" rx="3" ry="4" fill="#2b2440"/><ellipse cx="40" cy="39" rx="3" ry="4" fill="#2b2440"/>` + E(25, 37.5, 1.1, "#fff") + E(41, 37.5, 1.1, "#fff") + `<path d="m30 45 2 2 2-2z" fill="#e5627a"/><path d="M32 47q-3 3-5 1M32 47q3 3 5 1M20 46l-9-1M20 49l-8 2M44 46l9-1M44 49l8 2" stroke="#7a4a2a" stroke-width="1.3" fill="none" stroke-linecap="round"/>` },
+    panda: { n: "Panda", g: "an", bg: ["#1f4e3d", "#52b788"], d: E(16, 22, 7, "#1b1b2b") + E(48, 22, 7, "#1b1b2b") + `<ellipse cx="32" cy="38" rx="20" ry="18" fill="#fdfdfd"/><ellipse cx="24" cy="37" rx="5.5" ry="7" transform="rotate(25 24 37)" fill="#1b1b2b"/><ellipse cx="40" cy="37" rx="5.5" ry="7" transform="rotate(-25 40 37)" fill="#1b1b2b"/>` + E(25, 36, 2, "#fff") + E(39, 36, 2, "#fff") + E(25.5, 36.3, 1, "#1b1b2b") + E(38.5, 36.3, 1, "#1b1b2b") + `<ellipse cx="32" cy="44" rx="3" ry="2" fill="#1b1b2b"/><path d="M29 48q3 2 6 0" stroke="#1b1b2b" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M50 50c-6-2-8-10-4-14" stroke="#74c69d" stroke-width="3" fill="none"/><path d="M47 40l5-3M48 45l5-1" stroke="#40916c" stroke-width="2" stroke-linecap="round"/>` },
+    renard: { n: "Renard", g: "an", bg: ["#3d1e0f", "#e76f51"], d: `<path d="M13 32 15 8l12 12zM51 32 49 8 37 20z" fill="#e76f51"/><path d="M16 27l1-13 6 7zM48 27l-1-13-6 7z" fill="#2b2440"/><path d="M12 34c0-11 9-18 20-18s20 7 20 18c0 9-10 20-20 20S12 43 12 34z" fill="#e76f51"/><path d="M12 36c6 0 12 4 15 10 2 4 3 8 5 8s3-4 5-8c3-6 9-10 15-10-2 10-11 18-20 18s-18-8-20-18z" fill="#fff4ea"/>` + eyes(35, "#2b2440", 8, 2.4) + E(32, 48, 2.6, "#2b2440") },
+    hibou: { n: "Hibou studieux", g: "an", bg: ["#1d2d44", "#3e5c76"], d: `<path d="M14 24l4-10 6 7zM50 24l-4-10-6 7z" fill="#8d6346"/><ellipse cx="32" cy="38" rx="19" ry="20" fill="#a9785a"/><ellipse cx="32" cy="46" rx="11" ry="10" fill="#e9d5c0"/>` + E(24, 34, 7.5, "#fff") + E(40, 34, 7.5, "#fff") + `<circle cx="24" cy="34" r="8" fill="none" stroke="#2b2440" stroke-width="2"/><circle cx="40" cy="34" r="8" fill="none" stroke="#2b2440" stroke-width="2"/><path d="M32 34h0" stroke="#2b2440" stroke-width="2"/><path d="M30.5 34h3" stroke="#2b2440" stroke-width="2"/>` + E(24, 34, 3, "#2b2440") + E(40, 34, 3, "#2b2440") + `<path d="m29 41 3 4 3-4z" fill="#f4a261"/><path d="M27 49l2 2M32 50v2M37 49l-2 2" stroke="#a9785a" stroke-width="1.4" stroke-linecap="round"/><path d="M16 12h32l-16-6z" fill="#1b1b2b"/><path d="M44 12v6" stroke="#ffd166" stroke-width="1.5"/>` + E(44, 19, 1.5, "#ffd166") },
+    capy: { n: "Capybara zen", g: "an", bg: ["#344e41", "#a3b18a"], d: `<path d="M8 64c2-16 12-22 24-22s22 6 24 22z" fill="#9c6b3f"/><path d="M12 38c0-14 9-22 20-22s20 8 20 22c0 8-8 14-20 14S12 46 12 38z" fill="#b5835a"/>` + E(17, 21, 3.5, "#9c6b3f") + E(47, 21, 3.5, "#9c6b3f") + `<path d="M23 33q3-2 6 0M35 33q3-2 6 0" stroke="#3a2414" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="32" cy="44" rx="8" ry="5" fill="#8a5a33"/>` + E(29, 43, 1.1, "#3a2414") + E(35, 43, 1.1, "#3a2414") + `<ellipse cx="32" cy="15" rx="7" ry="5" fill="#ff9f1c"/><path d="M32 10v-3" stroke="#3a7d44" stroke-width="2" stroke-linecap="round"/><path d="M33 8q3-2 4 0" stroke="#3a7d44" stroke-width="1.6" fill="none"/>` },
+    axolotl: { n: "Axolotl", g: "an", bg: ["#023e8a", "#48cae4"], d: `<path d="M14 26 4 20M13 32 3 31M14 38l-9 4M50 26l10-6M51 32l10-1M50 38l9 4" stroke="#ff8fab" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="32" cy="36" rx="19" ry="16" fill="#ffc8dd"/>` + eyes(35, "#2b2440", 9, 2.6) + `<path d="M27 42q5 4 10 0" stroke="#c9184a" stroke-width="2" fill="none" stroke-linecap="round"/>` + blush(41, "#ff5d8f") + `<path d="M14 64c3-8 9-12 18-12s15 4 18 12z" fill="#ffafcc"/>` }
+  };
+  return A;
+})();
+const AVG = { sf: "Science-fiction", fa: "Fantasy", ma: "Manga et animé", sh: "Super-héros", jv: "Jeux vidéo", ho: "Horreur", av: "Aventure", an: "Animaux et mèmes" };
+function avSvg(id) {
+  const a = AVK[id]; if (!a) return "";
+  return `<svg viewBox="0 0 64 64" class="av-svg" aria-hidden="true"><defs><radialGradient id="avg-${id}" cx="35%" cy="25%" r="80%"><stop offset="0" stop-color="${a.bg[1]}"/><stop offset="1" stop-color="${a.bg[0]}"/></radialGradient><clipPath id="avc-${id}"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#avc-${id})"><rect width="64" height="64" fill="url(#avg-${id})"/>${a.d}</g></svg>`;
+}
+
+/* Avatars des autres élèves : prénom affiché → avatar (envoyé par le serveur) */
+const AVM = { map: {}, at: 0, sig: "" };
+function avMine() { return S.av && AVK[S.av] ? S.av : ""; }
+function avOf(n) { const me = [P().name, window.GL_NAME, S.cl && S.cl.p, "Moi"].filter(Boolean); if (me.includes(n) && avMine()) return avMine(); const a = AVM.map[n]; return a && AVK[a] ? a : ""; }
+function avLoad(force) {
+  if (typeof window.GL_AV !== "function" || Date.now() - AVM.at < (force ? 5000 : 45000)) return;
+  AVM.at = Date.now();
+  window.GL_AV().then(j => { const m = (j && j.map) || {}, sig = JSON.stringify(m); if (sig === AVM.sig) return; AVM.map = m; AVM.sig = sig; if ((view === "amis" || view === "classe") && !document.querySelector("input:focus")) render(); }).catch(() => {});
+}
+function avSheet() {
+  closeSheet();
+  const cur = avMine(), el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  const groups = Object.keys(AVG).map(g => `<div class="av-grp"><h3>${h(AVG[g])}</h3><div class="av-grid">${Object.keys(AVK).filter(k => AVK[k].g === g).map(k => `<button class="av-pick" data-act="avSet" data-av="${k}" aria-pressed="${cur === k}" title="${h(AVK[k].n)}">${avSvg(k)}<small>${h(AVK[k].n)}</small></button>`).join("")}</div></div>`).join("");
+  el.innerHTML = `<div class="wk-box av-box" role="dialog" aria-modal="true" aria-labelledby="avT"><button class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
+    <h2 id="avT">Choisis ton avatar</h2><p class="muted">Tes amis le verront dans la liste d'amis, le classement, les duels et les salles de révision.</p>
+    <div class="av-grp"><div class="av-grid"><button class="av-pick" data-act="avSet" data-av="" aria-pressed="${!cur}"><span class="av-ini">${h(duIni(P().name || window.GL_NAME || "Moi"))}</span><small>Mes initiales</small></button></div></div>
+    ${groups}</div>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  document.body.appendChild(el); tone("open");
+}
+
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
@@ -7682,6 +7790,8 @@ document.addEventListener("click", e => {
       const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
+    case "avPick": avSheet(); break;
+    case "avSet": { const v = b.dataset.av || ""; if (v) S.av = v; else delete S.av; touch(); closeSheet(); render(); renderTop(); tone(v ? "pop" : "soft"); if (v) { toast("Avatar : " + AVK[v].n); confettiBurst(24); } avLoad(true); break; }
     case "scOpen": scFrom = view === "mat" ? "mat" : "ex"; schStart(b.dataset.sid, "voir"); go("schema"); break;
     case "scMode": schStart(SC.id, b.dataset.m); render(); { const f = document.querySelector(".sc-seg"); if (f) f.scrollIntoView({ block: "nearest" }); } break;
     case "scBack": if (scFrom === "mat") go("mat"); else { setExTab("schemas"); go("ex"); } break;

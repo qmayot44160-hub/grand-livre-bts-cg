@@ -227,7 +227,25 @@ app.get("/api/class", auth, async (req, res, next) => {
     res.json({ wk, rows: CLASS.rows.map(r => ({ p: r.p, acq: r.acq, days: r.days, dsc: r.dsc, dt: r.dt, me: r.id === req.user.id, f: fr.has(r.id) })) });
   } catch (e) { next(e); }
 });
-app.put("/api/progress", (req, res, next) => { CLASS.at = 0; next(); });
+app.put("/api/progress", (req, res, next) => { CLASS.at = 0; AVC.at = 0; next(); });
+
+/* ---------- Avatars choisis par les élèves (nom affiché → identifiant d'avatar) ---------- */
+let AVC = { at: 0, map: {} };
+app.get("/api/avatars", auth, async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    if (Date.now() - AVC.at > 30000) {
+      const map = {};
+      for (const r of await store.fullProgress()) {
+        const d = r.data || {}, av = d.av; if (r.blocked || typeof av !== "string" || !/^[a-z]{2,12}$/.test(av)) continue;
+        const ps = d.cl && d.cl.p ? String(d.cl.p).replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) : String(r.name || "?").split(" ")[0].slice(0, 24);
+        if (!(ps in map)) map[ps] = av;
+      }
+      AVC = { at: Date.now(), map };
+    }
+    res.json({ map: AVC.map });
+  } catch (e) { next(e); }
+});
 
 /* ---------- Signalements d'erreurs dans le contenu ---------- */
 app.post("/api/report", auth, async (req, res, next) => {
