@@ -809,11 +809,38 @@ app.post("/api/admin/stats", async (req, res, next) => {
       matieres: Object.entries(cat).map(([c, o]) => ({ c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, eleves: o.users })).sort((a, b) => b.reponses - a.reponses),
       jours: Array.from({ length: 28 }, (_, i) => t.dayNum - 27 + i).map(dn => ({ dn, n: days[dn] || 0 })),
       ratees: top,
+      usage: await (async () => {
+        const w = weekOf(t.dayNum), dw = await duelsWeek(w), live = rows.filter(r => !r.blocked);
+        const per = live.map(r => ({ id: r.id, name: r.name, f: featWeek(r.data, w, dw[r.id]), e: featEver(r.data) }));
+        return { semaine: w, debut: w * 7 - 3, eleves: live.length,
+          features: FEATS.map(([k, nom]) => ({ k, nom, eleves: per.filter(p => p.f[k] > 0).length, total: per.reduce((s, p) => s + p.f[k], 0), deja: per.filter(p => p.e[k] > 0 || p.f[k] > 0).length })),
+          parEleve: per.filter(p => FEATS.some(([k]) => p.f[k] > 0)).map(p => ({ id: p.id, name: p.name, f: p.f })).sort((a, b) => FEATS.filter(([k]) => b.f[k] > 0).length - FEATS.filter(([k]) => a.f[k] > 0).length || a.name.localeCompare(b.name)) };
+      })(),
       signalements: (await store.listReports()).filter(r => !r.done).length,
       serveur: { depuis: Date.now() - Math.round(process.uptime() * 1000), region: process.env.RAILWAY_REPLICA_REGION || "", version: (process.env.RAILWAY_GIT_COMMIT_SHA || "").slice(0, 7), stockage: /postgres/.test(store.kind || "") ? "PostgreSQL" : "Fichier" }
     });
   } catch (e) { next(e); }
 });
+/* Usage des fonctionnalités : ce que chaque élève a fait cette semaine (journal S.wa de l'appli) et ce qu'il a déjà essayé */
+const FEATS = [["quiz", "Quiz"], ["cartes", "Cartes"], ["calc", "Calculs express"], ["schemas", "Schémas"], ["exos", "Exercices"], ["lecons", "Leçons"], ["defi", "Défi 60 s"], ["duels", "Duels"], ["controles", "Contrôles"], ["plan", "Plan de la semaine"]];
+const weekOf = dn => Math.floor((dn + 3) / 7);
+function featWeek(d, w, duels) {
+  const wa = d && d.wa && d.wa.w === w ? d.wa : { d: {}, cd: [] }, sum = k => Object.entries(wa.d || {}).reduce((s, [c, o]) => s + (c === "all" ? 0 : (o && o[k]) || 0), 0), all = (wa.d || {}).all || {};
+  const pc = d && d.pl && d.pl.cur, done = t => t.k === "cd" ? (wa.cd || []).length : t.c === "*" ? Object.values(wa.d || {}).reduce((s, o) => s + ((o && o[t.k]) || 0), 0) : (((wa.d || {})[t.c] || {})[t.k]) || 0;
+  let plan = 0; if (pc && pc.w === w && Array.isArray(pc.tasks)) { const tot = pc.tasks.reduce((s, t) => s + (t.n || 0), 0), dn = pc.tasks.reduce((s, t) => s + Math.min(t.n || 0, done(t)), 0); plan = tot ? Math.round(dn / tot * 100) : 0; }
+  return { quiz: sum("q"), cartes: all.c || ((wa.cd || []).length ? 10 * wa.cd.length : 0), calc: sum("cx"), schemas: sum("sc"), exos: sum("x"), lecons: sum("l"),
+    defi: all.df || 0, duels: Math.max(all.du || 0, duels || 0), controles: (all.pk || 0) + (all.ex || 0), plan };
+}
+function featEver(d) {
+  d = d || {}; const n = o => Object.keys(o || {}).length, du = d.dus || {};
+  return { quiz: n(d.q), cartes: n(d.c), calc: n(d.cx), schemas: n(d.sch), exos: n(d.x) + Object.values(d.an || {}).filter(o => o && o.d).length + n(d.gc), lecons: n(d.l), defi: (d.df && d.df.best) || 0,
+    duels: (du.w || 0) + (du.l || 0) + (du.d || 0), controles: (d.packs || []).length, plan: ((d.pl && d.pl.hist) || []).filter(x => x && x.r > 0).length };
+}
+async function duelsWeek(w) {
+  const since = (w * 7 - 3) * 864e5 - 2 * 3600e3, n = {};
+  for (const x of await store.duelsSince(since)) [x.a, x.b].forEach(p => { if (p && p.id && p.done) n[p.id] = (n[p.id] || 0) + 1; });
+  return n;
+}
 /* Fiche de chaque élève : résumé calculé à partir de sa progression */
 const LV = [[0, "Stagiaire"], [300, "Assistant comptable"], [1000, "Comptable"], [2500, "Collaborateur"], [5000, "Chef de mission"], [9000, "Expert-comptable"]];
 const CATN = { p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", ma: "Maths", ce: "CEJM", cg: "Culture G.", an: "Anglais", me: "Méthodes" };
@@ -836,6 +863,7 @@ function studentSummary(r, dn, full) {
   s.cartes = Object.values(d.c || {}).filter(x => Array.isArray(x) && x[0] >= 3).length;
   s.matieres = Object.entries(cat).map(([c, o]) => ({ c: CATN[c] || c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, acquises: o.acq })).sort((a, b) => b.reponses - a.reponses);
   s.fragiles = Object.entries(ch).filter(([, x]) => x.n >= 4).map(([t, x]) => ({ t, c: x.c, reponses: x.n, reussite: Math.round(x.ok / x.n * 100) })).sort((a, b) => a.reussite - b.reussite).slice(0, 6);
+  { const w = weekOf(dn), fw = featWeek(d, w, full.duels || 0), fe = featEver(d); s.usage = FEATS.map(([k, nom]) => ({ k, nom, semaine: fw[k], deja: fe[k] })); }
   s.controles = (d.packs || []).map(p => ({ c: CATN[p.cat] || p.cat, nom: p.name || p.kw || "", date: p.date || "", dernier: p.hist && p.hist.length ? p.hist[p.hist.length - 1].pc : null }));
   return s;
 }
@@ -844,7 +872,7 @@ app.post("/api/admin/students", async (req, res, next) => {
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     const dn = parisNow().dayNum, rows = await store.fullProgress();
-    if (req.body.id) { const r = rows.find(x => x.id === req.body.id); if (!r) return res.status(404).json({ error: "Élève introuvable." }); return res.json({ eleve: studentSummary(r, dn, true) }); }
+    if (req.body.id) { const r = rows.find(x => x.id === req.body.id); if (!r) return res.status(404).json({ error: "Élève introuvable." }); const dw = await duelsWeek(weekOf(dn)); return res.json({ eleve: studentSummary(r, dn, { duels: dw[r.id] || 0 }) }); }
     res.json({ eleves: rows.map(r => studentSummary(r, dn, false)).sort((a, b) => (b.updated || 0) - (a.updated || 0)) });
   } catch (e) { next(e); }
 });

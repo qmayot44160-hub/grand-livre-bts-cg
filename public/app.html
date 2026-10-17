@@ -3301,7 +3301,7 @@ function recordC(item, knew) {
   const r = S.c[item.id] || [0, 0];
   const box = knew === "hard" ? Math.max(1, r[0]) : knew ? Math.min(5, r[0] + 1) : 0;
   S.c[item.id] = [box, dayNum() + (knew === "hard" ? 1 : INTERVALS[box])];
-  S.xp += knew === "hard" ? 1 : knew ? 4 : 0; dayLog().c++; if (dayLog().c >= 10) plCardDay(); bumpStreak();
+  S.xp += knew === "hard" ? 1 : knew ? 4 : 0; dayLog().c++; wlog("c", "all"); if (dayLog().c >= 10) plCardDay(); bumpStreak();
 }
 
 /* ---------- Vues ---------- */
@@ -3909,7 +3909,7 @@ function finishExam() {
   if (examTick) { clearInterval(examTick); examTick = null; }
   R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0, x.pick !== null ? x.it.o[x.order[x.pick]] : ""));
   if (R.ctrl) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, pc = Math.round(good / R.list.length * 100); S.ctl = S.ctl || {}; (S.ctl[R.ctrl] = S.ctl[R.ctrl] || []).push({ d: dayNum(), pc }); if (S.ctl[R.ctrl].length > 20) S.ctl[R.ctrl].shift(); R.ctlRes = chapStatus(R.ctrl); if (R.ctlRes.ok && pc >= 80) S.xp += 40; }
-  if (R.pack != null && S.packs && S.packs[R.pack]) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, p = S.packs[R.pack]; p.hist = p.hist || []; p.hist.push({ d: Date.now(), pc: Math.round(good / R.list.length * 100) }); if (p.hist.length > 20) p.hist.shift(); }
+  if (R.pack != null && S.packs && S.packs[R.pack]) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, p = S.packs[R.pack]; p.hist = p.hist || []; wlog("pk", "all"); p.hist.push({ d: Date.now(), pc: Math.round(good / R.list.length * 100) }); if (p.hist.length > 20) p.hist.shift(); }
   if (R.dw && !defiDone()) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length; S.dw = { w: weekId(), sc: good, t: Math.round((Date.now() - (R.t0 || Date.now())) / 1000) }; CL.at = 0; }
   dayLog().e++; touch(); go("result");
 }
@@ -4908,7 +4908,7 @@ function finishDefi() {
   if (!DF || DF.done) return;
   DF.done = true; clearInterval(defiTick); defiTick = null;
   S.df = S.df || { best: 0 }; DF.record = DF.ok > S.df.best; if (DF.record) S.df.best = DF.ok;
-  S.xp += DF.ok * 2; dayLog().e++; bumpStreak(); touch();
+  S.xp += DF.ok * 2; wlog("df", "all"); dayLog().e++; bumpStreak(); touch();
   if (view === "defi") render();
 }
 function vDefi() {
@@ -5885,7 +5885,7 @@ function duelEnd() {
   DU.stage = "end"; duelStop();
   const me = duScore(DU.picks.map(Boolean), DU.times), o = duOpp(), r = me > o.score ? "w" : me < o.score ? "l" : "d";
   S.dlog = S.dlog || {};
-  if (!DU.bot && !S.dlog[DU.id]) { S.dlog[DU.id] = r; const k = Object.keys(S.dlog); if (k.length > 60) delete S.dlog[k[0]]; S.dus = S.dus || { w: 0, l: 0, d: 0 }; S.dus[r]++; S.xp += r === "w" ? 30 : r === "d" ? 15 : 5; touch(); }
+  if (!DU.bot && !S.dlog[DU.id]) { S.dlog[DU.id] = r; const k = Object.keys(S.dlog); if (k.length > 60) delete S.dlog[k[0]]; S.dus = S.dus || { w: 0, l: 0, d: 0 }; S.dus[r]++; wlog("du", "all"); S.xp += r === "w" ? 30 : r === "d" ? 15 : 5; touch(); }
   render();
   setTimeout(() => { if (view !== "duel") return; if (r === "w") { fxStamp("Victoire", me + " à " + o.score); confettiBurst(80); tone("lvl"); } else if (r === "d") fxStamp("Égalité", me + " partout"); else fxStamp("Défaite", o.score + " à " + me); }, 350);
   DH.at = 0;
