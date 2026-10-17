@@ -697,7 +697,9 @@ async function myVersions(uid) {
 }
 const vSum = d => ({ xp: +d.xp || 0, q: Object.keys(d.q || {}).length, l: Object.keys(d.l || {}).length, u: d.u || 0 });
 app.get("/api/progress/versions", auth, async (req, res, next) => {
-  try { res.setHeader("Cache-Control", "no-store"); const v = await myVersions(req.user.id); res.json({ versions: v.map(x => Object.assign({ id: x.id, at: x.at }, vSum(x.d))).sort((a, b) => b.at - a.at) }); } catch (e) { next(e); }
+  try { res.setHeader("Cache-Control", "no-store"); const v = await myVersions(req.user.id);
+    { const cur = await store.getProgress(req.user.id), bk = await store.listBackups(); console.log("[versions]", req.user.name, "actuel", cur ? (cur.xp || 0) + " XP" : "aucun", "| sauvegardes serveur:", bk.map(b => b.day).join(",") || "aucune", "| trouvées:", v.map(x => x.id + "=" + (x.d.xp || 0)).join(",") || "aucune"); }
+    res.json({ versions: v.map(x => Object.assign({ id: x.id, at: x.at }, vSum(x.d))).sort((a, b) => b.at - a.at) }); } catch (e) { next(e); }
 });
 app.post("/api/progress/restore", auth, async (req, res, next) => {
   try {
