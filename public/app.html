@@ -1665,6 +1665,31 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .cx-ko { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .cx-ko li { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-left: 4px solid var(--c); background: var(--paper); border-radius: 8px; font-weight: 600; }
 .cx-ko .mini { font-size: .76rem; font-weight: 800; color: var(--c); }
 
+/* Mon plan de la semaine */
+.linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pl { background: var(--sheet); border: 1px solid var(--rule); border-radius: 18px; padding: 16px; box-shadow: var(--lift); scroll-margin-top: 90px; }
+.pl-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; } .pl-head h2 { margin: 2px 0 0; }
+.pl-st { white-space: nowrap; flex: none; }
+.pl-st.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; } .pl-st.mid { background: var(--accent-soft); color: var(--accent); border-color: transparent; } .pl-st.ko { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.pl-phase { display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: var(--paper); } .pl-phase span { color: var(--muted); font-size: .9rem; }
+.pl-phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; } .pl-phases i { font-style: normal; font-size: .72rem; font-weight: 700; text-align: center; padding: 5px 2px; border-radius: 6px; background: var(--rule); color: var(--muted); }
+.pl-phases i.on { background: var(--accent); color: var(--accent-ink); }
+.pl-prog { display: grid; gap: 6px; } .pl-prog > span { font-size: .88rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.pl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pl-t { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); background: var(--sheet); }
+.pl-t > div { display: grid; gap: 4px; min-width: 0; } .pl-t b { font-size: .93rem; line-height: 1.3; } .pl-t small { color: var(--muted); font-size: .76rem; }
+.pl-bar { display: block; height: 5px; border-radius: 3px; background: var(--rule); overflow: hidden; } .pl-bar i { display: block; height: 100%; background: var(--c, var(--accent)); border-radius: 3px; transition: width .4s; }
+.pl-ck { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule-strong); display: grid; place-items: center; color: #fff; }
+.pl-ck .svg { width: 14px; height: 14px; }
+.pl-t.done { opacity: .75; } .pl-t.done .pl-ck { background: var(--ok); border-color: var(--ok); } .pl-t.done b { text-decoration: line-through; text-decoration-color: var(--muted); }
+.pl-set > summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 4px 0; } .pl-set[open] { display: grid; gap: 8px; }
+.seg-mini { display: inline-flex; gap: 4px; flex-wrap: wrap; } .seg-mini button { font: inherit; font-weight: 700; font-size: .85rem; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.seg-mini button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pl-hist { display: flex; align-items: flex-end; gap: 10px; } .pl-hist > div { display: flex; gap: 4px; align-items: flex-end; height: 34px; }
+.pl-h { width: 14px; height: 100%; display: flex; align-items: flex-end; background: var(--paper); border-radius: 3px; overflow: hidden; } .pl-h i { width: 100%; border-radius: 3px; background: var(--accent); }
+.pl-h.ok i { background: var(--ok); } .pl-h.ko i { background: var(--bad); }
+@media (max-width: 560px) { .pl-t { grid-template-columns: auto minmax(0, 1fr); } .pl-t > .btn { grid-column: 2; justify-self: start; } }
+
 /* Profil : onglets et version compacte */
 .pf-more { color: rgba(255,255,255,.85); }
 .pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
@@ -3170,6 +3195,7 @@ function dueCards(cats, useChap) {
 function recordQ(item, ok, pickTxt) {
   if (String(item.id)[0] === "g") { if (ok) S.xp += 6; bumpStreak(); return; }
   const r = S.q[item.id] || [0, 0, 0];
+  wlog("q", item.c); if (S.ew && S.ew[item.id]) wlog("err", "all");
   S.q[item.id] = [r[0] + 1, r[1] + (ok ? 1 : 0), ok ? 1 : 0];
   const before = qState(item.id); let fresh = false;
   { const d = dayNum(); S.qd = S.qd || {}; const o = S.qd[item.id] || (S.qd[item.id] = { w: 0, ok: [] });
@@ -3185,7 +3211,7 @@ function recordC(item, knew) {
   const r = S.c[item.id] || [0, 0];
   const box = knew === "hard" ? Math.max(1, r[0]) : knew ? Math.min(5, r[0] + 1) : 0;
   S.c[item.id] = [box, dayNum() + (knew === "hard" ? 1 : INTERVALS[box])];
-  S.xp += knew === "hard" ? 1 : knew ? 4 : 0; dayLog().c++; bumpStreak();
+  S.xp += knew === "hard" ? 1 : knew ? 4 : 0; dayLog().c++; if (dayLog().c >= 10) plCardDay(); bumpStreak();
 }
 
 /* ---------- Vues ---------- */
@@ -3541,6 +3567,9 @@ function vHome() {
       text: g ? `Annale ${h(g.a.ep)} ${g.a.year}, ${h(g.a.cas)} : ${h(g.t.charAt(0).toLowerCase() + g.t.slice(1))}${g.pts ? ` (${g.pts} points)` : ""}.` : `Un quiz de 10 questions en ${h(CAT[lcat].name.toLowerCase())}, corrigé au fur et à mesure.`,
       btn: g ? `<button class="btn" data-act="annOpen" data-id="${g.id}">Ouvrir</button>` : `<button class="btn" data-act="quickQuiz" data-cat="${lcat}">Lancer</button>` }
   ];
+  { const pt = plToday(); // le plan de la semaine remplace les étapes 1 et 3 quand il reste des tâches
+    const mk = x => ({ done: x.done, plan: true, title: x.t.t, text: `${h(CAT[x.t.c] ? CAT[x.t.c].name : "Toutes matières")} · ${Math.min(x.t.n, plDone(x.t))} sur ${x.t.n} cette semaine, environ ${Math.round(x.t.m)} min.`, btn: `<button class="btn${x.done ? "" : " primary"}" ${x.t.act}>${x.done ? "Encore" : "Y aller"}</button>` });
+    if (pt[0]) steps[0] = mk(pt[0]); if (pt[1]) steps[2] = mk(pt[1]); }
   const nDone = steps.filter(s => s.done).length;
   const L = levelOf(S.xp), prog = L.next ? pct(S.xp - L.floor, L.next - L.floor) : 100;
   const tl = totalLessons(), all = mastery();
@@ -3562,7 +3591,7 @@ function vHome() {
     <div class="shelf" id="shelf3d"><p class="shelf-label" id="shelfLabel">${shelfHint()}</p></div>
   </section>
   <section class="plan" aria-labelledby="planTitle">
-    <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3 · environ 20 min</span></div>
+    <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3 · tirée de <button class="linkbtn" data-act="plSee">ton plan de la semaine</button></span></div>
     <ol class="steps">${steps.map((s, i) => `<li class="step${s.done ? " done" : ""}"><span class="num">${s.done ? ICON.check : i + 1}</span><div><b>${s.title}</b><p>${s.text}</p></div>${s.btn}</li>`).join("")}</ol>
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
@@ -3777,7 +3806,7 @@ function classeCard() {
 }
 function finishExam() {
   if (!R || R.mode !== "exam" || R.done) return;
-  R.done = true;
+  R.done = true; if (!R.dw) wlog("ex", "all");
   if (examTick) { clearInterval(examTick); examTick = null; }
   R.list.forEach(x => recordQ(x.it, x.pick !== null && x.order[x.pick] === 0, x.pick !== null ? x.it.o[x.order[x.pick]] : ""));
   if (R.ctrl) { const good = R.list.filter(x => x.pick !== null && x.order[x.pick] === 0).length, pc = Math.round(good / R.list.length * 100); S.ctl = S.ctl || {}; (S.ctl[R.ctrl] = S.ctl[R.ctrl] || []).push({ d: dayNum(), pc }); if (S.ctl[R.ctrl].length > 20) S.ctl[R.ctrl].shift(); R.ctlRes = chapStatus(R.ctrl); if (R.ctlRes.ok && pc >= 80) S.xp += 40; }
@@ -4229,7 +4258,7 @@ function nextLesson() {
 function nextOf(cid, k) { if (k < nLessons(cid)) return { cid, k: k + 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i >= 0 && i < s.length - 1 ? { cid: s[i + 1], k: 1 } : null; }
 function prevOf(cid, k) { if (k > 1) return { cid, k: k - 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i > 0 ? { cid: s[i - 1], k: nLessons(s[i - 1]) } : null; }
 function openLesson(cid, k) { if (!COURS[cid]) return; { const m = CMETA(cid); if (m && lockedCat(m.cat)) return lockSheet(m.cat); } k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
-function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
+function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; try { wlog("l", CMETA(cid).cat); } catch (e) {} if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
 function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (lockedCat(cat)) return lockSheet(cat); if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
 
 /* Rendu du markdown des cours */
@@ -4848,6 +4877,7 @@ function vBts() {
       <div class="count3d"><span class="big">${flap(dl)}</span><span>avant les premiers écrits</span>
         <label class="small-date">Date estimée <input type="date" id="btsDate" value="${h(b.date)}"></label></div>
     </section>
+    ${plSection()}
     <p class="muted">Date par défaut estimée d'après la session 2026 (écrits du 18 au 21 mai). Remplace-la par celle de ta convocation dès que tu la reçois.</p>
     <section class="stack"><h2>Les épreuves et leur poids</h2>
       <div class="table-wrap"><table class="md-table ep-table"><thead><tr><th>Épreuve</th><th>Intitulé</th><th class="n">Coef.</th><th>Forme</th><th>Réviser</th></tr></thead><tbody>
@@ -4860,7 +4890,7 @@ function vBts() {
       <div class="sim">${EPREUVES.map(e => `<label class="sim-f"><span><b>${e.c}</b> coefficient ${e.k}</span><input type="number" min="0" max="20" step="0.5" data-note="${e.c}" value="${h(b.notes[e.c] != null ? b.notes[e.c] : e.ex)}"></label>`).join("")}</div>
       <div class="sim-out"><div><span class="eyebrow">Moyenne estimée</span><div class="big" id="simAvg">${sim.avg}</div></div><span class="pill ${sim.ok ? "ok" : "ko"}" id="simVerdict">${sim.ok ? "Admis" : "Pas encore"}</span><p class="muted" id="simTip">${h(sim.tip)}</p></div>
     </section>
-    <section class="stack"><h2>Planning jusqu'à l'examen</h2>
+    <section class="stack"><h2>Les grandes étapes de l'année</h2>
       <div class="plan-tl">${BTS_PLAN.map(m => { const cls = m[0] === cur ? "now" : m[0] < cur ? "past" : ""; return `<div class="pm ${cls}"><h3>${m[1]}${cls === "now" ? ` <span class="pill">Ce mois-ci</span>` : ""}</h3><ul>${m[2].map(x => `<li>${h(x)}</li>`).join("")}</ul></div>`; }).join("")}</div>
     </section>
     <section class="stack"><h2>Check-list avant l'examen <span class="muted">${doneN} sur ${BTS_CHECK.length}</span></h2>
@@ -7299,7 +7329,7 @@ function recordEx(it) {
   S.x = S.x || {};
   const r = S.x[it.gid] || [0, 0, 0];
   const sc = Math.round(it.res.score * 100);
-  S.x[it.gid] = [r[0] + 1, Math.max(r[1], sc), sc];
+  S.x[it.gid] = [r[0] + 1, Math.max(r[1], sc), sc]; { const g = GENS.find(x => x.id === it.gid); if (g) wlog("x", g.cat); }
   S.xp += it.res.score >= .5 ? Math.round(15 * it.res.score) : 0; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak();
 }
 function exInputs(it, locked) {
@@ -7648,7 +7678,7 @@ function schCheck() {
   const good = ids.filter(i => SC.place[i] != null && SC.bank[SC.place[i]] === nodes[i].t).length, pc = Math.round(good / ids.length * 100);
   SC.done = true; SC.pc = pc; SC.good = good;
   S.sch = S.sch || {}; const r = S.sch[s.id] = S.sch[s.id] || {}, key = SC.mode === "cons" ? "c" : "t", first = !(r[key] >= 80);
-  r[key] = Math.max(r[key] || 0, pc); r.d = dayNum();
+  r[key] = Math.max(r[key] || 0, pc); r.d = dayNum(); wlog("sc", s.cat);
   if (first && pc >= 80) { S.xp += key === "c" ? 25 : 15; setTimeout(() => fxStamp(key === "c" ? "Schéma construit" : "Schéma complété", pc + " % de bonnes cases"), 150); }
   else S.xp += pc >= 50 ? 3 : 1;
   if (pc === 100) setTimeout(() => confettiBurst(), 200);
@@ -7989,7 +8019,7 @@ function cxCheck() {
   const it = CX.list[CX.i], el = document.getElementById("cxIn"), v = cxNum(el && el.value); if (v == null) { toast("Tape un nombre (ex. 1 250,50)"); return; }
   const tol = it.tol != null ? (it.tol < .01 ? Math.abs(it.a) * it.tol : it.tol) : (it.u === "€" ? Math.max(1, Math.abs(it.a) * .001) : .05);
   it.user = v; it.ok = Math.abs(v - it.a) <= tol + 1e-9; it.shown = true;
-  S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; if (it.ok) r[1]++;
+  S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; if (it.ok) r[1]++; wlog("cx", it.cat);
   if (it.ok) { CX.ok++; S.xp += it.hintUsed ? 2 : 4; } else S.xp += 1;
   tone(it.ok ? "ok" : "ko"); buzz(it.ok ? 15 : [35, 45, 35]); dayLog().e++; bumpStreak(); touch(); renderTop(); render();
   setTimeout(() => { const f = document.querySelector(".cx-corr"); if (f) f.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "nearest" }); }, 30);
@@ -8030,6 +8060,117 @@ function vCalc2() {
 }
 
 document.addEventListener("submit", e => { if (e.target.matches && e.target.matches("[data-cxf]")) { e.preventDefault(); cxCheck(); } });
+/* ---------- Mon plan : programme de révision semaine par semaine jusqu'aux écrits ---------- */
+let PLSET = false;
+const PL_CATS = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "ce", "ma", "cg", "an"];
+function plW() { const w = {}; EPREUVES.forEach(e => e.cats.forEach(c => { if (PL_CATS.includes(c)) w[c] = (w[c] || 0) + e.k / e.cats.length; })); return w; }
+const dnOf = iso => Math.floor(Date.parse(iso + "T12:00:00Z") / 864e5);
+function plCfg() { S.pl = S.pl || {}; const p = S.pl; if (!p.days) p.days = 5; if (!p.min) p.min = 30; p.hist = p.hist || []; return p; }
+/* Journal de la semaine : ce que tu as fait, par matière */
+function waRoll() { // changement de semaine : on archive le bilan de la semaine passée avant de remettre le journal à zéro
+  const w = weekId(); if (S.wa && S.wa.w === w) return S.wa;
+  const p = S.pl; if (p && p.cur && !p.cur.arch && p.cur.w < w) { p.hist = p.hist || []; p.hist.unshift({ w: p.cur.w, r: plRateIn(p.cur, S.wa && S.wa.w === p.cur.w ? S.wa : null), f: p.cur.focus }); p.hist = p.hist.slice(0, 12); p.cur.arch = 1; }
+  S.wa = { w, d: {}, cd: [] }; return S.wa;
+}
+function wlog(kind, cat, n) { if (!cat) return; const wa = waRoll(), o = wa.d[cat] || (wa.d[cat] = {}); o[kind] = (o[kind] || 0) + (n || 1); }
+function plCardDay() { const wa = waRoll(); wa.cd = wa.cd || []; const d = dayNum(); if (!wa.cd.includes(d)) wa.cd.push(d); }
+function plInfo() {
+  const b = btsState(), now = dayNum(), ex = dnOf(b.date), wl = Math.max(0, Math.ceil((ex - now) / 7));
+  const phase = wl > 10 ? "learn" : wl > 4 ? "conso" : "sprint";
+  const learnLeft = Math.max(1, wl - 10);
+  return { wl, phase, learnLeft, ex };
+}
+const PL_PH = { learn: ["Avancer dans les cours", "Tu découvres le programme : leçons, quiz et premiers calculs, matière par matière."], conso: ["Consolider", "Le cours est vu : place aux exercices, aux annales, aux schémas et aux calculs."], sprint: ["Sprint final", "Examens blancs, annales chronométrées, cartes du jour et cahier des erreurs. Plus de nouveau chapitre la dernière semaine."] };
+function plProg(c) { const ls = lessonStats(c), m = mastery(c); return { lr: ls.n ? ls.r / ls.n : 1, left: ls.n - ls.r, ma: m.t ? m.m / m.t : 0 }; }
+/* Choix des matières de la semaine : poids dans la note × retard × points faibles, sans reprendre les mêmes chaque semaine */
+function plPickFocus(prev) {
+  const W = plW(), wk = {}; weakChaps(12).forEach(o => { wk[chCat(o.k)] = (wk[chCat(o.k)] || 0) + 1; });
+  const cats = PL_CATS.filter(c => !lockedCat(c) && CAT[c] && ((QBY[c] || []).length || coursesOf(c).length));
+  const sc = cats.map(c => { const p = plProg(c), def = 1 - (p.lr * .5 + p.ma * .5); return { c, s: (W[c] || .5) * (.3 + def) * (1 + .25 * Math.min(3, wk[c] || 0)) * ((prev || []).includes(c) ? .45 : 1) }; }).sort((a, b) => b.s - a.s);
+  return sc.map(x => x.c);
+}
+/* Les tâches d'une matière pour la semaine, selon la phase et le temps disponible */
+function plTasksFor(c, phase, B, info) {
+  const T = [], pro = /^p[1-6]$/.test(c), p = plProg(c), cn = CAT[c].name;
+  const lessonsN = phase === "learn" && p.left ? Math.max(1, Math.min(p.left, Math.round(B * .5 / 12), Math.ceil(p.left / Math.max(1, info.learnLeft) * 2.2))) : 0;
+  if (lessonsN) T.push({ k: "l", c, n: lessonsN, t: `Lire ${lessonsN} leçon${lessonsN > 1 ? "s" : ""} ${/^[AEIOUÉÈÂ]/i.test(cn) ? "d'" : "de "}${cn}`, m: 12 * lessonsN, act: `data-act="plLesson" data-cat="${c}"` });
+  const qn = B >= 50 ? 20 : 10;
+  T.push({ k: "q", c, n: qn, t: `Répondre à ${qn} questions de quiz en ${cn}`, m: qn / 2, act: `data-act="quickQuiz" data-cat="${c}"` });
+  if (pro && CXG.some(g => g.cat === c) && (phase !== "learn" || p.lr > .3)) T.push({ k: "cx", c, n: 10, t: `Faire 10 calculs express ${CAT[c].code}`, m: 12, act: `data-act="cxGo" data-c="${c}"` });
+  if (phase !== "learn" && SCH.some(s => s.cat === c)) T.push({ k: "sc", c, n: 1, t: `Reconstruire un schéma ${CAT[c].code} (à trous ou seul)`, m: 8, act: `data-act="plSchema" data-cat="${c}"` });
+  if (phase !== "learn" && B >= 40) {
+    if (c === "ce" || c === "cg") T.push({ k: "x", c, n: 1, t: `Une rédaction en ${cn}, comparée au corrigé`, m: 45, act: `data-act="plRedac"` });
+    else if (c !== "an") T.push({ k: "x", c, n: 1, t: `Un exercice guidé ou une annale en ${cn}`, m: 30, act: `data-act="mat" data-cat="${c}" data-seg="train"` });
+  }
+  return T;
+}
+function plBuild(w, prev) {
+  const cfg = plCfg(), info = plInfo(), budget = cfg.days * cfg.min, nf = budget >= 200 ? 3 : 2;
+  const order = plPickFocus(prev), pro = order.filter(c => /^p/.test(c)), gen = order.filter(c => !/^p/.test(c)); // une matière professionnelle + une générale, puis la meilleure suivante
+  const focus = [pro[0], gen[0]].filter(Boolean); for (const c of order) if (focus.length < nf && !focus.includes(c)) focus.push(c);
+  const B = (budget - cfg.days * 5) / focus.length;
+  let tasks = [{ k: "cd", c: "*", n: Math.min(cfg.days, info.phase === "sprint" ? 7 : cfg.days), t: "Cartes du jour", m: 5, act: `data-act="today"` }];
+  if (info.phase === "sprint") {
+    tasks.push({ k: "ex", c: "*", n: 1, t: "Un QCM chrono (20 questions en 20 minutes)", m: 20, act: `data-act="goExam"` });
+    tasks.push({ k: "err", c: "*", n: 10, t: "Revoir 10 questions du cahier des erreurs", m: 8, act: `data-act="goErr"` });
+  }
+  focus.forEach(c => { tasks = tasks.concat(plTasksFor(c, info.phase, B, info)); });
+  const idx = (dayNum() + 3) % 7, left = 7 - idx, f = Math.min(1, left / cfg.days); // plan commencé en cours de semaine : objectifs réduits d'autant
+  if (f < 1) tasks.forEach(t => { t.n = t.k === "cd" ? Math.min(t.n, left) : Math.max(1, Math.round(t.n * f)); t.m = t.m * f; t.t = t.t.replace(/\d+/, String(t.n)).replace(/leçons (de|d')/, t.n > 1 ? "leçons $1" : "leçon $1"); });
+  tasks.forEach((t, i) => t.id = i);
+  return { w, d0: dayNum(), v: Date.now(), focus, tasks, phase: info.phase, days: cfg.days, min: cfg.min };
+}
+function plWeek() {
+  const cfg = plCfg(), w = weekId(); waRoll();
+  if (!cfg.cur || cfg.cur.w !== w) { const pf = cfg.cur ? cfg.cur.focus : []; cfg.cur = Object.assign(plBuild(w, pf), { prevFocus: pf }); touch(); }
+  return cfg.cur;
+}
+function plDoneIn(t, wa) {
+  if (!wa) return 0;
+  if (t.k === "cd") return (wa.cd || []).length;
+  if (t.c === "*") return Object.values(wa.d).reduce((s, o) => s + (o[t.k] || 0), 0);
+  return ((wa.d[t.c] || {})[t.k]) || 0;
+}
+function plDone(t) { return plDoneIn(t, S.wa && S.wa.w === weekId() ? S.wa : null); }
+function plRateIn(pw, wa) { const tot = pw.tasks.reduce((s, t) => s + t.n, 0), d = pw.tasks.reduce((s, t) => s + Math.min(t.n, plDoneIn(t, wa)), 0); return tot ? d / tot : 1; }
+function plRate(pw) { return plRateIn(pw, S.wa && S.wa.w === weekId() ? S.wa : null); }
+function plStatus(pw) {
+  const r = plRate(pw), d0 = pw.d0 || dayNum(), span = Math.max(1, Math.min(pw.days, 7 - (d0 + 3) % 7)), exp = Math.min(1, (dayNum() - d0) / span) * .9;
+  return r >= 1 ? ["ok", "Semaine bouclée !"] : r >= exp + .1 && r > 0 ? ["ok", "En avance"] : r >= exp - .15 ? ["mid", "À jour"] : ["ko", "Un peu de retard"];
+}
+/* Séance du jour : deux tâches du plan, figées pour la journée (celles où tu as le plus de retard) */
+function plToday() {
+  const pw = plWeek(), cfg = plCfg(), d = dayNum();
+  if (!cfg.td || cfg.td.d !== d || cfg.td.w !== pw.w || cfg.td.v !== pw.v) {
+    const left = pw.tasks.filter(t => t.k !== "cd" && plDone(t) < t.n).sort((a, b) => plDone(a) / a.n - plDone(b) / b.n || a.id - b.id);
+    const pick = [], seen = new Set(); left.forEach(t => { if (pick.length < 2 && !seen.has(t.c)) { pick.push(t.id); seen.add(t.c); } }); left.forEach(t => { if (pick.length < 2 && !pick.includes(t.id)) pick.push(t.id); });
+    cfg.td = { d, w: pw.w, v: pw.v, pick, base: Object.fromEntries(pw.tasks.map(t => [t.id, plDone(t)])) };
+  }
+  return cfg.td.pick.map(id => pw.tasks[id]).filter(Boolean).map(t => ({ t, done: plDone(t) >= t.n || plDone(t) > (cfg.td.base[t.id] || 0) }));
+}
+function plTaskRow(t, small) {
+  const d = Math.min(t.n, plDone(t)), ok = d >= t.n, sty = t.c !== "*" ? ` style="${hueStyle(t.c)}"` : "";
+  return `<li class="pl-t${ok ? " done" : ""}"${sty}><span class="pl-ck" aria-hidden="true">${ok ? ICON.check : ""}</span><div><b>${h(t.t)}</b><span class="pl-bar"><i style="width:${Math.round(d / t.n * 100)}%"></i></span><small>${t.k === "cd" ? `${d} jour${d > 1 ? "s" : ""} sur ${t.n}` : `${d} sur ${t.n}`} · environ ${Math.round(t.m)} min</small></div>${ok || small ? "" : `<button class="btn small" ${t.act}>Y aller</button>`}</li>`;
+}
+function plSection() {
+  const pw = plWeek(), info = plInfo(), cfg = plCfg(), st = plStatus(pw), r = plRate(pw), ph = PL_PH[pw.phase];
+  const wd = new Date(); wd.setDate(wd.getDate() - ((wd.getDay() + 6) % 7)); const we = new Date(wd); we.setDate(wd.getDate() + 6);
+  const fd = d => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const seg = (k, opts) => `<div class="seg-mini" role="group">${opts.map(([v, l]) => `<button data-act="plCfg" data-k="${k}" data-v="${v}" aria-pressed="${cfg[k] === v}">${l}</button>`).join("")}</div>`;
+  return `<section class="stack pl" id="monPlan">
+    <div class="pl-head"><div><span class="eyebrow">Semaine du ${fd(wd)} au ${fd(we)} · ${info.wl} semaine${info.wl > 1 ? "s" : ""} avant les écrits</span><h2>Mon plan de la semaine</h2></div><span class="pill pl-st ${st[0]}">${st[1]}</span></div>
+    <div class="pl-phase"><b>Phase : ${h(ph[0])}</b><span>${h(ph[1])}</span><div class="pl-phases">${["learn", "conso", "sprint"].map(k => `<i class="${k === pw.phase ? "on" : ""}">${h(PL_PH[k][0])}</i>`).join("")}</div></div>
+    <div class="pl-prog"><div class="bar"><i style="width:${Math.round(r * 100)}%"></i></div><span><b>${Math.round(r * 100)} %</b> de la semaine fait · matières ciblées : ${pw.focus.map(c => `<span class="tabcode" style="${hueStyle(c)}">${h(CAT[c].code)}</span>`).join(" ")}</span></div>
+    <ol class="pl-list">${pw.tasks.map(t => plTaskRow(t)).join("")}</ol>
+    <details class="pl-set"${PLSET ? " open" : ""}><summary>Régler mon rythme</summary>
+      <div class="pf-row"><div><b>Jours de révision par semaine</b><span>Le plan est recalculé la semaine prochaine, ou tout de suite avec le bouton ci-dessous.</span></div>${seg("days", [[3, "3"], [4, "4"], [5, "5"], [6, "6"]])}</div>
+      <div class="pf-row"><div><b>Temps par séance</b><span>Environ ${Math.round(cfg.days * cfg.min / 60 * 10) / 10} h par semaine.</span></div>${seg("min", [[20, "20 min"], [30, "30 min"], [45, "45 min"], [60, "1 h"]])}</div>
+      <div class="row"><button class="btn small" data-act="plRebuild">Recalculer le plan de cette semaine</button></div>
+    </details>
+    ${cfg.hist.length ? `<div class="pl-hist"><span class="muted small">Semaines précédentes</span><div>${cfg.hist.slice(0, 8).reverse().map(x => `<span class="pl-h ${x.r >= .9 ? "ok" : x.r >= .5 ? "mid" : "ko"}" title="${Math.round(x.r * 100)} %"><i style="height:${Math.max(8, Math.round(x.r * 100))}%"></i></span>`).join("")}</div></div>` : ""}
+  </section>`;
+}
+
 /* ---------- Événements ---------- */
 document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
@@ -8064,9 +8205,15 @@ document.addEventListener("click", e => {
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
     case "pfTab": PFT.t = b.dataset.t; try { localStorage.setItem("gl-pft", PFT.t); } catch (e) {} render(); break;
+    case "plCfg": { PLSET = true; const p = plCfg(); p[b.dataset.k] = +b.dataset.v; touch(); render(); break; }
+    case "plRebuild": { const p = plCfg(), prev = p.cur && p.cur.prevFocus || []; p.cur = Object.assign(plBuild(weekId(), prev), { prevFocus: prev }); touch(); render(); toast("Plan de la semaine recalculé"); break; }
+    case "plLesson": { const c = b.dataset.cat; let t = null; for (const cid of coursesOf(c)) { for (let k = 1; k <= nLessons(cid); k++) if (!isRead(cid, k)) { t = { cid, k }; break; } if (t) break; } if (t) openLesson(t.cid, t.k); else toast("Toutes les leçons de cette matière sont lues"); break; }
+    case "plSchema": { scFrom = "ex"; setExTab("schemas"); go("ex"); break; }
+    case "plRedac": { setExTab("redac"); go("ex"); break; }
+    case "plSee": { go("bts"); setTimeout(() => { const el = document.getElementById("monPlan"); if (el) el.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }, 60); break; }
     case "cxGo": cxFrom = view === "mat" ? "mat" : view === "calc" ? cxFrom : "ex"; cxStart(b.dataset.c || ""); break;
     case "cxHint": { const it = CX.list[CX.i]; it.hintShown = it.hintUsed = true; render(); break; }
-    case "cxSkip": { const it = CX.list[CX.i]; it.user = null; it.ok = false; it.shown = true; S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; touch(); tone("soft"); render(); break; }
+    case "cxSkip": { const it = CX.list[CX.i]; it.user = null; it.ok = false; it.shown = true; S.cx = S.cx || {}; const r = S.cx[it.g] = S.cx[it.g] || [0, 0]; r[0]++; wlog("cx", it.cat); touch(); tone("soft"); render(); break; }
     case "cxNext": if (CX.i + 1 < CX.list.length) { CX.i++; render(); window.scrollTo({ top: 0 }); } else { CX.done = true; if (CX.ok === CX.list.length) { confettiBurst(60); tone("lvl"); } else tone("xp"); render(); window.scrollTo({ top: 0 }); } break;
     case "cxRetry": cxStart(CX.cat, [...new Set(CX.list.filter(x => !x.ok).map(x => x.g))]); break;
     case "cxBack": if (cxFrom === "mat") go("mat"); else { setExTab("chiffres"); go("ex"); } break;
@@ -8081,7 +8228,7 @@ document.addEventListener("click", e => {
     case "scReset": SC.place = {}; SC.pick = null; SC.slot = null; render(); break;
     case "scNext": { const l = SCH.filter(x => !lockedCat(x.cat)), i = l.findIndex(x => x.id === SC.id), nx = l[(i + 1) % l.length]; schStart(nx.id, "voir"); go("schema"); break; }
     case "rdShow": RD.text = document.getElementById("rdText").value; RD.shown = true; render(); break;
-    case "rdScore": { const r = REDACBY[RD.id]; const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); touch(); go("ex"); break; }
+    case "rdScore": { const r = REDACBY[RD.id]; wlog("x", r.cat); const ck = [...document.querySelectorAll("[data-crit]")].map(e => e.checked); const sc = Math.round(ck.filter(Boolean).length / r.crit.length * 100); S.x = S.x || {}; const o = S.x[r.id] || [0, 0, 0]; S.x[r.id] = [o[0] + 1, Math.max(o[1], sc), sc]; S.xp += Math.round(15 * sc / 100); dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); touch(); go("ex"); break; }
     case "coursCat": openMat(cat, "lecons"); break;
     case "fiche": openFiche(b.dataset.id); break;
     case "annOpen": annSaveNow(); openAnn(b.dataset.id); break;
@@ -8095,7 +8242,7 @@ document.addEventListener("click", e => {
     case "agSet": { annSaveNow(); const st = annState(AX.id), x = ANNEXID[AX.id]; st.g = st.g || []; st.g[+b.dataset.i] = +b.dataset.v;
       if (x.w.every((_, i) => st.g[i] != null) && !st.d) { st.d = 1; S.xp += 5; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice fait : +5 XP"); }
       touch(); const y = window.scrollY; render(); window.scrollTo({ top: y }); break; }
-    case "annDone": { annSaveNow(); const st = annState(AX.id); if (!st.d) { st.d = 1; S.xp += 5; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice fait : +5 XP"); } else st.d = 0; touch(); render(); break; }
+    case "annDone": { annSaveNow(); const st = annState(AX.id); if (!st.d) { st.d = 1; S.xp += 5; try { wlog("x", annCat(ANNEXID[AX.id])); } catch (e) {} dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice fait : +5 XP"); } else st.d = 0; touch(); render(); break; }
     case "gsOpen": gsOpen(); break;
     case "gsClose": gsClose(); break;
     case "gsCat": { GS.cat = b.dataset.cat || ""; GS.act = -1; gsRender(); const gi = document.getElementById("gsInput"); if (gi) gi.focus(); break; }
@@ -8105,7 +8252,7 @@ document.addEventListener("click", e => {
     case "chQuiz": { const l = QCH[b.dataset.ch] || []; if (l.length) startRun(shuffle(l).slice(0, 15), "quiz"); else toast("Pas encore de quiz pour cette fiche"); break; }
     case "chCards": { const l = FCH[b.dataset.ch] || []; if (l.length) startCards(shuffle(l)); else toast("Pas encore de cartes pour cette fiche"); break; }
     case "gcase": openCase(b.dataset.id); break;
-    case "gSelf": { const st = caseState(GC.id); st.ok[+b.dataset.i] = b.dataset.v === "1"; touch(); render(); break; }
+    case "gSelf": { const st = caseState(GC.id); st.ok[+b.dataset.i] = b.dataset.v === "1"; { const k = GCASES.find(x => x.id === GC.id), wa = waRoll(); wa.gx = wa.gx || []; if (k && Object.keys(st.ok).length >= k.steps.length && !wa.gx.includes(k.id)) { wa.gx.push(k.id); wlog("x", k.cat); } } touch(); render(); break; }
     case "gReveal": { const st = caseState(GC.id), k = GCID[GC.id], i = +b.dataset.i; const was = st.step; { const ck = stepCheck(k.id + "|" + k.steps[i].name, st.notes[i]); if (ck) st.ok[i] = ck.ok; } st.step = Math.max(st.step, i + 1); if (st.step >= k.steps.length && was < k.steps.length) { S.xp += 10; dayLog().e++, dayLog().x = (dayLog().x || 0) + 1; bumpStreak(); toast("Exercice terminé : +10 XP"); } touch(); render(); requestAnimationFrame(() => { const t = document.getElementById("gs" + (i + 1)); if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); }); break; }
     case "gReset": { S.gc[GC.id] = { step: 0, notes: {}, ok: {} }; touch(); render(); window.scrollTo({ top: 0 }); break; }
     case "defi": startDefi(cat ? [cat] : (DF && DF.cats) || null); break;
