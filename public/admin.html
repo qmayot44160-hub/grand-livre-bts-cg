@@ -162,6 +162,19 @@ nav.tabs .badge{position:absolute;top:3px;left:calc(50% + 5px);background:#e0556
 /* Fiche élève : feuille qui monte, se ferme en glissant vers le bas */
 .sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:rgba(10,14,30,calc(.45 * var(--k,1)));-webkit-backdrop-filter:blur(calc(6px * var(--k,1)));backdrop-filter:blur(calc(6px * var(--k,1)));opacity:0;transition:opacity .25s}
 .sheet.in{opacity:1}
+.cf{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,14,30,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;transition:opacity .2s}
+.cf.in{opacity:1}
+.cf-box{width:min(400px,100%);background:var(--sheet);color:var(--ink);border-radius:20px;padding:22px 20px 18px;display:grid;gap:10px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);transform:scale(.92) translateY(10px);transition:transform .28s cubic-bezier(.2,.85,.25,1)}
+.cf.in .cf-box{transform:none}
+.cf-box h2{margin:0;font-size:1.15rem}.cf-box p{margin:0;color:var(--muted)}
+.cf-ic{width:52px;height:52px;border-radius:50%;margin:0 auto 2px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.cf-ic.bad{background:var(--bad-bg);color:var(--bad)}.cf-ic svg{width:24px;height:24px}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cf-go{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cf-go.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+:root[data-theme="dark"] .cf-go.bad{color:#1a1d37}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cf-go.bad{color:#1a1d37}}
+@media (max-width:640px){.cf{align-items:flex-end;padding:0}.cf-box{width:100%;border-radius:22px 22px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom));transform:translateY(100%)}}
 .sheet-box{width:min(820px,100%);max-height:calc(100dvh - 24px);background:var(--paper);border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .38s cubic-bezier(.2,.85,.25,1);box-shadow:0 -12px 40px rgba(0,0,0,.25)}
 .sheet.in .sheet-box{transform:translateY(0)}
 .sheet.out .sheet-box{transform:translateY(100%)!important}
@@ -366,6 +379,19 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     var x = el("div", { cls: "toast", role: "status", text: t }); document.body.append(x);
     requestAnimationFrame(function () { x.classList.add("in"); });
     setTimeout(function () { x.classList.remove("in"); setTimeout(function () { x.remove(); }, 300); }, 2600);
+  }
+  function askConfirm(title, text, ok, icon, danger, then) {
+    var go = el("button", { cls: "btn cf-go" + (danger ? " bad" : ""), text: ok });
+    var no = el("button", { cls: "btn", text: "Annuler" });
+    var box = el("div", { cls: "cf-box", role: "alertdialog", "aria-modal": "true", "aria-label": title }, [
+      el("div", { cls: "cf-ic" + (danger ? " bad" : ""), html: icon || "" }), el("h2", { text: title }), el("p", { text: text }), el("div", { cls: "cf-row" }, [no, go])]);
+    var bg = el("div", { cls: "cf" }, [box]);
+    function close(v) { document.removeEventListener("keydown", key); bg.classList.remove("in"); setTimeout(function () { bg.remove(); }, 220); if (v) then(); }
+    function key(e) { if (e.key === "Escape") close(false); }
+    go.onclick = function () { close(true); }; no.onclick = function () { close(false); };
+    bg.addEventListener("click", function (e) { if (e.target === bg) close(false); });
+    document.addEventListener("keydown", key); document.body.append(bg); buzz(10);
+    requestAnimationFrame(function () { bg.classList.add("in"); go.focus({ preventScroll: true }); });
   }
   function stamp(txt, color) {
     buzz([12, 50, 30]); tone("stamp");
@@ -684,10 +710,10 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     return el("div", { cls: "card danger-zone" }, [
       el("h3", { text: "Gérer le compte" }),
       el("div", { cls: "row" }, [
-        el("button", { cls: "btn", html: I.logout + "Déconnecter partout", onclick: function () { if (confirm("Déconnecter " + s.name + " de tous ses appareils ? Il devra se reconnecter.")) run({ action: "logout" }, function () { stamp("DÉCONNECTÉ", "#2c43c6"); }); } }),
+        el("button", { cls: "btn", html: I.logout + "Déconnecter partout", onclick: function () { askConfirm("Déconnecter " + s.name + " ?", "Il sera déconnecté de tous ses appareils et devra se reconnecter.", "Déconnecter", I.logout, false, function () { run({ action: "logout" }, function () { stamp("DÉCONNECTÉ", "#2c43c6"); }); }); } }),
         s.blocked
           ? el("button", { cls: "btn primary", html: I.undo + "Réactiver le compte", onclick: function () { run({ action: "unblock" }, function () { stamp("RÉACTIVÉ", "#1d8a4e"); tone("ok"); }); } })
-          : el("button", { cls: "btn danger", html: I.lock + "Suspendre", onclick: function () { if (confirm("Suspendre " + s.name + " ? Il est déconnecté tout de suite et ne peut plus se connecter. Sa progression est gardée.")) run({ action: "block" }, function () { stamp("SUSPENDU"); }); } })
+          : el("button", { cls: "btn danger", html: I.lock + "Suspendre", onclick: function () { askConfirm("Suspendre " + s.name + " ?", "Il est déconnecté tout de suite et ne peut plus se connecter. Sa progression est gardée.", "Suspendre", I.lock, true, function () { run({ action: "block" }, function () { stamp("SUSPENDU"); }); }); } })
       ]),
       el("p", { cls: "muted small", text: "Suspendre bloque l'accès sans rien effacer ; tu peux réactiver quand tu veux." }),
       el("h3", { text: "Mot de passe oublié" }), pw,

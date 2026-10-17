@@ -1345,6 +1345,9 @@ html, body { overflow-x: hidden; }
 .ib.shake { animation: ibShake .5s; } @keyframes ibShake { 20%, 60% { transform: translate(calc(-50% - 6px), 0); } 40%, 80% { transform: translate(calc(-50% + 6px), 0); } }
 @media (prefers-reduced-motion: reduce) { .ib { transition: none; } .ib-bar i { animation: none; } }
 .nav-btn { position: relative; }
+.cf-danger { background: var(--bad) !important; border-color: var(--bad) !important; color: #fff !important; }
+:root[data-theme="dark"] .cf-danger { color: #1a1d37 !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cf-danger { color: #1a1d37 !important; } }
 .nav-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 17px; height: 17px; border-radius: 99px; background: #e05561; color: #fff; font-size: .64rem; font-weight: 800; display: grid; place-items: center; padding: 0 4px; line-height: 1; }
 @media (min-width: 761px) { .nav-badge { position: static; margin-left: 2px; } }
 .am-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
@@ -5800,6 +5803,25 @@ async function roomPick(pos) {
 document.addEventListener("keydown", e => { if (view === "room" && RO && RO.srv.phase === "q" && /^[1-4]$/.test(e.key) && !e.target.closest("input,textarea")) roomPick(+e.key - 1); });
 function amisDeepLink() { try { const u = new URL(location.href); if (!u.searchParams.get("amis")) return; u.searchParams.delete("amis"); history.replaceState(null, "", u.pathname + u.search + u.hash); AMT = "amis"; setTimeout(() => go("amis"), 300); } catch (e) {} }
 
+/* Fenêtre de confirmation aux couleurs de l'appli (remplace la boîte grise du navigateur) */
+function askConfirm(title, text, ok, opts) {
+  opts = opts || {};
+  return new Promise(res => {
+    closeSheet();
+    const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+    el.innerHTML = `<div class="wk-box" role="alertdialog" aria-modal="true" aria-labelledby="cfT" aria-describedby="cfD">
+      ${opts.name ? `<div style="display:flex;justify-content:center">${duAv(opts.name).replace('class="du-av"', 'class="du-av" style="width:56px;height:56px;--ah:' + duHue(opts.name) + '"')}</div>` : ""}
+      <h2 id="cfT" style="text-align:center;padding:0">${h(title)}</h2>${text ? `<p class="muted" id="cfD" style="text-align:center">${h(text)}</p>` : ""}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"><button class="btn" data-cf="0">${h(opts.cancel || "Annuler")}</button><button class="btn primary${opts.danger ? " cf-danger" : ""}" data-cf="1">${h(ok || "Confirmer")}</button></div></div>`;
+    const done = v => { document.removeEventListener("keydown", key); el.remove(); res(v); };
+    const key = e => { if (e.key === "Escape") done(false); };
+    el.addEventListener("click", e => { const b = e.target.closest("[data-cf]"); if (b) done(b.dataset.cf === "1"); else if (e.target === el) done(false); });
+    document.addEventListener("keydown", key);
+    document.body.appendChild(el); buzz(10);
+    setTimeout(() => { const b = el.querySelector('[data-cf="1"]'); if (b) b.focus({ preventScroll: true }); }, 30);
+  });
+}
+
 /* Boîte de réception : défis et demandes d'amis arrivent en direct, où que l'on soit dans l'appli */
 const IB = { seen: (() => { try { return new Set(JSON.parse(localStorage.getItem("gl-inbox-seen") || "[]")); } catch (e) { return new Set(); } })(), q: [], timer: null, busy: false, first: true };
 function ibSave() { try { localStorage.setItem("gl-inbox-seen", JSON.stringify([...IB.seen].slice(-80))); } catch (e) {} }
@@ -7420,7 +7442,7 @@ document.addEventListener("click", e => {
     case "frShare": navigator.share({ title: "Grand Livre", text: "Ajoute-moi en ami sur le Grand Livre ! Mon code : " + FR.data.code, url: location.origin + "/?amis=1" }).catch(() => {}); break;
     case "frAdd": { const N = FRN(), v = (document.getElementById("frCode") || {}).value || ""; if (!N) break; N.add(v).then(j => { toast(j.already ? "Vous êtes déjà amis" : j.accepted ? "Vous êtes maintenant amis !" : "Demande envoyée à " + (j.name || "ton camarade")); if (j.accepted) confettiBurst(40); loadFriends(true); }).catch(e => toast((e && e.message) || "Code introuvable.")); break; }
     case "frYes": case "frNo": { const N = FRN(); if (N) N.respond(b.dataset.k, a === "frYes").then(() => { if (a === "frYes") { toast("Nouvel ami !"); confettiBurst(40); tone("ok"); } loadFriends(true); }).catch(() => {}); break; }
-    case "frDel": { if (!confirm("Retirer " + (b.dataset.name || "cet ami") + " de tes amis ?")) break; const N = FRN(); if (N) N.remove(b.dataset.k).then(() => { FRX = null; loadFriends(true); }).catch(() => {}); break; }
+    case "frDel": { const nm = b.dataset.name || "cet ami", k = b.dataset.k; askConfirm("Retirer " + nm + " de tes amis ?", "Vous ne verrez plus vos progrès respectifs. Tu pourras le rajouter plus tard avec son code ami.", "Retirer", { danger: true, name: nm }).then(ok => { if (!ok) return; const N = FRN(); if (N) N.remove(k).then(() => { FRX = null; toast(nm + " a été retiré de tes amis"); loadFriends(true); }).catch(() => {}); }); break; }
     case "rmNew": case "rmWith": { const N = ROOMN(); if (!N) break; N.create().then(j => { roomEnter(j.room); if (a === "rmWith") toast("Donne le code " + j.room.id + " à " + (b.dataset.name || "ton ami")); }).catch(e => toast((e && e.message) || "Impossible d'ouvrir une salle.")); break; }
     case "rmJoin": { const N = ROOMN(), v = String((document.getElementById("rmCode") || {}).value || "").trim().toUpperCase(); if (!N || v.length < 4) { toast("Tape le code de la salle."); break; } N.join(v).then(j => roomEnter(j.room)).catch(e => toast((e && e.message) || "Salle introuvable.")); break; }
     case "rmCat": { const c = roomCfg(), k = b.dataset.c; c.cats = c.cats.includes(k) ? c.cats.filter(x => x !== k) : c.cats.concat(k); if (!c.cats.length) c.cats = [k]; touch(); render(); break; }
@@ -7444,7 +7466,7 @@ document.addEventListener("click", e => {
     case "duSolo": { const N = DUEL_NET(); if (N && DU) N.start(DU.id).then(j => { DU.srv = j.duel; }).catch(() => {}); if (DU) { DU.stage = "count"; DU.startAt = Date.now() + 3000; render(); } break; }
     case "duShare": navigator.share({ title: "Duel Grand Livre", text: "Je te défie en duel sur le Grand Livre ! Code : " + DU.id, url: location.origin + "/?duel=" + DU.id }).catch(() => {}); break;
     case "duCopy": try { navigator.clipboard.writeText(DU.id); toast("Code copié"); } catch (e) {} break;
-    case "duQuit": { if (DU && DU.stage === "play" && !confirm("Quitter le duel ? Les questions restantes compteront comme fausses si tu ne reviens pas.")) break; duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); break; }
+    case "duQuit": { const leave = () => { duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); }; if (DU && DU.stage === "play") askConfirm("Quitter le duel ?", "Les questions restantes compteront comme fausses si tu ne reviens pas.", "Quitter", { danger: true, cancel: "Continuer le duel" }).then(ok => { if (ok) leave(); }); else leave(); break; }
     case "duBack": duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); break;
     case "duAgain": { const was = DU; duelStop(); DU = null; if (!was || was.bot) { const c = duelCfg(), ids = duelPick(c.cats, c.n); duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); } else { const N = DUEL_NET(), c = { cats: was.srv && was.srv.cats && was.srv.cats.length ? was.srv.cats : duelCfg().cats }, ids = duelPick(c.cats, was.items.length); if (N && N.rematch) N.rematch(was.id, ids).then(j => { duelFromSrv(j.duel); toast("Revanche proposée !"); }).catch(e => { toast((e && e.message) || "Revanche impossible pour l'instant."); AMT = "duels"; go("amis"); }); else { AMT = "duels"; go("amis"); } } break; }
     case "tts": ttsToggle(b); break;
