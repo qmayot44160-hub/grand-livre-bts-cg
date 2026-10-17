@@ -458,7 +458,7 @@ app.get("/api/inbox", auth, async (req, res, next) => {
     const friends = [], accepted = [], results = [];
     for (const f of await store.friendsOf(me)) {
       if (f.status === "pending" && f.b === me) { const u = await store.userById(f.a); if (u && !u.blocked) friends.push({ k: fk(u.id), name: await duelName(u), at: f.created }); }
-      if (f.status === "ok" && f.a === me) { const u = await store.userById(f.b); if (u && !u.blocked) accepted.push({ k: fk(u.id), name: await duelName(u) }); }
+      if (f.status === "ok" && f.a === me) { const u = await store.userById(f.b); if (u && !u.blocked) accepted.push({ k: fk(u.id), name: await duelName(u), at: f.created }); }
     }
     for (const d of await store.duelsOf(me)) {
       if (d.status !== "done" || Date.now() - d.created > 2 * 864e5) continue;

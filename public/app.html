@@ -5811,7 +5811,7 @@ async function inboxPoll() {
     if (j.v) { if (!IB.v) IB.v = j.v; else if (j.v !== IB.v && !IB.upd) { IB.upd = true; IB.q.unshift({ key: "u", kind: "upd", name: "GL", sub: "Recharge pour profiter des dernières améliorations." }); ibNext(); } }
     (j.duels || []).forEach(d => items.push({ key: "d:" + d.id, kind: "duel", id: d.id, name: d.from, sub: d.live ? `${d.n} questions · en direct, ton adversaire t'attend !` : `${d.n} questions${d.score != null ? ` · ${d.score} points à battre` : ""}` }));
     (j.friends || []).forEach(f => items.push({ key: "f:" + f.k + ":" + f.at, kind: "ami", k: f.k, name: f.name, sub: "veut t'ajouter en ami" }));
-    (j.accepted || []).forEach(f => items.push({ key: "a:" + f.k, kind: "ok", name: f.name, sub: "a accepté ta demande : vous êtes amis !" }));
+    (j.accepted || []).forEach(f => items.push({ key: "a:" + f.k + ":" + (f.at || 0), kind: "ok", name: f.name, sub: "a accepté ta demande : vous êtes amis !" }));
     (j.results || []).forEach(d => { if (!d.lastMine && !(DU && DU.id === d.id)) items.push({ key: "r:" + d.id, kind: "res", id: d.id, name: d.opp, sub: d.me > d.them ? `Tu gagnes ${d.me} à ${d.them} !` : d.me < d.them ? `${d.opp} gagne ${d.them} à ${d.me}.` : `Égalité ${d.me} partout.`, win: d.me > d.them }); else IB.seen.add("r:" + d.id); });
     const inv = (j.duels || []).length + (j.friends || []).length, b = document.getElementById("navAmis"); if (b) { b.hidden = !inv; b.textContent = inv; }
     const fresh = items.filter(x => !IB.seen.has(x.key)), silent = IB.first && !IB.seen.size;
