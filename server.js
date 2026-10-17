@@ -666,6 +666,13 @@ app.put("/api/progress", auth, async (req, res, next) => {
     const d = req.body;
     if (!d || typeof d !== "object" || Array.isArray(d)) return res.status(400).json({ error: "Format invalide." });
     if (JSON.stringify(d).length > 2_000_000) return res.status(413).json({ error: "Progression trop volumineuse." });
+    const force = !!d._f; delete d._f;
+    const cur = await store.getProgress(req.user.id), cx = +(cur && cur.xp) || 0, nx = +d.xp || 0;
+    if (cur && cx >= 60 && nx < cx * 0.7 - 30) {
+      // Une progression nettement plus pauvre ne remplace jamais celle du compte sans action explicite (import d'une sauvegarde)
+      if (!force) return res.status(409).json({ code: "conflict", error: "La progression du compte est plus avancée que celle de cet appareil." });
+      await store.setSetting("pp:" + req.user.id, JSON.stringify({ at: Date.now(), d: cur })).catch(() => {});
+    }
     await store.setProgress(req.user.id, d);
     res.json({ ok: true });
   } catch (e) { next(e); }
