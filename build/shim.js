@@ -44,7 +44,7 @@
   var db = {
     doc: function () {
       return {
-        get: async function () { var j = await api("GET", "/api/progress"); return { exists: !!j.data, data: function () { return j.data; } }; },
+        get: async function () { var j = await api("GET", "/api/progress?v=2"); return { exists: !!j.data, data: function () { return j.data; } }; },
         set: async function (obj) { await api("PUT", "/api/progress", obj); }
       };
     }

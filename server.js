@@ -659,7 +659,14 @@ app.post("/api/cron/tick", async (req, res, next) => {
 
 /* ---------- Progression ---------- */
 app.get("/api/progress", auth, async (req, res, next) => {
-  try { res.setHeader("Cache-Control", "no-store"); res.json({ data: await store.getProgress(req.user.id) }); } catch (e) { next(e); }
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    let d = await store.getProgress(req.user.id);
+    // Anciennes versions de l'appli (sans ?v=2) : elles gardaient la copie « la plus récente », ce qui pouvait effacer une progression.
+    // On leur présente la copie du compte comme ancienne : elles renvoient la leur, et le serveur refuse si elle est plus pauvre.
+    if (d && req.query.v !== "2") d = Object.assign({}, d, { u: 1 });
+    res.json({ data: d });
+  } catch (e) { next(e); }
 });
 app.put("/api/progress", auth, async (req, res, next) => {
   try {
