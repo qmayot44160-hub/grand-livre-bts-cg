@@ -40,7 +40,8 @@ function makePg(url) {
     async dumpAll() {
       const u = await q("SELECT id, name, name_key, pass, created FROM users ORDER BY created");
       const p = await q("SELECT user_id, data, updated FROM progress");
-      return { users: u.rows, progress: p.rows };
+      const st = await q("SELECT k, v FROM settings WHERE k LIKE 'wk:%' OR k IN ('groups','gm')");
+      return { users: u.rows, progress: p.rows, settings: st.rows };
     },
     async fullProgress() { const r = await q("SELECT u.id, u.name, u.created, u.blocked, p.data, p.updated, (SELECT COUNT(*)::int FROM push_subs s WHERE s.user_id=u.id) AS subs FROM users u LEFT JOIN progress p ON p.user_id=u.id"); return r.rows; },
     async setBlocked(id, b) { await q("UPDATE users SET blocked=$2, sv=sv+1 WHERE id=$1", [id, !!b]); },
@@ -60,6 +61,7 @@ function makePg(url) {
     async duelPurge(before) { await q("DELETE FROM duels WHERE updated < $1", [before]); },
     async getSetting(k) { const r = await q("SELECT v FROM settings WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
     async setSetting(k, v) { await q("INSERT INTO settings(k,v) VALUES($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, v]); },
+    async settingsLike(prefix) { const r = await q("SELECT k, v FROM settings WHERE k LIKE $1 ORDER BY k", [prefix.replace(/[%_]/g, "\\$&") + "%"]); return r.rows; },
     async deleteUser(id) { await q("DELETE FROM friends WHERE a=$1 OR b=$1", [id]); await q("DELETE FROM duels WHERE a=$1 OR b=$1", [id]); await q("DELETE FROM ai_usage WHERE user_id=$1", [id]); await q("DELETE FROM push_subs WHERE user_id=$1", [id]); await q("DELETE FROM progress WHERE user_id=$1", [id]); await q("DELETE FROM users WHERE id=$1", [id]); },
     async addSub(uid, sub, hour) { await q(`INSERT INTO push_subs(endpoint,user_id,sub,hour,created) VALUES($1,$2,$3,$4,$5)
       ON CONFLICT (endpoint) DO UPDATE SET user_id=EXCLUDED.user_id, sub=EXCLUDED.sub, hour=EXCLUDED.hour`, [sub.endpoint, uid, sub, hour, Date.now()]); },
@@ -95,7 +97,7 @@ function makeFile(dir) {
   return {
     kind: "fichier " + file,
     async init() { try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { save(); } d.settings = d.settings || {}; d.subs = d.subs || {}; d.reports = d.reports || []; d.backups = d.backups || []; d.duels = d.duels || {}; d.friends = d.friends || []; },
-    async dumpAll() { return { users: Object.values(d.users), progress: Object.entries(d.progress).map(([user_id, x]) => ({ user_id, data: x.data, updated: x.updated })) }; },
+    async dumpAll() { return { users: Object.values(d.users), progress: Object.entries(d.progress).map(([user_id, x]) => ({ user_id, data: x.data, updated: x.updated })), settings: Object.keys(d.settings).filter(k => /^wk:/.test(k) || k === "groups" || k === "gm").map(k => ({ k, v: d.settings[k] })) }; },
     async setBlocked(id, b) { const u = d.users[id]; if (u) { u.blocked = !!b; u.sv = (u.sv || 0) + 1; save(); } },
     async bumpSv(id) { const u = d.users[id]; if (!u) return 0; u.sv = (u.sv || 0) + 1; save(); return u.sv; },
     async fullProgress() { return Object.values(d.users).map(u => ({ id: u.id, name: u.name, created: u.created, blocked: !!u.blocked, subs: Object.values(d.subs).filter(x => x.user_id === u.id).length, data: d.progress[u.id] ? d.progress[u.id].data : null, updated: d.progress[u.id] ? d.progress[u.id].updated : null })); },
@@ -117,6 +119,7 @@ function makeFile(dir) {
     async duelPurge(before) { Object.keys(d.duels).forEach(k => { if (d.duels[k]._u < before) delete d.duels[k]; }); save(); },
     async getSetting(k) { return d.settings[k] == null ? null : d.settings[k]; },
     async setSetting(k, v) { d.settings[k] = v; save(); },
+    async settingsLike(prefix) { return Object.keys(d.settings).filter(k => k.startsWith(prefix)).sort().map(k => ({ k, v: d.settings[k] })); },
     async deleteUser(id) { d.friends = (d.friends || []).filter(f => f.a !== id && f.b !== id); Object.keys(d.duels || {}).forEach(k => { const x = d.duels[k]; if (x.a.id === id || (x.b && x.b.id === id)) delete d.duels[k]; }); delete d.users[id]; delete d.progress[id]; Object.keys(d.ai).forEach(k => { if (k.startsWith(id + "|")) delete d.ai[k]; }); Object.keys(d.subs).forEach(k => { if (d.subs[k].user_id === id) delete d.subs[k]; }); save(); },
     async addSub(uid, sub, hour) { d.subs[sub.endpoint] = { endpoint: sub.endpoint, user_id: uid, sub, hour, last_day: null, created: Date.now() }; save(); },
     async delSub(endpoint) { delete d.subs[endpoint]; save(); },

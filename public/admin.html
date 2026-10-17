@@ -106,6 +106,20 @@ input.in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px colo
 .ftile{border:1px solid var(--rule);border-radius:12px;padding:9px 11px;display:grid;gap:1px;background:var(--sheet)}
 .ftile span{font-size:.8rem;font-weight:700;color:var(--muted)}.ftile b{font:800 1.3rem/1.15 var(--f-display);font-variant-numeric:tabular-nums}
 .ftile small{color:var(--muted);font-size:.74rem}.ftile.off b{color:var(--muted);opacity:.6}.ftile.on{border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+.gbar{display:flex;gap:8px;align-items:center}.gbar select.in{min-height:40px;padding:7px 11px;flex:1;min-width:0;font-weight:700}
+.gbar .btn{flex:none}
+.cview{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.regbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--rule)}.regbar i{display:block;height:100%}
+.reglg{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;font-size:.84rem;margin-top:8px}.reglg span{display:flex;align-items:center;gap:6px}.reglg b{font-variant-numeric:tabular-nums;margin-left:auto}
+.reglg em{width:10px;height:10px;border-radius:3px;display:inline-block}
+.coh{width:100%;border-collapse:separate;border-spacing:3px;font-size:.84rem}.coh th{font-weight:700;color:var(--muted);text-align:center;font-size:.76rem}.coh th:first-child{text-align:left}
+.coh td{text-align:center;border-radius:7px;padding:6px 2px;font-variant-numeric:tabular-nums;font-weight:700}.coh td:first-child{text-align:left;font-weight:600;padding-left:0}
+.trend{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.trend div{border:1px solid var(--rule);border-radius:12px;padding:8px 10px}.trend b{display:block;font:800 1.15rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}.trend span{font-size:.76rem;color:var(--muted);font-weight:600}.trend small{font-size:.74rem;font-weight:700}
+.up{color:var(--ok)}.down{color:var(--bad)}
+.chrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule)}.chrow:first-of-type{border-top:0}
+.chrow .t{font-size:.88rem;font-weight:600;min-width:0}.chrow .mt{grid-column:2/4;display:flex;gap:10px;align-items:center}.chrow small{color:var(--muted);font-size:.76rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.gcard{border:1px solid var(--rule);border-radius:14px;padding:12px;display:grid;gap:8px;background:var(--sheet)}.gcard.off{opacity:.6}
+.gcode{font:800 1.5rem/1 var(--f-mono);letter-spacing:.18em;color:var(--accent);user-select:all}
 .xrow{display:flex;gap:8px;flex-wrap:wrap}.xrow .btn{flex:1;min-width:140px}
 #print{display:none}
 @media print{
@@ -335,7 +349,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
   var $ = function (i) { return document.getElementById(i); };
   var ADMIN = "__ADMIN_NAME__";
   var LS = "gl-admin-key", LP = "gl-admin-pref";
-  var KEY = "", TAB = "classe", FILTER = "tous", SORT = "recent", SEARCH = "", RFILTER = "open", CACHE = {}, AUTO = null;
+  var GROUP = "", GROUPS = null, CVIEW = "apercu", KEY = "", TAB = "classe", FILTER = "tous", SORT = "recent", SEARCH = "", RFILTER = "open", CACHE = {}, AUTO = null;
   var PREF = { theme: "auto", motion: "on", snd: "off", vib: "on", auto: 0, start: "classe", tour: 0 };
   try { Object.assign(PREF, JSON.parse(localStorage.getItem(LP) || "{}")); } catch (e) {}
   try { KEY = localStorage.getItem(LS) || ""; } catch (e) {}
@@ -481,11 +495,11 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     later(function () { box.querySelector(".fg").style.strokeDashoffset = c * (1 - p / 100); });
     return wrap;
   }
-  function bars(vals, labelOf) {
-    var mx = Math.max.apply(null, vals.concat([1])), b = el("div", { cls: "bars", role: "img", "aria-label": "Activité des 4 dernières semaines" });
+  function bars(vals, labelOf, lbl) {
+    var mx = Math.max.apply(null, vals.concat([1])), b = el("div", { cls: "bars", role: "img", "aria-label": (lbl && lbl[2]) || "Activité des 4 dernières semaines" });
     vals.forEach(function (v, i) { var x = el("i", { title: labelOf(i, v), cls: i === vals.length - 1 ? "today" : "" }); x.style.height = Math.max(3, v / mx * 100) + "%"; if (fxOn()) { x.style.transform = "scaleY(0)"; x.style.transitionDelay = (i * 18) + "ms"; } b.append(x); });
     if (fxOn()) later(function () { b.querySelectorAll("i").forEach(function (x) { x.style.transform = ""; }); });
-    return el("div", null, [b, el("div", { cls: "bars-lbl" }, [el("span", { text: "il y a 4 sem." }), el("span", { text: "aujourd'hui" })])]);
+    return el("div", null, [b, el("div", { cls: "bars-lbl" }, [el("span", { text: lbl ? lbl[0] : "il y a 4 sem." }), el("span", { text: lbl ? lbl[1] : "aujourd'hui" })])]);
   }
   function meter(p, c) { var m = el("div", { cls: "meter", title: p + " %", style: c ? hue(c) : "" }), i = el("i"); m.append(i); later(function () { i.style.width = Math.max(0, Math.min(100, p)) + "%"; }); return m; }
   function tabcode(c) { return el("span", { cls: "tabcode", style: hue(c), text: LBL[catOf(c)] || String(c).split(" ")[0].toUpperCase() }); }
@@ -508,6 +522,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
   function errView(e) { setView([el("div", { cls: "card" }, [el("p", { cls: "err", text: e.message })])]); }
 
   async function call(url, body) {
+    if (GROUP && /\/api\/admin\/(stats|students|insights)$/.test(url) && !(body && body.id)) body = Object.assign({ groupe: GROUP }, body || {});
     var r = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "x-admin-key": KEY }, body: JSON.stringify(body || {}) });
     var j = await r.json().catch(function () { return {}; });
     if (r.status === 403 && /Clé/.test(j.error || "")) { lockScreen(j.error); throw new Error(j.error); }
@@ -662,7 +677,8 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         watch.length ? T("p", { cls: "note", text: "À surveiller : " + watch.map(function (s) { return s.name + " (" + (!s.jours7 ? "inactif cette semaine" : "réussite " + s.reussite + " %") + ")"; }).join(", ") + "." }) : null]));
       if (u) parts.push(T("section", null, [T("h2", { text: "Usage des outils, semaine " + weekLbl(u.debut) }), table(["Outil", "Élèves cette semaine", "Volume", "Déjà essayé"], u.features.map(function (x) { return [x.nom, x.eleves + " / " + u.eleves, x.eleves ? (x.k === "plan" ? "avancé à " + Math.round(x.total / x.eleves) + " %" : funit(x.k, x.total)) : "—", x.deja]; }), [1, 3])]));
       if (j.ratees.length) parts.push(T("section", null, [T("h2", { text: "Questions les plus ratées (à revoir en classe)" }), table(["Matière", "Chapitre", "Question", "Élèves", "Réussite"], j.ratees.slice(0, 15).map(function (r) { return [LBL[catOf(r.c)] || r.c, r.ch || "", r.q || r.id, r.eleves, pctCell(r.reussite, rCls(r.reussite))]; }), [3])]));
-      printDoc("Bilan classe " + isoDay(), "Bilan de la classe", "BTS CG · " + todayLong(), parts);
+      var gl = GROUP ? (GROUP === "none" ? "Élèves sans classe" : gName(GROUP)) : "";
+      printDoc("Bilan " + (gl ? slug(gl) : "classe") + " " + isoDay(), gl ? "Bilan · " + gl : "Bilan de la classe", "BTS CG · " + todayLong(), parts);
     } catch (e) { toast(e.message || "Export impossible"); }
   }
   async function exportClassCsv() {
@@ -670,9 +686,11 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       var j = await stats(), st = await students(), u = j.usage || { features: [], parEleve: [] }, by = {};
       u.parEleve.forEach(function (p) { by[p.id] = p.f; });
       var head = ["Élève", "Inscrit le", "Dernière activité", "Niveau", "XP", "Série (jours)", "Jours actifs / 7", "Jours actifs / 30", "Réponses aux quiz", "Réussite (%)", "Questions acquises", "Cahier d'erreurs", "Classement", "Rappels", "Suspendu"].concat(u.features.map(function (x) { return x.k === "plan" ? "Plan de la semaine (% fait)" : x.nom + " · semaine"; }));
-      var rows = st.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "fr"); }).map(function (s) { var f = by[s.id] || {};
+      var sorted = st.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "fr"); });
+      var rows = sorted.map(function (s) { var f = by[s.id] || {};
         return [s.name, s.created ? new Date(s.created).toLocaleDateString("fr-FR") : "", s.updated ? new Date(s.updated).toLocaleDateString("fr-FR") : "", s.niveau, s.xp, s.serie, s.jours7, s.jours30, s.reponses, s.reussite == null ? "" : s.reussite, s.acquises, s.aRevoir, s.classement ? "oui" : "non", s.rappels ? "oui" : "non", s.blocked ? "oui" : "non"].concat(u.features.map(function (x) { return f[x.k] || 0; })); });
-      csvDownload("GL-classe-" + isoDay() + ".csv", head, rows);
+      head.splice(1, 0, "Classe"); rows.forEach(function (r, i) { r.splice(1, 0, gName(sorted[i].groupe) || ""); });
+      csvDownload("GL-" + (GROUP && GROUP !== "none" ? slug(gName(GROUP)) : "classe") + "-" + isoDay() + ".csv", head, rows);
     } catch (e) { toast(e.message || "Export impossible"); }
   }
   function exportStudentPdf(s) {
@@ -686,9 +704,106 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     printDoc("Bilan " + slug(s.name) + " " + isoDay(), "Bilan de " + s.name, "Inscrit le " + day(s.created) + " · dernière activité " + (s.updated ? day(s.updated) : "—") + " · " + todayLong(), parts);
   }
 
+  /* ---------- Classes (groupes) ---------- */
+  try { GROUP = localStorage.getItem("gl-admin-group") || ""; } catch (e) {}
+  async function groupsLoad(force) { if (force || !GROUPS) GROUPS = await call("/api/admin/groups", { action: "list" }); return GROUPS; }
+  function gName(id) { var g = GROUPS && GROUPS.groupes.find(function (x) { return x.id === id; }); return g ? g.name : ""; }
+  function setGroup(g) { GROUP = g; try { localStorage.setItem("gl-admin-group", g); } catch (e) {} CACHE = {}; buzz(6); show(TAB, true); }
+  function groupBar() {
+    var gs = (GROUPS && GROUPS.groupes) || [];
+    if (GROUP && GROUP !== "none" && !gs.some(function (g) { return g.id === GROUP; })) GROUP = "";
+    var sel = el("select", { cls: "in", "aria-label": "Classe affichée", onchange: function (e) { setGroup(e.target.value); } },
+      [el("option", { value: "", text: "Toutes les classes" })].concat(gs.map(function (g) { return el("option", { value: g.id, text: g.name + " (" + g.n + ")" }); }), gs.length ? [el("option", { value: "none", text: "Sans classe" })] : []));
+    sel.value = GROUP;
+    return el("div", { cls: "gbar" }, [gs.length ? sel : el("span", { cls: "muted small", style: "flex:1", text: "Regroupe tes élèves par classe pour suivre chaque groupe à part." }), el("button", { cls: "btn small", html: I.users + (gs.length ? "Classes" : "Créer une classe"), onclick: manageGroups })]);
+  }
+  function manageGroups() {
+    var S = openSheet("Classes");
+    async function act(body, done) { try { GROUPS = await call("/api/admin/groups", body); CACHE = {}; if (done) done(); draw(); } catch (e) { toast(e.message); } }
+    function draw() {
+      var gs = GROUPS.groupes, nm = el("input", { cls: "in", placeholder: "Nom de la classe (ex. BTS CG 1 – 2026)", maxlength: "40" });
+      var out = [el("p", { cls: "muted small", text: "Chaque classe a un code. L'élève le tape dans l'appli (Profil › Compte › Ma classe) et apparaît ici. Tu peux aussi ranger un élève depuis sa fiche." })];
+      gs.forEach(function (g) {
+        out.push(el("div", { cls: "gcard" + (g.closed ? " off" : "") }, [
+          el("div", { cls: "card-h" }, [el("b", { text: g.name }), el("span", { cls: "pill", text: pl(g.n, "élève") })]),
+          el("div", { cls: "row", style: "justify-content:space-between;align-items:center" }, [el("span", { cls: "gcode", text: g.code }), el("button", { cls: "btn small", text: "Copier", onclick: function () { try { navigator.clipboard.writeText(g.code); toast("Code copié : " + g.code); } catch (e) { toast(g.code); } } })]),
+          g.closed ? el("p", { cls: "muted small", text: "Inscriptions fermées : le code ne marche plus." }) : null,
+          el("div", { cls: "xrow" }, [
+            el("button", { cls: "btn small", text: "Renommer", onclick: function (ev) { var card = ev.target.closest(".gcard"), inp = el("input", { cls: "in", value: g.name, maxlength: "40", "aria-label": "Nouveau nom" }); var f = el("form", { cls: "xrow", onsubmit: function (e) { e.preventDefault(); if (inp.value.trim()) act({ action: "rename", id: g.id, name: inp.value.trim() }); } }, [inp, el("button", { cls: "btn small primary", type: "submit", text: "OK" })]); card.replaceChild(f, card.firstChild); inp.focus(); inp.select(); } }),
+            el("button", { cls: "btn small", text: "Nouveau code", onclick: function () { askConfirm("Changer le code ?", "L'ancien code ne marchera plus. Les élèves déjà inscrits restent dans la classe.", "Changer", I.key, false, function () { act({ action: "code", id: g.id }); }); } }),
+            el("button", { cls: "btn small", text: g.closed ? "Rouvrir" : "Fermer", onclick: function () { act({ action: "close", id: g.id }); } }),
+            el("button", { cls: "btn small danger", text: "Supprimer", onclick: function () { askConfirm("Supprimer « " + g.name + " » ?", "Les élèves ne sont pas supprimés : ils redeviennent « sans classe ».", "Supprimer", I.alert, true, function () { if (GROUP === g.id) GROUP = ""; act({ action: "delete", id: g.id }); }); } })
+          ])]));
+      });
+      out.push(el("form", { cls: "card", style: "box-shadow:none", onsubmit: function (e) { e.preventDefault(); if (!nm.value.trim()) return nm.focus(); act({ action: "create", name: nm.value.trim() }, function () { tone("ok"); toast("Classe créée"); }); } }, [el("h3", { text: "Nouvelle classe" }), nm, el("button", { cls: "btn primary", type: "submit", html: I.plus + "Créer" })]));
+      S.body.replaceChildren.apply(S.body, out);
+    }
+    groupsLoad(true).then(draw).catch(function (e) { S.body.replaceChildren(el("p", { cls: "err", text: e.message })); });
+    var obs = new MutationObserver(function () { if (!document.body.contains(S.body)) { obs.disconnect(); show(TAB, true); } }); obs.observe(document.body, { childList: true });
+  }
+
+  /* ---------- Analyse (onglet Classe › Analyse) ---------- */
+  function wkLbl(debut) { return new Date(debut * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", day: "numeric", month: "short" }); }
+  function delta(a, b, unit) { if (a == null || b == null) return null; var d = Math.round((a - b) * 10) / 10; if (!d) return el("small", { cls: "muted", text: "= sem. passée" }); return el("small", { cls: d > 0 ? "up" : "down", text: (d > 0 ? "▲ +" : "▼ ") + d + (unit || "") + " vs sem. passée" }); }
+  async function vAnalyse(head, force) {
+    try {
+      if (force || !CACHE.ins) CACHE.ins = await call("/api/admin/insights");
+      var j = CACHE.ins, out = head, S = j.semaines, cur = S[S.length - 1], prev = S[S.length - 2];
+      if (!j.eleves) { out.push(el("div", { cls: "card" }, [el("p", { cls: "empty", text: "Aucun élève dans cette sélection." })])); if (TAB === "classe" && CVIEW === "analyse") setView(out); return; }
+      /* Tendances */
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Élèves actifs par semaine" }), el("span", { cls: "muted small", text: "12 semaines" })]),
+        bars(S.map(function (x) { return x.actifs; }), function (i, v) { return "Semaine du " + wkLbl(S[i].debut) + " : " + pl(v, "élève") + " sur " + S[i].inscrits + " · " + S[i].jours + " j de révision en moyenne"; }, ["sem. du " + wkLbl(S[0].debut), "cette semaine", "Élèves actifs sur 12 semaines"]),
+        el("div", { cls: "trend" }, [
+          el("div", null, [el("span", { text: "Actifs cette semaine" }), el("b", { text: cur.actifs + " / " + cur.inscrits }), delta(cur.actifs, prev.actifs)]),
+          el("div", null, [el("span", { text: "Jours de révision / actif" }), el("b", { text: String(cur.jours).replace(".", ",") }), delta(cur.jours, prev.jours, " j")]),
+          el("div", null, [el("span", { text: "Nouveaux inscrits" }), el("b", { text: String(cur.nouveaux) }), el("small", { cls: "muted", text: S.reduce(function (t, x) { return t + x.nouveaux; }, 0) + " sur 12 sem." })])
+        ]),
+        cur.reponses != null ? el("p", { cls: "muted small", style: "margin:8px 0 0", text: "Cette semaine : " + pl(cur.reponses, "réponse") + " aux quiz" + (cur.reussite != null ? ", " + cur.reussite + " % de réussite" : "") + "." }) : el("p", { cls: "muted small", style: "margin:8px 0 0", text: "Le détail des réponses semaine par semaine s'enregistre depuis " + (j.historique ? pl(j.historique, "semaine") : "maintenant") + " : il se complète au fil des semaines." })
+      ]));
+      /* Régularité */
+      var R = j.regularite, tot = R.reduce(function (a, b) { return a + b; }, 0) || 1, RC = ["var(--rule-strong)", "#e0a31f", "#4f7bd9", "var(--ok)"], RN = ["Pas venus (7 j)", "1 à 2 jours", "3 à 4 jours", "5 à 7 jours"];
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Régularité" }), el("span", { cls: "muted small", text: "jours de révision sur 7 jours" })]),
+        el("div", { cls: "regbar", role: "img", "aria-label": RN.map(function (n, i) { return n + " : " + R[i]; }).join(", ") }, R.map(function (v, i) { return el("i", { style: "width:" + (v / tot * 100) + "%;background:" + RC[i] }); })),
+        el("div", { cls: "reglg" }, R.map(function (v, i) { return el("span", null, [el("em", { style: "background:" + RC[i] }), RN[i], el("b", { text: String(v) })]); }))]));
+      /* Décrochage */
+      var dc = el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Ont décroché" }), el("span", { cls: j.decroche.length ? "pill warn" : "pill ok", text: j.decroche.length ? String(j.decroche.length) : "personne" })]), el("p", { cls: "muted small", text: "Venaient régulièrement, plus rien depuis 10 jours ou plus. C'est le bon moment pour les relancer." })]);
+      j.decroche.slice(0, 8).forEach(function (x) { dc.append(el("button", { cls: "watch", onclick: function () { openStudent(x.id, x.name); } }, [avatar(x.name), el("span", null, [el("b", { text: x.name }), el("br"), el("span", { cls: "muted small", text: "Dernière visite " + new Date(x.dernier * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", day: "numeric", month: "short" }) + " · " + x.avant + " j actifs avant" })]), el("span", { cls: "pill", text: "À relancer" })])); });
+      out.push(dc);
+      /* Fidélité */
+      if (j.cohortes.length) {
+        var col = function (v) { return v == null ? "" : "background:color-mix(in srgb,var(--accent) " + Math.round(10 + v * .7) + "%,transparent);color:" + (v >= 55 ? "#fff" : "var(--ink)"); };
+        out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Fidélité des nouveaux" }), el("span", { cls: "muted small", text: "reviennent après l'inscription" })]),
+          el("div", { style: "overflow-x:auto" }, [el("table", { cls: "coh" }, [el("thead", null, [el("tr", null, ["Inscrits sem. du", "S+1", "S+2", "S+3", "S+4"].map(function (h) { return el("th", { text: h }); }))]),
+            el("tbody", null, j.cohortes.map(function (c) { return el("tr", null, [el("td", null, [wkLbl(c.debut) + " ", el("span", { cls: "muted", text: "(" + c.n + ")" })])].concat(c.r.map(function (v) { return el("td", { style: col(v), text: v == null ? "·" : v + " %" }); }))); }))])]),
+          el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Exemple : 60 % en S+1 = 6 inscrits sur 10 ont révisé la semaine suivant leur inscription." })]));
+      }
+      /* Chapitres */
+      var chs = j.chapitres.filter(function (c) { return c.eleves > 0; }), mode = "reprendre", all = false;
+      var box = el("div"), segc = el("div", { cls: "seg", role: "group" }, [["reprendre", "À reprendre"], ["matiere", "Par matière"], ["jamais", "Pas encore vus"]].map(function (o) { return el("button", { "aria-pressed": String(o[0] === mode), text: o[1], onclick: function () { mode = o[0]; all = false; segc.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.textContent === o[1])); }); drawCh(); } }); }));
+      function drawCh() {
+        var L = mode === "jamais" ? j.chapitres.filter(function (c) { return !c.eleves; }) : mode === "reprendre" ? chs.filter(function (c) { return c.reponses >= 3; }).sort(function (a, b) { return a.reussite - b.reussite || a.maitrise - b.maitrise; }) : chs.slice();
+        var shown = all ? L : L.slice(0, 12);
+        box.replaceChildren.apply(box, shown.length ? shown.map(function (c) {
+          return el("div", { cls: "chrow" }, [tabcode(c.c), el("span", { cls: "t", text: c.t }), mode === "jamais" ? el("small", { text: c.questions + " q." }) : el("span", { cls: "pill " + (c.reussite >= 70 ? "ok" : c.reussite >= 55 ? "warn" : "bad"), text: c.reussite + " %" }),
+            mode === "jamais" ? null : el("div", { cls: "mt" }, [meter(c.maitrise, c.c), el("small", { text: c.maitrise + " % acquis · " + c.eleves + " él. (" + c.couverture + " %)" })])]);
+        }).concat(L.length > 12 ? [el("button", { cls: "btn small", style: "margin-top:8px", text: all ? "Réduire" : "Voir les " + L.length, onclick: function () { all = !all; drawCh(); } })] : []) : [el("p", { cls: "empty", text: mode === "jamais" ? "Tous les chapitres ont déjà été travaillés." : "Pas encore assez de réponses." })]);
+      }
+      drawCh();
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Maîtrise par chapitre" }), el("span", { cls: "muted small", text: chs.length + " / " + j.chapitres.length + " travaillés" })]), el("div", { style: "overflow-x:auto" }, [segc]),
+        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz, part des questions acquises par les élèves qui ont travaillé le chapitre, et combien de la classe l'a abordé." }), box]));
+      if (TAB === "classe" && CVIEW === "analyse") setView(out);
+    } catch (e) { errView(e); }
+  }
+
   /* ---------- Classe ---------- */
+  function classeHead() {
+    var sw2 = el("div", { cls: "seg", role: "group", "aria-label": "Vue" }, [["apercu", "Aperçu"], ["analyse", "Analyse"]].map(function (o) { return el("button", { "aria-pressed": String(CVIEW === o[0]), text: o[1], onclick: function () { if (CVIEW === o[0]) return; CVIEW = o[0]; buzz(6); tone("tap"); show("classe", true); } }); }));
+    return [el("div", { cls: "cview" }, [sw2, GROUP ? el("span", { cls: "pill", text: GROUP === "none" ? "Sans classe" : gName(GROUP) }) : null]), groupBar()];
+  }
   async function vClasse(force) {
-    if (!CACHE.stats) busy();
+    if (!CACHE.stats && !CACHE.ins) busy();
+    try { await groupsLoad(force); } catch (e) {}
+    if (CVIEW === "analyse") return vAnalyse(classeHead(), force);
     try {
       var j = await stats(force), st = await students(force);
       var tot = j.matieres.reduce(function (a, m) { return a + m.reponses; }, 0), ok = j.matieres.reduce(function (a, m) { return a + m.reponses * m.reussite / 100; }, 0);
@@ -697,7 +812,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         el("div", null, [el("p", { cls: "eyebrow", style: "color:#ffd27a", text: "La classe cette semaine" }), el("h2", { text: j.actifs.jour ? pl(j.actifs.jour, "élève") + " " + (j.actifs.jour > 1 ? "ont" : "a") + " révisé aujourd'hui" : "Personne n'a encore révisé aujourd'hui" })]),
         el("div", { cls: "rings" }, [ring(actRate, "actifs sur 7 jours", j.actifs.semaine + " / " + j.eleves, true), ring(moy, "réussite moyenne aux quiz", pl(tot, "réponse"), true)])
       ]);
-      var out = [hero, el("div", { cls: "kpis" }, [kpi(j.eleves, "élèves inscrits", "users"), kpi(j.actifs.jour, "actifs aujourd'hui", "bolt"), kpi(j.actifs.mois, "actifs sur 30 jours", "eye"), kpi(j.signalements, "signalements à traiter", "flag", "", j.signalements ? "alert" : "good")])];
+      var out = classeHead().concat([hero, el("div", { cls: "kpis" }, [kpi(j.eleves, "élèves inscrits", "users"), kpi(j.actifs.jour, "actifs aujourd'hui", "bolt"), kpi(j.actifs.mois, "actifs sur 30 jours", "eye"), kpi(j.signalements, "signalements à traiter", "flag", "", j.signalements ? "alert" : "good")])]);
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Élèves actifs par jour" }), el("span", { cls: "muted small", text: "4 semaines" })]), bars(j.jours.map(function (x) { return x.n; }), function (i, v) { return new Date(j.jours[i].dn * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) + " : " + pl(v, "élève"); })]));
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Exporter pour le prof" }), el("span", { cls: "muted small", text: "bilan à transmettre" })]),
         el("div", { cls: "xrow" }, [el("button", { cls: "btn primary small", html: I.dl + "Bilan PDF", onclick: exportClassPdf }), el("button", { cls: "btn small", html: I.dl + "Tableau Excel", onclick: exportClassCsv })]),
@@ -743,6 +858,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
   }
   async function vEleves(force) {
     if (!CACHE.st) busy();
+    try { await groupsLoad(force); } catch (e) {}
     try {
       var all = await students(force), list = el("div", { cls: "list" });
       function draw() {
@@ -759,7 +875,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       }));
       var search = el("div", { cls: "searchbar" }, [el("span", { html: I.search }), el("input", { cls: "in", type: "search", placeholder: "Rechercher un élève", "aria-label": "Rechercher un élève", value: SEARCH, oninput: function (ev) { SEARCH = ev.target.value.trim().toLowerCase(); draw(); } })]);
       var act = all.filter(function (s) { return s.jours7 > 0; }).length;
-      setView([el("div", { cls: "sec-head" }, [el("h2", { text: "Élèves" }), el("p", { text: pl(all.length, "inscrit") + " · " + pl(act, "actif") + " cette semaine" })]), search, chips, el("div", { style: "overflow-x:auto" }, [sorts]), list]);
+      setView([el("div", { cls: "sec-head" }, [el("h2", { text: "Élèves" + (GROUP ? " · " + (GROUP === "none" ? "sans classe" : gName(GROUP)) : "") }), el("p", { text: pl(all.length, "inscrit") + " · " + pl(act, "actif") + " cette semaine" })]), groupBar(), search, chips, el("div", { style: "overflow-x:auto" }, [sorts]), list]);
       draw();
     } catch (e) { errView(e); }
   }
@@ -829,6 +945,26 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         return el("div", { cls: "ftile " + (on ? "on" : "off") }, [el("span", { text: (FEMO[x.k] || "") + " " + x.nom }), el("b", { text: on ? x.semaine + (x.k === "plan" ? " %" : "") : "—" }), el("small", { text: x.k === "plan" ? (on ? "du plan fait" : x.deja ? "suivi les semaines passées" : "pas encore suivi") : on ? funit(x.k, x.semaine).replace(/^\d+ /, "") : x.deja ? "déjà essayé avant" : "jamais essayé" })]);
       }))]));
       if (s.controles.length) out.push(el("div", { cls: "card" }, [el("h3", { text: "Contrôles préparés" })].concat(s.controles.map(function (c) { return el("div", { cls: "mrow" }, [tabcode(c.c), el("span", { cls: "small", text: (c.nom || "Contrôle") + (c.date ? " · " + new Date(c.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "") }), el("span", { cls: "pill" + (c.dernier >= 70 ? " ok" : c.dernier == null ? "" : " warn"), text: c.dernier == null ? "pas de blanc" : "blanc " + c.dernier + " %" })]); }))));
+      if (s.semaines) {
+        var ev = el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Évolution" }), el("span", { cls: "muted small", text: "12 semaines" })]),
+          bars(s.semaines.map(function (x) { return x.jours; }), function (i, v) { return "Semaine du " + wkLbl(s.semaines[i].debut) + " : " + pl(v, "jour") + " de révision"; }, ["sem. du " + wkLbl(s.semaines[0].debut), "cette semaine", "Jours de révision par semaine"])]);
+        var E = s.evolution || [];
+        if (E.length >= 2) {
+          var a = E[E.length - 2], b = E[E.length - 1];
+          ev.append(el("div", { cls: "trend" }, [
+            el("div", null, [el("span", { text: "XP" }), el("b", { text: b.xp.toLocaleString("fr-FR") }), delta(b.xp, a.xp)]),
+            el("div", null, [el("span", { text: "Réussite globale" }), el("b", { text: b.reussite == null ? "—" : b.reussite + " %" }), delta(b.reussite, a.reussite, " pt")]),
+            el("div", null, [el("span", { text: "Questions acquises" }), el("b", { text: String(b.acquises) }), delta(b.acquises, a.acquises)])]));
+        } else ev.append(el("p", { cls: "muted small", style: "margin:8px 0 0", text: "L'évolution de l'XP, de la réussite et des questions acquises apparaîtra ici à partir de la semaine prochaine (une photo est prise chaque semaine)." }));
+        out.push(ev);
+      }
+      try { await groupsLoad(); } catch (e) {}
+      if (GROUPS) {
+        var gsel = el("select", { cls: "in", "aria-label": "Classe de l'élève", onchange: async function (e) { try { GROUPS = await call("/api/admin/groups", { action: "assign", uid: s.id, id: e.target.value }); CACHE = {}; s.groupe = e.target.value || null; tone("ok"); toast(e.target.value ? s.name + " ajouté à " + gName(e.target.value) : s.name + " n'a plus de classe"); } catch (x) { toast(x.message); } } },
+          [el("option", { value: "", text: "Sans classe" })].concat(GROUPS.groupes.map(function (g) { return el("option", { value: g.id, text: g.name }); })));
+        gsel.value = s.groupe || "";
+        out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Classe" }), el("button", { cls: "btn small", text: "Gérer", onclick: function () { S.close(); setTimeout(manageGroups, 400); } })]), GROUPS.groupes.length ? gsel : el("p", { cls: "muted small", text: "Aucune classe créée pour l'instant." })]));
+      }
       out.push(el("button", { cls: "btn", html: I.dl + "Exporter sa fiche en PDF", onclick: function () { exportStudentPdf(s); } }));
       out.push(el("p", { cls: "muted small", style: "text-align:center", text: "Rappels " + (s.rappels ? "activés" : "désactivés") + " · " + pl(s.lecons, "leçon lue", "leçons lues") + " · " + pl(s.cartes, "carte maîtrisée", "cartes maîtrisées") }));
       out.push(actions(s, S));

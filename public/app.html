@@ -151,6 +151,7 @@
     d.innerHTML = '<div class="gl-acc-row"><div><b>Mon compte</b><p class="muted" style="margin:.2em 0 0">Compte : <b class="gl-name"></b>. Ta progression est enregistrée sur ce compte et te suit sur tous tes appareils.</p></div>' +
       '<div class="gl-acc-btns"><button class="btn" type="button" data-gl="pw">Changer de mot de passe</button><button class="btn" type="button" data-gl="inst" hidden>Installer l\'appli</button><button class="btn" type="button" data-gl="out">Se déconnecter</button></div></div>' +
       '<form class="gl-pw" hidden><label>Mot de passe actuel<input type="password" name="old" autocomplete="current-password"></label><label>Nouveau mot de passe<input type="password" name="password" autocomplete="new-password" minlength="6"></label><div class="gl-acc-btns"><button class="btn primary" type="submit">Enregistrer</button></div><p class="gl-msg muted" role="status"></p></form>' +
+      '<div class="gl-sep"></div><div class="gl-acc-row"><div><b>Ma classe</b><p class="muted gl-grp-txt" style="margin:.2em 0 0">…</p></div><form class="gl-acc-btns gl-grp-f"></form></div><p class="gl-msg muted gl-grp-msg" role="status"></p>' +
       '<div class="gl-sep"></div><div class="gl-acc-row gl-push"><div><b>Rappel quotidien</b><p class="muted gl-push-txt" style="margin:.2em 0 0">Une notification par jour quand des cartes ou des questions t\'attendent, sauf si tu as déjà révisé.</p></div>' +
       '<div class="gl-acc-btns"><select class="gl-hour" aria-label="Heure du rappel">' + hours(18) + '</select><button class="btn" type="button" data-gl="push">Activer</button><button class="btn" type="button" data-gl="ptest" hidden>Tester</button></div></div><p class="gl-msg muted gl-push-msg" role="status"></p>' +
       '<div class="gl-sep"></div><div class="gl-acc-row"><div><b>Mes données</b><p class="muted" style="margin:.2em 0 0">Tout ce que le site garde sur toi, dans un fichier.</p></div><div class="gl-acc-btns"><a class="btn" href="/api/account/export" download>Télécharger mes données</a></div></div>' +
@@ -158,6 +159,22 @@
       '<form class="gl-del" hidden><p><b>C\'est définitif.</b> Ta progression ne pourra pas être récupérée. Pense à télécharger une sauvegarde avant si tu veux la garder.</p><label>Ton mot de passe pour confirmer<input type="password" name="password" autocomplete="current-password" required></label><div class="gl-acc-btns"><button class="btn" type="button" data-gl="delno">Annuler</button><button class="btn gl-danger" type="submit">Supprimer définitivement</button></div><p class="gl-msg" role="alert"></p></form>' +
       '<p class="gl-legal"><a href="/mentions-legales">Mentions légales et conditions d\'utilisation</a><a href="/confidentialite">Confidentialité</a></p>';
     d.querySelector(".gl-name").textContent = ME.name;
+    var gt = d.querySelector(".gl-grp-txt"), gf = d.querySelector(".gl-grp-f"), gmsg = d.querySelector(".gl-grp-msg");
+    function grpUi(g) {
+      gf.innerHTML = "";
+      if (g) {
+        gt.innerHTML = 'Tu es dans la classe <b></b>. Ton prof voit ta progression (pas tes réponses une à une).'; gt.querySelector("b").textContent = g.name;
+        var q = document.createElement("button"); q.type = "button"; q.className = "btn"; q.textContent = "Quitter la classe"; gf.appendChild(q);
+        q.addEventListener("click", function () { var go = async function () { try { grpUi((await api("POST", "/api/group/leave", {})).groupe); gmsg.textContent = "Tu as quitté la classe."; } catch (x) { gmsg.textContent = x.message || "Impossible pour l'instant."; } }; if (typeof askConfirm === "function") askConfirm("Quitter la classe ?", "Ton prof ne verra plus ta progression. Tu pourras revenir avec le code.", "Quitter").then(function (ok) { if (ok) go(); }); else go(); });
+      } else {
+        gt.textContent = "Ton prof t'a donné un code ? Entre-le pour rejoindre ta classe.";
+        var i = document.createElement("input"); i.name = "code"; i.placeholder = "Code (6 caractères)"; i.maxLength = 8; i.autocomplete = "off"; i.setAttribute("autocapitalize", "characters"); i.className = "gl-hour"; i.style.textTransform = "uppercase"; i.style.width = "11em"; i.setAttribute("aria-label", "Code de la classe");
+        var b = document.createElement("button"); b.type = "submit"; b.className = "btn"; b.textContent = "Rejoindre";
+        gf.appendChild(i); gf.appendChild(b);
+      }
+    }
+    gf.addEventListener("submit", async function (e) { e.preventDefault(); var c = gf.code && gf.code.value.trim(); if (!c) return; gmsg.textContent = ""; try { var g = (await api("POST", "/api/group/join", { code: c })).groupe; grpUi(g); gmsg.textContent = "Bienvenue dans la classe « " + g.name + " » !"; } catch (x) { gmsg.textContent = x.message || "Code refusé."; } });
+    api("GET", "/api/group").then(function (j) { grpUi(j.groupe); }).catch(function () { gt.textContent = "Indisponible hors connexion."; });
     if (window.GLInstall && window.GLInstall.available) d.querySelector('[data-gl="inst"]').hidden = false;
     var pb = d.querySelector('[data-gl="push"]'), pt = d.querySelector('[data-gl="ptest"]'), pm = d.querySelector(".gl-push-msg"), hs = d.querySelector(".gl-hour");
     function pushUi(h) { var on = h != null; pb.textContent = on ? "Désactiver" : "Activer"; pb.dataset.on = on ? "1" : ""; pt.hidden = !on; if (on) hs.value = String(h); }

@@ -661,7 +661,7 @@ const CRON_KEY = process.env.CRON_KEY || "";
 app.post("/api/cron/tick", async (req, res, next) => {
   try {
     if (!CRON_KEY || String(req.headers["x-cron-key"] || "") !== CRON_KEY) return res.status(403).json({ error: "Clé de tâche planifiée incorrecte (variable CRON_KEY)." });
-    await pushTick(); const saved = await dailyBackup(false);
+    await pushTick(); const saved = await dailyBackup(false); await snapWeek(true).catch(e => console.error("photo de la semaine :", e.message));
     res.json({ ok: true, backup: saved ? "faite" : "déjà faite aujourd'hui", at: new Date().toISOString() });
   } catch (e) { next(e); }
 });
@@ -798,7 +798,7 @@ app.post("/api/admin/stats", async (req, res, next) => {
   try {
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
-    const t = parisNow(), rows = await store.fullProgress();
+    const t = parisNow(), rows = await scoped(req, await store.fullProgress());
     const act = n => rows.filter(r => r.data && Object.keys(r.data.h || {}).some(k => +k > t.dayNum - n)).length;
     const cat = {}, miss = {}, days = {};
     rows.forEach(r => {
@@ -850,6 +850,103 @@ async function duelsWeek(w) {
   for (const x of await store.duelsSince(since)) [x.a, x.b].forEach(p => { if (p && p.id && p.done) n[p.id] = (n[p.id] || 0) + 1; });
   return n;
 }
+/* ---------- Classes (groupes) : un code à donner aux élèves, un filtre dans GL Admin ---------- */
+async function groupsGet() { try { return JSON.parse(await store.getSetting("groups") || "[]"); } catch (e) { return []; } }
+async function gmGet() { try { return JSON.parse(await store.getSetting("gm") || "{}"); } catch (e) { return {}; } }
+const GCH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function gCode(taken) { let c; do { c = Array.from(crypto.randomBytes(6), b => GCH[b % GCH.length]).join(""); } while (taken.includes(c)); return c; }
+/* Filtre « classe » commun à toutes les vues de GL Admin : "" = tout le monde, "none" = sans classe, sinon l'id du groupe */
+async function scoped(req, rows) {
+  const g = String((req.body && req.body.groupe) || ""); if (!g) return rows;
+  const gm = await gmGet(); return rows.filter(r => g === "none" ? !gm[r.id] : gm[r.id] === g);
+}
+app.get("/api/group", auth, async (req, res, next) => {
+  try { const gm = await gmGet(), g = (await groupsGet()).find(x => x.id === gm[req.user.id]); res.json({ groupe: g ? { name: g.name } : null }); } catch (e) { next(e); }
+});
+app.post("/api/group/join", auth, async (req, res, next) => {
+  try {
+    if (limited("gj:" + req.user.id, 10, 3600e3)) return res.status(429).json({ error: "Trop d'essais. Réessaie dans un moment." });
+    const code = String((req.body || {}).code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const g = (await groupsGet()).find(x => x.code === code && !x.closed);
+    if (!g) return res.status(404).json({ error: "Code inconnu. Vérifie-le auprès de ton prof." });
+    const gm = await gmGet(); gm[req.user.id] = g.id; await store.setSetting("gm", JSON.stringify(gm));
+    res.json({ groupe: { name: g.name } });
+  } catch (e) { next(e); }
+});
+app.post("/api/group/leave", auth, async (req, res, next) => {
+  try { const gm = await gmGet(); delete gm[req.user.id]; await store.setSetting("gm", JSON.stringify(gm)); res.json({ groupe: null }); } catch (e) { next(e); }
+});
+app.post("/api/admin/groups", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    let gs = await groupsGet(), gm = await gmGet(); const b = req.body || {}, act = b.action || "list", name = cleanName(b.name || "").slice(0, 40);
+    if (act === "create") { if (!name) return res.status(400).json({ error: "Donne un nom à la classe." }); gs.push({ id: crypto.randomBytes(6).toString("hex"), name, code: gCode(gs.map(x => x.code)), created: Date.now() }); }
+    else if (act === "rename") { const g = gs.find(x => x.id === b.id); if (!g || !name) return res.status(400).json({ error: "Nom invalide." }); g.name = name; }
+    else if (act === "code") { const g = gs.find(x => x.id === b.id); if (!g) return res.status(404).json({ error: "Classe introuvable." }); g.code = gCode(gs.map(x => x.code)); }
+    else if (act === "close") { const g = gs.find(x => x.id === b.id); if (!g) return res.status(404).json({ error: "Classe introuvable." }); g.closed = !g.closed; }
+    else if (act === "delete") { gs = gs.filter(x => x.id !== b.id); Object.keys(gm).forEach(k => { if (gm[k] === b.id) delete gm[k]; }); }
+    else if (act === "assign") { const uid = String(b.uid || ""); if (!(await store.userById(uid))) return res.status(404).json({ error: "Élève introuvable." }); if (b.id && !gs.some(x => x.id === b.id)) return res.status(404).json({ error: "Classe introuvable." }); if (b.id) gm[uid] = b.id; else delete gm[uid]; }
+    else if (act !== "list") return res.status(400).json({ error: "Action inconnue." });
+    if (act !== "list") { await store.setSetting("groups", JSON.stringify(gs)); await store.setSetting("gm", JSON.stringify(gm)); }
+    const n = {}; Object.values(gm).forEach(g => { n[g] = (n[g] || 0) + 1; });
+    res.json({ groupes: gs.map(g => Object.assign({}, g, { n: n[g.id] || 0 })), membres: gm });
+  } catch (e) { next(e); }
+});
+
+/* ---------- Historique : une photo par semaine de chaque élève (gardée même quand le journal de l'appli repart à zéro) ---------- */
+function qTot(d) { let rep = 0, ok = 0, acq = 0; for (const [id, a] of Object.entries((d && d.q) || {})) { if (!Array.isArray(a)) continue; rep += a[0] || 0; ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; } return { rep, ok, acq }; }
+let SNAP_AT = 0;
+async function snapWeek(force) {
+  if (!force && Date.now() - SNAP_AT < 10 * 60e3) return; SNAP_AT = Date.now();
+  const dn = parisNow().dayNum, w = weekOf(dn), d0 = w * 7 - 3, rows = await store.fullProgress(), dw = await duelsWeek(w), el = {};
+  for (const r of rows) {
+    const d = r.data; if (!d) continue; const t = qTot(d), h = d.h || {};
+    el[r.id] = { xp: d.xp || 0, rep: t.rep, ok: t.ok, acq: t.acq, j: Object.keys(h).filter(k => +k >= d0 && +k < d0 + 7).length, f: featWeek(d, w, dw[r.id]) };
+  }
+  await store.setSetting("wk:" + String(w).padStart(6, "0"), JSON.stringify({ w, at: Date.now(), el }));
+}
+async function snaps(n) { const all = await store.settingsLike("wk:"); return all.slice(-n).map(x => { try { return JSON.parse(x.v); } catch (e) { return null; } }).filter(Boolean); }
+
+/* ---------- Analyse : tendances, fidélité, décrochage, maîtrise par chapitre ---------- */
+app.post("/api/admin/insights", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    await snapWeek(false).catch(e => console.error("photo de la semaine :", e.message));
+    const dn = parisNow().dayNum, W = weekOf(dn), rows = (await scoped(req, await store.fullProgress())).filter(r => !r.blocked), ids = new Set(rows.map(r => r.id));
+    const days = r => Object.entries((r.data && r.data.h) || {}).filter(([, v]) => v > 0).map(([k]) => +k);
+    const D = rows.map(r => ({ r, d: days(r), cw: weekOf(Math.floor((Number(r.created) || 0) / 864e5)) }));
+    const hist = await snaps(13), byW = {}; hist.forEach(x => { byW[x.w] = x; });
+    /* 12 dernières semaines : élèves actifs, jours de révision, nouveaux inscrits, volume */
+    const semaines = Array.from({ length: 12 }, (_, i) => W - 11 + i).map(w => {
+      const a = w * 7 - 3; let act = 0, jours = 0, vol = 0, nouv = 0;
+      D.forEach(x => { const j = x.d.filter(k => k >= a && k < a + 7); if (j.length) { act++; jours += j.length; } j.forEach(k => { vol += (x.r.data.h || {})[k] || 0; }); if (x.cw === w) nouv++; });
+      const s = byW[w], p = byW[w - 1]; let rep = null, reussite = null;
+      if (s && p) { let dr = 0, dk = 0; Object.keys(s.el).forEach(id => { if (!ids.has(id)) return; const e = s.el[id], o = p.el[id] || { rep: 0, ok: 0 }; dr += Math.max(0, e.rep - o.rep); dk += Math.max(0, e.ok - o.ok); }); rep = dr; reussite = dr ? Math.round(dk / dr * 100) : null; }
+      return { w, debut: a, actifs: act, inscrits: D.filter(x => x.cw <= w).length, jours: act ? Math.round(jours / act * 10) / 10 : 0, volume: vol, nouveaux: nouv, reponses: rep, reussite };
+    });
+    /* Fidélité : parmi les inscrits de chaque semaine, combien reviennent 1, 2, 3 et 4 semaines après */
+    const cohortes = Array.from({ length: 8 }, (_, i) => W - 7 + i).map(c => {
+      const g = D.filter(x => x.cw === c); if (!g.length) return null;
+      return { w: c, debut: c * 7 - 3, n: g.length, r: [1, 2, 3, 4].map(k => c + k > W ? null : Math.round(g.filter(x => x.d.some(dd => weekOf(dd) === c + k)).length / g.length * 100)) };
+    }).filter(Boolean);
+    /* Régularité sur 7 jours */
+    const reg = [0, 0, 0, 0]; D.forEach(x => { const n = x.d.filter(k => k > dn - 7).length; reg[n === 0 ? 0 : n <= 2 ? 1 : n <= 4 ? 2 : 3]++; });
+    /* Décrochage : actif au moins 2 jours dans les 3 semaines d'avant, plus rien depuis 10 jours */
+    const decroche = D.filter(x => !x.d.some(k => k > dn - 10) && x.d.filter(k => k <= dn - 10 && k > dn - 31).length >= 2)
+      .map(x => ({ id: x.r.id, name: x.r.name, dernier: Math.max.apply(null, x.d), avant: x.d.filter(k => k <= dn - 10 && k > dn - 31).length })).sort((a, b) => b.avant - a.avant);
+    /* Maîtrise par chapitre */
+    const CH = {}; Object.entries(QMAP).forEach(([id, m]) => { if (!m || !m[2]) return; const k = m[0] + "|" + m[2], o = CH[k] || (CH[k] = { c: CATN[m[0]] || m[0], t: m[2], ids: [] }); o.ids.push(id); });
+    const chapitres = Object.values(CH).map(o => {
+      let el = 0, n = 0, ok = 0, acq = 0;
+      rows.forEach(r => { const d = r.data || {}, q = d.q || {}; let t = 0; o.ids.forEach(id => { const a = q[id]; if (!Array.isArray(a)) return; t++; n += a[0] || 0; ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; }); if (t) el++; });
+      return { c: o.c, t: o.t, questions: o.ids.length, eleves: el, couverture: rows.length ? Math.round(el / rows.length * 100) : 0, reponses: n, reussite: n ? Math.round(ok / n * 100) : null, maitrise: el ? Math.round(acq / (o.ids.length * el) * 100) : 0 };
+    }).sort((a, b) => a.c.localeCompare(b.c) || a.t.localeCompare(b.t));
+    res.json({ eleves: rows.length, semaine: W, semaines, cohortes, regularite: reg, decroche, chapitres, historique: hist.length });
+  } catch (e) { next(e); }
+});
+
 /* Fiche de chaque élève : résumé calculé à partir de sa progression */
 const LV = [[0, "Stagiaire"], [300, "Assistant comptable"], [1000, "Comptable"], [2500, "Collaborateur"], [5000, "Chef de mission"], [9000, "Expert-comptable"]];
 const CATN = { p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", ma: "Maths", ce: "CEJM", cg: "Culture G.", an: "Anglais", me: "Méthodes" };
@@ -873,6 +970,9 @@ function studentSummary(r, dn, full) {
   s.matieres = Object.entries(cat).map(([c, o]) => ({ c: CATN[c] || c, reponses: o.n, reussite: o.n ? Math.round(o.ok / o.n * 100) : 0, acquises: o.acq })).sort((a, b) => b.reponses - a.reponses);
   s.fragiles = Object.entries(ch).filter(([, x]) => x.n >= 4).map(([t, x]) => ({ t, c: x.c, reponses: x.n, reussite: Math.round(x.ok / x.n * 100) })).sort((a, b) => a.reussite - b.reussite).slice(0, 6);
   { const w = weekOf(dn), fw = featWeek(d, w, full.duels || 0), fe = featEver(d); s.usage = FEATS.map(([k, nom]) => ({ k, nom, semaine: fw[k], deja: fe[k] })); }
+  { const W = weekOf(dn); s.semaines = Array.from({ length: 12 }, (_, i) => W - 11 + i).map(w => { const a = w * 7 - 3, j = days.filter(k => k >= a && k < a + 7); return { w, debut: a, jours: j.length, volume: j.reduce((t, k) => t + (h[k] || 0), 0) }; });
+    s.evolution = (full.hist || []).filter(x => x.el && x.el[r.id]).map(x => { const e = x.el[r.id]; return { w: x.w, debut: x.w * 7 - 3, xp: e.xp, reponses: e.rep, reussite: e.rep ? Math.round(e.ok / e.rep * 100) : null, acquises: e.acq }; }); }
+  s.groupe = full.groupe || null;
   s.controles = (d.packs || []).map(p => ({ c: CATN[p.cat] || p.cat, nom: p.name || p.kw || "", date: p.date || "", dernier: p.hist && p.hist.length ? p.hist[p.hist.length - 1].pc : null }));
   return s;
 }
@@ -881,8 +981,9 @@ app.post("/api/admin/students", async (req, res, next) => {
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     const dn = parisNow().dayNum, rows = await store.fullProgress();
-    if (req.body.id) { const r = rows.find(x => x.id === req.body.id); if (!r) return res.status(404).json({ error: "Élève introuvable." }); const dw = await duelsWeek(weekOf(dn)); return res.json({ eleve: studentSummary(r, dn, { duels: dw[r.id] || 0 }) }); }
-    res.json({ eleves: rows.map(r => studentSummary(r, dn, false)).sort((a, b) => (b.updated || 0) - (a.updated || 0)) });
+    if (req.body.id) { const r = rows.find(x => x.id === req.body.id); if (!r) return res.status(404).json({ error: "Élève introuvable." }); const dw = await duelsWeek(weekOf(dn)), gm = await gmGet(); return res.json({ eleve: studentSummary(r, dn, { duels: dw[r.id] || 0, hist: await snaps(12), groupe: gm[r.id] || null }) }); }
+    const gm = await gmGet();
+    res.json({ eleves: (await scoped(req, rows)).map(r => Object.assign(studentSummary(r, dn, false), { groupe: gm[r.id] || null })).sort((a, b) => (b.updated || 0) - (a.updated || 0)) });
   } catch (e) { next(e); }
 });
 app.post("/api/admin/student-action", async (req, res, next) => {
