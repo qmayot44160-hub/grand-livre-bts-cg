@@ -465,7 +465,7 @@ app.get("/api/inbox", auth, async (req, res, next) => {
       const mine = d.a.id === me ? d.a : d.b, other = d.a.id === me ? d.b : d.a; if (!mine || !other) continue;
       results.push({ id: d.id, opp: other.name, me: duelScore(mine), them: duelScore(other), lastMine: (mine.at || 0) >= (other.at || 0) });
     }
-    res.json({ duels, friends, accepted, results });
+    res.json({ duels, friends, accepted, results, v: APP_VER });
   } catch (e) { next(e); }
 });
 app.get("/api/duels", auth, async (req, res, next) => {

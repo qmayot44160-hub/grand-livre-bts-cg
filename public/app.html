@@ -5808,6 +5808,7 @@ async function inboxPoll() {
   IB.busy = true;
   try {
     const j = await N.inbox(), items = [];
+    if (j.v) { if (!IB.v) IB.v = j.v; else if (j.v !== IB.v && !IB.upd) { IB.upd = true; IB.q.unshift({ key: "u", kind: "upd", name: "GL", sub: "Recharge pour profiter des dernières améliorations." }); ibNext(); } }
     (j.duels || []).forEach(d => items.push({ key: "d:" + d.id, kind: "duel", id: d.id, name: d.from, sub: d.live ? `${d.n} questions · en direct, ton adversaire t'attend !` : `${d.n} questions${d.score != null ? ` · ${d.score} points à battre` : ""}` }));
     (j.friends || []).forEach(f => items.push({ key: "f:" + f.k + ":" + f.at, kind: "ami", k: f.k, name: f.name, sub: "veut t'ajouter en ami" }));
     (j.accepted || []).forEach(f => items.push({ key: "a:" + f.k, kind: "ok", name: f.name, sub: "a accepté ta demande : vous êtes amis !" }));
@@ -5830,10 +5831,11 @@ function ibNext() {
   if (ibBusy()) { setTimeout(ibNext, 4000); return; }
   const x = IB.q.shift(), el = document.createElement("div");
   el.className = "ib"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-label", x.kind === "duel" ? "Défi en duel" : "Demande d'ami");
-  const title = x.kind === "duel" ? "⚔️ " + h(x.name) + " te défie en duel !" : x.kind === "ok" ? "🎉 " + h(x.name) : x.kind === "res" ? (x.win ? "🏆 " : "⚔️ ") + "Duel terminé contre " + h(x.name) : "🤝 " + h(x.name);
+  const title = x.kind === "upd" ? "✨ Nouvelle version du Grand Livre" : x.kind === "duel" ? "⚔️ " + h(x.name) + " te défie en duel !" : x.kind === "ok" ? "🎉 " + h(x.name) : x.kind === "res" ? (x.win ? "🏆 " : "⚔️ ") + "Duel terminé contre " + h(x.name) : "🤝 " + h(x.name);
   const btns = x.kind === "duel" ? `<button class="btn small" data-ib="later">Plus tard</button><button class="btn small primary" data-ib="go">Jouer maintenant</button>`
     : x.kind === "ami" ? `<button class="btn small" data-ib="no">Refuser</button><button class="btn small primary" data-ib="yes">Accepter</button>`
     : x.kind === "ok" ? `<button class="btn small" data-ib="later">OK</button><button class="btn small primary" data-ib="friends">Voir mes amis</button>`
+    : x.kind === "upd" ? `<button class="btn small" data-ib="later">Plus tard</button><button class="btn small primary" data-ib="reload">Recharger</button>`
     : `<button class="btn small" data-ib="later">OK</button><button class="btn small primary" data-ib="res">Voir le résultat</button>`;
   el.innerHTML = `${duAv(x.name)}<div><b>${title}</b><small>${h(x.sub)}</small></div><div class="row">${btns}</div><div class="ib-bar"><i></i></div>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in"));
@@ -5843,6 +5845,7 @@ function ibNext() {
   el.addEventListener("click", e => {
     const a = e.target.closest("[data-ib]"); if (!a) return; const v = a.dataset.ib;
     if (v === "go") { duelStop(); DU = null; duelJoinCode(x.id); }
+    if (v === "reload") { try { if (dirty) flush(); } catch (e) {} setTimeout(() => location.reload(), 300); }
     if (v === "friends") { AMT = "amis"; FR.at = 0; go("amis"); loadFriends(true); }
     if (v === "res") { duelStop(); DU = null; const N = DUEL_NET(); if (N) N.get(x.id).then(j => duelFromSrv(j.duel)).catch(() => {}); }
     if (v === "yes" || v === "no") { const F = FRN(); if (F) F.respond(x.k, v === "yes").then(() => { if (v === "yes") { toast("Nouvel ami : " + x.name); confettiBurst(40); } FR.at = 0; loadFriends(true); }).catch(() => {}); }
