@@ -101,6 +101,15 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 
 const app = express();
 app.set("trust proxy", 1);
+/* GL Admin a sa propre adresse (relais admin-proxy.js) : on reconnaît ses requêtes grâce au secret partagé,
+   pour garder l'adresse IP réelle de l'appareil (limites d'essais) ; /admin ici renvoie vers cette adresse. */
+const ADMIN_URL = (process.env.ADMIN_URL || "").replace(/\/+$/, ""), PROXY_SECRET = process.env.ADMIN_PROXY_SECRET || "";
+const viaAdmin = req => !!PROXY_SECRET && req.headers["x-gl-via"] === PROXY_SECRET;
+app.use((req, res, next) => {
+  if (viaAdmin(req)) { const ips = String(req.headers["x-forwarded-for"] || "").split(",").map(x => x.trim()).filter(Boolean); if (ips.length >= 2) Object.defineProperty(req, "ip", { value: ips[ips.length - 2], configurable: true }); }
+  else if (ADMIN_URL && req.method === "GET" && (req.path === "/admin" || req.path === "/admin/") && !("ici" in req.query)) return res.redirect(302, ADMIN_URL + "/admin");
+  next();
+});
 app.disable("x-powered-by");
 app.use((req, res, next) => { res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("Referrer-Policy", "same-origin"); if (PROD) res.setHeader("Strict-Transport-Security", "max-age=15552000"); next(); });
 
