@@ -1728,6 +1728,15 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .pk-steps li.pk-next > div:first-child::before { content: "À faire maintenant"; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--c, var(--accent)); }
 .pk-pulse { animation: pkPulse 1.2s ease 2; } @keyframes pkPulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--c, var(--accent)) 30%, transparent); } }
 
+/* Entraînements d'une fiche */
+.fiche-train { margin-top: 18px; padding: 14px; border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: 6px 14px 14px 6px; background: var(--sheet); display: grid; gap: 10px; }
+.fiche-train .eyebrow { margin: 0; font-weight: 800; color: var(--c, var(--accent)); text-transform: uppercase; letter-spacing: .05em; font-size: .78rem; }
+.ft-main { display: flex; flex-wrap: wrap; gap: 8px; }
+.ft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.ft-it { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); transition: border-color .15s, transform .12s; }
+.ft-it:hover { border-color: var(--c, var(--accent)); transform: translateY(-1px); } .ft-it:focus-visible { outline: 2px solid var(--accent); }
+.ft-ic { font-size: 1.2rem; } .ft-it span:last-child { display: grid; } .ft-it b { font-size: .9rem; line-height: 1.25; } .ft-it small { color: var(--muted); font-size: .76rem; }
+
 /* Profil : onglets et version compacte */
 .pf-more { color: rgba(255,255,255,.85); }
 .pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
@@ -4724,7 +4733,7 @@ function fichePeek(id, hint) {
   el.innerHTML = `<div class="peek-sheet" role="dialog" aria-modal="true" aria-labelledby="peekT" style="${hueStyle(c.cat)}">
     <div class="peek-grab" title="Fais glisser vers le bas pour fermer"><span class="peek-handle" aria-hidden="true"></span>
       <div class="peek-bar"><span class="tabcode">${h(CAT[c.cat].code)}</span><span class="peek-k">Fiche · glisse vers le bas pour reprendre</span>${ttsBtnHTML()}<button class="peek-x" data-act="peekClose" aria-label="Fermer la fiche">×</button></div></div>
-    <div class="peek-body lesson fiche-view"><h1 id="peekT">${h(c.title)}</h1>${ficheMd(c)}
+    <div class="peek-body lesson fiche-view"><h1 id="peekT">${h(c.title)}</h1>${ficheMd(c)}${ficheTrain(c, true)}
       <div class="row peek-foot"><button class="btn primary" data-act="peekClose">Reprendre</button><button class="btn" data-act="peekFull" data-id="${h(id)}">Ouvrir en grand</button></div></div>
   </div>`;
   document.body.appendChild(el); document.documentElement.classList.add("peek-open");
@@ -4751,6 +4760,20 @@ function peekClose(now) {
   setTimeout(() => el.remove(), 260);
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("peek")) peekClose(); });
+/* Tous les entraînements liés à une fiche (chapitre) */
+function ficheTrain(c, compact) {
+  const nq = (QCH[c.id] || []).length, nf = (FCH[c.id] || []).length;
+  const all = [].concat(CXG.filter(g => g.cat === c.cat).map(g => "x:" + g.id), SCH.filter(x => x.cat === c.cat).map(x => "s:" + x.id), GENS.filter(g => g.cat === c.cat).map(g => "g:" + g.id), (GCBY[c.cat] || []).map(k => "k:" + k.id)).filter(k => exInfo(k).ch === c.id);
+  const ctl = typeof ctlChaps === "function" && ctlChaps(c.cat).some(x => x.id === c.id);
+  if (!nq && !nf && !all.length) return "";
+  const ic = { x: "🧮", s: "🗺️", g: "✏️", k: "🧭" }, kind = { x: "Calculs express", s: "Schéma", g: "Exercice chiffré", k: "Exercice guidé" };
+  const exBtn = k => { const e = exInfo(k), act = e.pre === "x" ? `data-act="cxOne" data-g="${e.id}" data-cat="${c.cat}"` : e.pre === "s" ? `data-act="scOpen" data-sid="${e.id}" data-cat="${c.cat}"` : e.pre === "g" ? `data-act="exStart" data-gid="${e.id}"` : `data-act="gcase" data-id="${e.id}"`;
+    return `<button class="ft-it" ${act}><span class="ft-ic" aria-hidden="true">${ic[e.pre]}</span><span><b>${h(e.label)}</b><small>${kind[e.pre]}${exDone(k) ? " · ✓ réussi" : ""}</small></span></button>`; };
+  return `<section class="fiche-train${compact ? " compact" : ""}" style="${hueStyle(c.cat)}"><p class="eyebrow">S'entraîner sur cette fiche</p>
+    <div class="ft-main">${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes (${nf})</button>` : ""}${ctl ? `<button class="btn" data-act="ctlStart" data-k="${c.id}">Contrôle du chapitre</button>` : ""}</div>
+    ${all.length ? `<div class="ft-grid">${all.map(exBtn).join("")}</div>` : ""}
+  </section>`;
+}
 function vFiche() {
   const c = FC && CHID[FC.id]; if (!c) return vFiches();
   const list = CHBY[c.cat], i = list.indexOf(c), pv = list[i - 1], nx = list[i + 1], th = THEME[c.th];
@@ -4772,11 +4795,7 @@ function vFiche() {
         ${(c.sections || []).map(s => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}`).join("")}
         ${c.points && c.points.length ? `<blockquote class="callout retain"><p class="md-label"><strong>L'essentiel</strong></p><ul>${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul></blockquote>` : ""}
       </div>
-      ${nq || nf || cases.length ? `<div class="fiche-actions"><p class="eyebrow">Vérifie que c'est acquis</p><div class="row">
-        ${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}
-        ${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes de la fiche (${nf})</button>` : ""}
-        ${cases.map(k => `<button class="btn" data-act="gcase" data-id="${k.id}">Exercice guidé : ${h(k.title)}</button>`).join("")}
-      </div></div>` : ""}
+      ${ficheTrain(c)}
       <p class="rep-row"><button class="rep-btn" data-act="report" data-t="f" data-id="${h(c.id)}" data-l="${h(String(c.title).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="fiche" data-fprev data-id="${pv.id}">Fiche précédente</button>` : `<button class="btn" data-act="mat" data-cat="${c.cat}" data-seg="fiche">Retour à la matière</button>`}
         ${nx ? `<button class="next-card" data-act="fiche" data-fnext data-id="${nx.id}"><span>Fiche suivante</span><b>${h(nx.title)}</b></button>` : `<button class="next-card" data-act="quickQuiz" data-cat="${c.cat}"><span>Dernière fiche de la matière</span><b>Faire un quiz de 10 questions</b></button>`}</footer>
@@ -8705,6 +8724,7 @@ document.addEventListener("click", e => {
     case "pbSec": { const k = b.dataset.k; PB.secs = PB.secs || []; PB.secs = PB.secs.includes(k) ? PB.secs.filter(x => x !== k) : PB.secs.concat(k); render(); break; }
     case "pbCancel": PB = null; render(); break;
     case "pbSave": { const p = { cat: PB.cat, chs: PB.chs.slice(), secs: (PB.secs || []).filter(x => PB.chs.includes(x.split("|")[0])), ex: (PB.ex || []).slice(), kw: PB.kw.trim(), name: PB.name.trim(), date: PB.date, hist: PB.i != null && S.packs[PB.i] ? S.packs[PB.i].hist || [] : [] }; S.packs = S.packs || []; if (PB.i != null) S.packs[PB.i] = p; else S.packs.push(p); PK = PB.i != null ? PB.i : S.packs.length - 1; PB = null; touch(); go("pack"); break; }
+    case "cxOne": peekClose(true); cxFrom = view === "mat" ? "mat" : "ex"; cxStart(b.dataset.cat, [b.dataset.g]); break;
     case "pkCx": cxFrom = "ex"; cxStart(S.packs[PK].cat, [b.dataset.g]); break;
     case "pkResume": { const i = FROMPACK; if (i == null) break; PK = i; go("pack"); setTimeout(() => { const n = document.querySelector(".pk-next"); if (n) { n.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" }); n.classList.add("pk-pulse"); } }, 60); break; }
     case "pkOpen": PK = +b.dataset.i; go("pack"); break;
