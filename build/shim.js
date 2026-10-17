@@ -108,6 +108,7 @@
   };
   if (!GUEST) window.GL_DUEL = {
     list: function () { return api("GET", "/api/duels"); },
+    inbox: function () { return api("GET", "/api/inbox"); },
     create: function (o) { return api("POST", "/api/duel", o); },
     join: function (code) { return api("POST", "/api/duel/join", { code: code }); },
     get: function (id) { return api("GET", "/api/duel/" + encodeURIComponent(id)); },

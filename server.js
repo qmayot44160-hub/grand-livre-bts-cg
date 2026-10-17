@@ -354,9 +354,25 @@ app.post("/api/duel", auth, async (req, res, next) => {
     let id = ""; for (let k = 0; k < 8; k++) { id = Array.from(crypto.randomBytes(5), v => DUEL_ABC[v % DUEL_ABC.length]).join(""); if (!(await store.duelGet(id))) break; }
     const x = { id, created: Date.now(), cats, ids, seed: crypto.randomBytes(4).readUInt32BE(0), mode: "live", status: "wait", startAt: 0,
       a: { id: req.user.id, name: await duelName(req.user), ans: [], t: [], joined: true }, b: null };
+    /* Un seul duel en attente à la fois : les anciens duels jamais commencés sont annulés. */
+    const mine = await store.duelsOf(req.user.id);
     if (b.opp) {
       const oid = await resolveMate(req.user.id, String(b.opp));
       const u = oid ? await store.userById(oid) : null; if (!u || u.blocked) return res.status(404).json({ error: "Camarade introuvable." });
+      const fresh = d => d.status !== "done" && d.status !== "declined" && Date.now() - d.created < 20 * 60e3;
+      /* Les deux élèves se défient en même temps : on rejoint le duel de l'autre au lieu d'en créer un second. */
+      const his = mine.find(d => fresh(d) && d.a.id === oid && d.b && d.b.id === req.user.id && !d.b.joined && !d.b.started && !d.b.ans.length);
+      if (his) {
+        his.b.joined = true;
+        if (his.status === "wait" && !his.a.started) { his.status = "play"; his.mode = "live"; his.startAt = Date.now() + 5000; } else his.status = "play";
+        await store.duelPut(his); return res.json({ duel: duelView(his, req.user.id), merged: true });
+      }
+      const own = mine.find(d => fresh(d) && d.a.id === req.user.id && d.b && d.b.id === oid && d.status === "wait" && !d.a.started);
+      if (own) return res.json({ duel: duelView(own, req.user.id), existing: true });
+    }
+    for (const d of mine) if (d.a.id === req.user.id && d.status === "wait" && !d.a.started && !(d.b && d.b.joined)) { d.status = "declined"; await store.duelPut(d); }
+    if (b.opp) {
+      const oid = await resolveMate(req.user.id, String(b.opp)), u = await store.userById(oid);
       x.b = { id: u.id, name: await duelName(u), ans: [], t: [], joined: false };
       duelNotify(u.id, "⚔️ " + x.a.name + " te défie !", ids.length + " questions en duel. Ouvre le Grand Livre pour relever le défi.", "/?duel=" + id);
     }
@@ -429,6 +445,20 @@ app.post("/api/duel/:id/rematch", auth, async (req, res, next) => {
 });
 app.post("/api/duel/:id/decline", auth, async (req, res, next) => {
   try { const x = await duelFor(req, res); if (!x) return; if (x.status !== "done") x.status = "declined"; await store.duelPut(x); res.json({ ok: true }); } catch (e) { next(e); }
+});
+/* Boîte de réception légère, interrogée toutes les quelques secondes par l'appli : défis et demandes d'amis en attente. */
+app.get("/api/inbox", auth, async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const me = req.user.id, duels = [];
+    for (const d of await store.duelsOf(me)) {
+      if (d.status === "done" || d.status === "declined" || Date.now() - d.created > 7 * 864e5) continue;
+      if (d.b && d.b.id === me && !d.b.joined && !d.b.started && !d.b.ans.length) duels.push({ id: d.id, from: d.a.name, n: d.ids.length, at: d.created, live: d.status === "wait" && !d.a.started, score: d.a.done ? duelScore(d.a) : null });
+    }
+    const friends = [];
+    for (const f of await store.friendsOf(me)) if (f.status === "pending" && f.b === me) { const u = await store.userById(f.a); if (u && !u.blocked) friends.push({ k: fk(u.id), name: await duelName(u), at: f.created }); }
+    res.json({ duels, friends });
+  } catch (e) { next(e); }
 });
 app.get("/api/duels", auth, async (req, res, next) => {
   try {

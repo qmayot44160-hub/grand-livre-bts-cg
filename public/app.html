@@ -108,6 +108,7 @@
   };
   if (!GUEST) window.GL_DUEL = {
     list: function () { return api("GET", "/api/duels"); },
+    inbox: function () { return api("GET", "/api/inbox"); },
     create: function (o) { return api("POST", "/api/duel", o); },
     join: function (code) { return api("POST", "/api/duel/join", { code: code }); },
     get: function (id) { return api("GET", "/api/duel/" + encodeURIComponent(id)); },
@@ -1334,6 +1335,15 @@ html, body { overflow-x: hidden; }
 .du-mates { display: flex; flex-wrap: wrap; gap: 8px; }
 .du-opt.flash-ok { animation: optPop .45s cubic-bezier(.2, .9, .3, 1.3); }
 @media (prefers-reduced-motion: reduce) { .du-code span, .du-count, .du-inv, .du-wait i { animation: none !important; } }
+.ib { position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top)); z-index: 300; width: min(440px, calc(100vw - 20px)); transform: translate(-50%, -140%); transition: transform .45s cubic-bezier(.2, .9, .3, 1.2); background: var(--sheet); border: 1px solid var(--rule); border-radius: 18px; box-shadow: 0 18px 40px -14px rgba(10, 14, 30, .45); padding: 12px; display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: center; }
+.ib.in { transform: translate(-50%, 0); }
+.ib .du-av { width: 44px; height: 44px; font-size: .95rem; }
+.ib b { display: block; font-weight: 800; } .ib small { color: var(--muted); }
+.ib .row { grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
+.ib-bar { grid-column: 1 / -1; height: 3px; border-radius: 3px; background: var(--rule); overflow: hidden; } .ib-bar i { display: block; height: 100%; background: var(--accent); animation: ibT 15s linear forwards; }
+@keyframes ibT { from { width: 100%; } to { width: 0; } }
+.ib.shake { animation: ibShake .5s; } @keyframes ibShake { 20%, 60% { transform: translate(calc(-50% - 6px), 0); } 40%, 80% { transform: translate(calc(-50% + 6px), 0); } }
+@media (prefers-reduced-motion: reduce) { .ib { transition: none; } .ib-bar i { animation: none; } }
 .nav-btn { position: relative; }
 .nav-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 17px; height: 17px; border-radius: 99px; background: #e05561; color: #fff; font-size: .64rem; font-weight: 800; display: grid; place-items: center; padding: 0 4px; line-height: 1; }
 @media (min-width: 761px) { .nav-badge { position: static; margin-left: 2px; } }
@@ -5613,7 +5623,7 @@ function vDuel() {
 async function duelCreate(opp) {
   const N = DUEL_NET(), cfg = duelCfg(); if (!N) return;
   const ids = duelPick(cfg.cats, cfg.n); if (ids.length < 5) return toast("Choisis plus de matières.");
-  try { const j = await N.create({ ids, cats: cfg.cats, opp: opp || undefined }); duelFromSrv(j.duel); if (opp) toast("Défi envoyé !"); }
+  try { const j = await N.create({ ids, cats: cfg.cats, opp: opp || undefined }); duelFromSrv(j.duel); toast(j.merged ? "Ton ami t'avait déjà défié : vous jouez ce duel ensemble !" : j.existing ? "Ton défi est déjà envoyé, on attend ton ami." : opp ? "Défi envoyé ! Le duel démarre dès qu'il accepte." : "Duel créé : donne le code."); }
   catch (e) { toast((e && e.message) || "Impossible de créer le duel pour l'instant."); }
 }
 async function duelJoinCode(code) {
@@ -5789,6 +5799,51 @@ async function roomPick(pos) {
 }
 document.addEventListener("keydown", e => { if (view === "room" && RO && RO.srv.phase === "q" && /^[1-4]$/.test(e.key) && !e.target.closest("input,textarea")) roomPick(+e.key - 1); });
 function amisDeepLink() { try { const u = new URL(location.href); if (!u.searchParams.get("amis")) return; u.searchParams.delete("amis"); history.replaceState(null, "", u.pathname + u.search + u.hash); AMT = "amis"; setTimeout(() => go("amis"), 300); } catch (e) {} }
+
+/* Boîte de réception : défis et demandes d'amis arrivent en direct, où que l'on soit dans l'appli */
+const IB = { seen: (() => { try { return new Set(JSON.parse(localStorage.getItem("gl-inbox-seen") || "[]")); } catch (e) { return new Set(); } })(), q: [], timer: null, busy: false, first: true };
+function ibSave() { try { localStorage.setItem("gl-inbox-seen", JSON.stringify([...IB.seen].slice(-80))); } catch (e) {} }
+async function inboxPoll() {
+  const N = DUEL_NET(); if (!N || !N.inbox || IB.busy || document.hidden) return;
+  IB.busy = true;
+  try {
+    const j = await N.inbox(), items = [];
+    (j.duels || []).forEach(d => items.push({ key: "d:" + d.id, kind: "duel", id: d.id, name: d.from, sub: d.live ? `${d.n} questions · en direct, ton adversaire t'attend !` : `${d.n} questions${d.score != null ? ` · ${d.score} points à battre` : ""}` }));
+    (j.friends || []).forEach(f => items.push({ key: "f:" + f.k + ":" + f.at, kind: "ami", k: f.k, name: f.name, sub: "veut t'ajouter en ami" }));
+    const inv = (j.duels || []).length + (j.friends || []).length, b = document.getElementById("navAmis"); if (b) { b.hidden = !inv; b.textContent = inv; }
+    const fresh = items.filter(x => !IB.seen.has(x.key));
+    if (fresh.length) {
+      fresh.forEach(x => IB.seen.add(x.key)); ibSave();
+      if (!IB.first || fresh.some(x => x.kind === "duel")) fresh.forEach(x => IB.q.push(x));
+      DH.at = 0; FR.at = 0; loadDuels(true); loadFriends(true);
+      ibNext();
+    }
+    IB.first = false;
+  } catch (e) {}
+  IB.busy = false;
+}
+function ibBusy() { return (view === "duel" && DU && DU.stage === "play") || (view === "room" && RO && RO.srv.phase === "q") || (view === "run" && R && R.mode === "exam"); }
+function ibNext() {
+  if (document.querySelector(".ib") || !IB.q.length) return;
+  if (ibBusy()) { setTimeout(ibNext, 4000); return; }
+  const x = IB.q.shift(), el = document.createElement("div");
+  el.className = "ib"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-label", x.kind === "duel" ? "Défi en duel" : "Demande d'ami");
+  el.innerHTML = `${duAv(x.name)}<div><b>${x.kind === "duel" ? "⚔️ " + h(x.name) + " te défie en duel !" : "🤝 " + h(x.name)}</b><small>${h(x.sub)}</small></div>
+    <div class="row">${x.kind === "duel" ? `<button class="btn small" data-ib="later">Plus tard</button><button class="btn small primary" data-ib="go">Jouer maintenant</button>` : `<button class="btn small" data-ib="no">Refuser</button><button class="btn small primary" data-ib="yes">Accepter</button>`}</div><div class="ib-bar"><i></i></div>`;
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in"));
+  tone("lvl"); buzz([60, 40, 60]);
+  let done = false;
+  const close = () => { if (done) return; done = true; el.classList.remove("in"); setTimeout(() => { el.remove(); ibNext(); }, 450); };
+  el.addEventListener("click", e => {
+    const a = e.target.closest("[data-ib]"); if (!a) return; const v = a.dataset.ib;
+    if (v === "go") { duelStop(); DU = null; duelJoinCode(x.id); }
+    if (v === "yes" || v === "no") { const F = FRN(); if (F) F.respond(x.k, v === "yes").then(() => { if (v === "yes") { toast("Nouvel ami : " + x.name); confettiBurst(40); } FR.at = 0; loadFriends(true); }).catch(() => {}); }
+    close();
+  });
+  setTimeout(close, 15000);
+}
+setInterval(inboxPoll, 6000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) inboxPoll(); });
 
 /* ---------- Simulateur d'oral ---------- */
 let OR = null, OF = { e: "E6", n: 5, t: 120 }, orTick = null;
@@ -7440,7 +7495,7 @@ render();
 initSync();
 duelDeepLink();
 amisDeepLink();
-setTimeout(() => { loadFriends(); loadDuels(); }, 1500);
+setTimeout(() => { loadFriends(); loadDuels(); inboxPoll(); }, 1500);
 
 /* ---------- Glisser entre les onglets (carrousel : l'onglet voisin suit le doigt) ---------- */
 (() => {
