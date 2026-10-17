@@ -91,6 +91,16 @@
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
+  if (!GUEST) window.GL_DUEL = {
+    list: function () { return api("GET", "/api/duels"); },
+    create: function (o) { return api("POST", "/api/duel", o); },
+    join: function (code) { return api("POST", "/api/duel/join", { code: code }); },
+    get: function (id) { return api("GET", "/api/duel/" + encodeURIComponent(id)); },
+    start: function (id) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/start", {}); },
+    ans: function (id, i, ok, t) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/ans", { i: i, ok: ok, t: t }); },
+    rematch: function (id, ids) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/rematch", { ids: ids }); },
+    decline: function (id) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/decline", {}); }
+  };
 
   /* Rappels quotidiens (notifications) */
   function b64(u) { var p = "=".repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
@@ -1265,6 +1275,47 @@ html, body { overflow-x: hidden; }
 .peek-grab:active { cursor: grabbing; }
 .peek-handle { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--rule-strong); margin: 0 auto 8px; }
 .peek-bar { display: flex; align-items: center; gap: 10px; } .peek-bar .tabcode { border-radius: 8px; } .peek-k { flex: 1; color: var(--muted); font-size: .82rem; }
+.du-vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; text-align: center; }
+.du-p { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.du-p b { font: 800 1rem var(--f-display); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.du-av { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font: 800 1.2rem var(--f-display); color: #fff; background: linear-gradient(135deg, hsl(var(--ah, 228) 62% 52%), hsl(calc(var(--ah, 228) + 35) 62% 40%)); box-shadow: 0 6px 18px -8px hsl(var(--ah, 228) 60% 40%); }
+.du-x { font: 900 1.6rem var(--f-display); color: var(--accent); }
+.du-hero { background: linear-gradient(135deg, #1c2142, #3a2a6b); color: #fff; border-radius: 20px; padding: 18px; display: grid; gap: 14px; position: relative; overflow: hidden; }
+.du-hero::after { content: ""; position: absolute; right: -50px; top: -50px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 201, 77, .3), transparent 70%); }
+.du-hero .muted { color: rgba(255, 255, 255, .78); }
+.du-hero .du-x { color: #ffc94d; }
+.du-code { display: flex; justify-content: center; gap: 8px; }
+.du-code span { width: 46px; height: 58px; border-radius: 12px; background: var(--sheet); border: 2px solid var(--accent); display: grid; place-items: center; font: 800 1.8rem var(--f-mono); color: var(--ink); animation: duFlip .5s cubic-bezier(.3, .8, .3, 1.3) both; }
+.du-code span:nth-child(2) { animation-delay: .06s; } .du-code span:nth-child(3) { animation-delay: .12s; } .du-code span:nth-child(4) { animation-delay: .18s; } .du-code span:nth-child(5) { animation-delay: .24s; }
+@keyframes duFlip { from { transform: rotateX(-90deg); opacity: 0; } }
+.du-wait { display: flex; justify-content: center; gap: 6px; } .du-wait i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: duDot 1.2s infinite; } .du-wait i:nth-child(2) { animation-delay: .15s; } .du-wait i:nth-child(3) { animation-delay: .3s; }
+@keyframes duDot { 0%, 80%, 100% { transform: scale(.5); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+.du-count { font: 900 7rem/1 var(--f-display); text-align: center; color: var(--accent); animation: duCount 1s ease-out both; }
+@keyframes duCount { from { transform: scale(2.2); opacity: 0; } 40% { transform: scale(1); opacity: 1; } to { transform: scale(.9); opacity: .8; } }
+.du-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; padding: 10px 12px; }
+.du-side { display: grid; gap: 4px; min-width: 0; } .du-side.r { text-align: right; justify-items: end; }
+.du-side b { font-weight: 800; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.du-sc { font: 800 1.35rem/1 var(--f-display); font-variant-numeric: tabular-nums; transition: transform .25s; } .du-sc.bump { transform: scale(1.25); color: var(--ok); }
+.du-dots { display: flex; gap: 3px; flex-wrap: wrap; } .du-side.r .du-dots { justify-content: flex-end; }
+.du-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); transition: background .2s, transform .2s; } .du-dots i.on { background: var(--accent); } .du-dots i.ok { background: #1d8a4e; } .du-dots i.ko { background: #c23a46; } .du-dots i.cur { box-shadow: 0 0 0 2px var(--accent); }
+.du-timer { height: 8px; border-radius: 6px; background: var(--rule); overflow: hidden; } .du-timer i { display: block; height: 100%; background: linear-gradient(90deg, #1d8a4e, #e0a31f 60%, #c23a46); background-size: 300% 100%; border-radius: 6px; }
+.du-tt { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); font-weight: 700; }
+.du-tt .low { color: var(--bad); }
+.du-res { display: grid; gap: 10px; }
+.du-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); font-size: .9rem; }
+.du-row:first-child { border-top: 0; }
+.du-mk { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; color: #fff; background: #c23a46; } .du-mk.ok { background: #1d8a4e; } .du-mk.na { background: var(--rule-strong); }
+.du-card { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; text-align: left; font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 12px; cursor: pointer; width: 100%; }
+.du-card:hover { border-color: var(--accent); }
+.du-card .du-av { width: 40px; height: 40px; font-size: .9rem; }
+.du-tag { font-weight: 800; font-size: .78rem; border-radius: 99px; padding: 2px 9px; background: var(--rule); color: var(--muted); white-space: nowrap; }
+.du-tag.w { background: var(--ok-bg); color: var(--ok); } .du-tag.l { background: var(--bad-bg); color: var(--bad); } .du-tag.p { background: var(--accent-soft); color: var(--accent); }
+.du-inv { border: 2px solid var(--accent); animation: duGlow 2s ease-in-out infinite; }
+@keyframes duGlow { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent); } }
+.du-code-in { font: 800 1.3rem var(--f-mono); letter-spacing: .3em; text-transform: uppercase; text-align: center; max-width: 220px; }
+.du-mates { display: flex; flex-wrap: wrap; gap: 8px; }
+.du-opt.flash-ok { animation: optPop .45s cubic-bezier(.2, .9, .3, 1.3); }
+@media (prefers-reduced-motion: reduce) { .du-code span, .du-count, .du-inv, .du-wait i { animation: none !important; } }
 .tts-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 .85rem var(--sans, inherit); cursor: pointer; }
 .tts-btn .svg { width: 16px; height: 16px; } .tts-btn[aria-pressed="true"] { background: var(--hue, var(--accent)); border-color: transparent; color: #fff; }
 .tts-rate { border: 1px solid var(--rule); background: transparent; color: var(--muted); border-radius: 99px; padding: 6px 10px; font: 600 .8rem var(--sans, inherit); cursor: pointer; min-width: 46px; }
@@ -1438,7 +1489,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .ag-res { display: grid; gap: 6px; }
 
 /* Onglets de la page S'entraîner */
-.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
+.ex-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; padding: 8px 0; margin: -4px 0 4px; background: var(--paper); }
 .ex-tab { display: grid; gap: 2px; justify-items: start; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .ex-tab:hover { border-color: var(--accent); }
 .ex-tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -2734,6 +2785,10 @@ F.push(...[["p2", "Écarts de conversion à l'inventaire", "Perte latente : 476 
 /* P1, P5, P7 : compléments (octobre 2026) */
 Q.push(...[["p1", "Un effet remis à l'escompte s'enregistre d'abord…", ["5114 au débit, 413 au crédit", "5113 au débit, 413 au crédit", "512 au débit, 411 au crédit", "413 au débit, 5114 au crédit"], "5114 Effets à l'escompte ; 5113 Effets à l'encaissement. La banque crédite ensuite le net : 512, 6616 et 627 / 5114.", "p1c5"], ["p1", "Un effet revient impayé à l'échéance. Chez le vendeur, on débite…", ["411 du montant de l'effet, plus les frais d'impayé", "654 du montant de l'effet", "413 du montant de l'effet", "6616 des intérêts seulement"], "La créance redevient une créance ordinaire sur le client (411 / 512), frais refacturés compris.", "p1c5"], ["p1", "Un virement reçu d'un client figure sur le relevé mais pas en comptabilité. On enregistre…", ["512 au débit, 411 au crédit", "411 au débit, 512 au crédit", "aucune écriture", "627 au débit, 512 au crédit"], "On enregistre tout ce que la banque connaît et pas l'entreprise : virements reçus, prélèvements, frais.", "p1c5"], ["p1", "Un chèque remis à la banque n'est pas encore crédité sur le relevé. On…", ["ne passe aucune écriture : la banque le créditera", "l'enregistre une seconde fois en 512", "le contre-passe en 411", "le passe en 627"], "Il figure déjà en comptabilité ; le décalage disparaîtra sur le relevé suivant. On le note seulement dans l'état de rapprochement.", "p1c5"], ["p1", "Une facture d'honoraires d'avocat de 1 000 € HT (TVA 20 %) s'enregistre chez l'entreprise…", ["6226 : 1 000 ; 44566 : 200 / 401 : 1 200", "607 : 1 000 ; 44566 : 200 / 401 : 1 200", "6226 : 1 200 / 401 : 1 200", "6226 : 1 000 ; 44562 : 200 / 404 : 1 200"], "Honoraires : 6226 ; TVA sur biens et services : 44566 ; fournisseur ordinaire : 401.", "p1c2"], ["p1", "Sur une facture électronique au sens de la réforme, les données sont…", ["structurées (Factur-X, UBL, CII) et transmises par une plateforme agréée", "un simple PDF envoyé par mail", "une photo de la facture papier", "saisies à la main par le client"], "Un PDF seul n'est pas une facture électronique : il faut des données lisibles par les logiciels.", "p1c2"], ["p1", "Quelle mention devient obligatoire sur les factures avec la réforme de la facturation électronique ?", ["Le numéro SIREN du client", "Le nom du commercial", "La signature manuscrite", "Le logo de l'entreprise"], "S'y ajoutent l'adresse de livraison si elle diffère, la nature de l'opération (biens, services ou mixte) et l'option pour les débits le cas échéant.", "p1c2"], ["p5", "Le coût d'achat des matières comprend…", ["le prix d'achat et les frais d'approvisionnement", "le prix d'achat seulement", "le prix d'achat et la TVA", "le coût de production"], "Prix net de réductions + frais d'approvisionnement (transport, réception…), directs ou imputés par un centre.", "p5c1"], ["p5", "Le coût de production comprend…", ["les matières consommées, la MOD et les charges indirectes de production", "le coût d'achat des marchandises vendues", "les coûts de distribution", "le prix de vente moins la marge"], "Le coût de revient ajoute ensuite les coûts de distribution.", "p5c1"], ["p5", "Coût de revient unitaire 45 € ; prix de vente 50 € HT ; 2 000 unités vendues. Le résultat analytique est de…", ["10 000 €", "5 €", "100 000 €", "90 000 €"], "(50 − 45) × 2 000 = 10 000 €.", "p5c1"], ["p5", "Temps réel 520 h, temps préétabli 500 h, taux préétabli 15 €. L'écart sur temps est de…", ["300 € défavorable", "300 € favorable", "260 € défavorable", "7 800 €"], "(520 − 500) × 15 = 300 € : plus d'heures que prévu, donc défavorable.", "p5c4"], ["p5", "Consommation de 20 unités par jour, délai de livraison 5 jours, stock de sécurité 50 unités. Le stock d'alerte est de…", ["150 unités", "100 unités", "50 unités", "250 unités"], "Stock d'alerte = stock de sécurité + consommation pendant le délai = 50 + 20 × 5.", "p5c2"], ["p5", "D = 12 000 unités par an, coût d'une commande 100 €, coût de possession 2 € par unité et par an. La quantité économique est d'environ…", ["1 095 unités", "600 unités", "1 200 unités", "34 unités"], "Q* = √(2 × 12 000 × 100 / 2) = √1 200 000 ≈ 1 095, soit environ 11 commandes par an.", "p5c2"], ["p5", "Ventes de mars : 12 000 € TTC, encaissées 40 % comptant et 60 % à 30 jours. Encaissement en avril au titre de mars :", ["7 200 €", "4 800 €", "12 000 €", "6 000 €"], "60 % × 12 000 = 7 200 € encaissés en avril.", "p5c5"], ["p5", "Dans un budget de trésorerie, l'achat d'une machine payée en juin s'inscrit…", ["en décaissement de juin, pour son montant TTC", "en dotation aux amortissements mensuelle", "en encaissement au moment de la livraison", "nulle part : c'est une immobilisation"], "Le budget suit les flux d'argent : l'investissement est un décaissement au mois du paiement ; l'amortissement n'y figure pas.", "p5c5"], ["p7", "Une association (x,n) – (x,1) entre CLIENT et FACTURE se traduit par…", ["une clé étrangère numClient dans FACTURE", "une clé étrangère numFacture dans CLIENT", "une nouvelle table CLIENT_FACTURE", "la fusion des deux tables"], "La clé étrangère va du côté de la cardinalité maximale 1 : chaque facture concerne un seul client.", "p7c2"], ["p7", "La commande SQL qui supprime les factures de 2019 est…", ["DELETE FROM FACTURE WHERE YEAR(dateFact) = 2019;", "DROP FACTURE WHERE YEAR(dateFact) = 2019;", "REMOVE FROM FACTURE WHERE dateFact = 2019;", "UPDATE FACTURE SET dateFact = NULL WHERE dateFact = 2019;"], "DELETE supprime des lignes ; DROP TABLE supprimerait toute la table.", "p7c2"], ["p7", "La condition qui sélectionne les montants de 1 000 à 5 000 € compris est…", ["montantHT BETWEEN 1000 AND 5000", "montantHT IN (1000, 5000)", "montantHT LIKE '1000%5000'", "montantHT > 1000 OR montantHT < 5000"], "BETWEEN inclut les bornes ; IN ne garde que les valeurs listées.", "p7c2"], ["p7", "Pour trouver les clients sans adresse mail renseignée, on écrit…", ["WHERE mail IS NULL", "WHERE mail = NULL", "WHERE mail = ''", "WHERE mail NOT LIKE '%'"], "Une valeur absente se teste avec IS NULL, jamais avec =.", "p7c2"], ["p7", "Pour compter les factures d'un client supérieures à 1 000 € dans un tableur, on utilise…", ["NB.SI.ENS", "SOMME.SI", "RECHERCHEV", "ARRONDI"], "NB.SI.ENS compte avec plusieurs critères ; SOMME.SI.ENS additionne avec plusieurs critères.", "p7c3"], ["p7", "=SI(B2>1000;\"À relancer\";\"OK\") affiche « À relancer » quand…", ["B2 dépasse 1 000", "B2 est inférieur à 1 000", "B2 est vide", "B2 vaut exactement 1 000"], "SI(test ; valeur si vrai ; valeur si faux).", "p7c3"], ["p7", "Le registre des traitements prévu par le RGPD recense…", ["les traitements de données personnelles de l'entreprise", "les mots de passe des salariés", "les factures émises dans l'année", "les sauvegardes informatiques"], "Finalité, données, personnes concernées, durée de conservation, destinataires, mesures de sécurité.", "p7c4"], ["p7", "Un logiciel qui chiffre les fichiers et réclame une somme pour les débloquer est…", ["un rançongiciel", "un hameçonnage", "un pare-feu", "un antivirus"], "Parade principale : des sauvegardes 3-2-1 hors ligne, testées, et des mises à jour régulières.", "p7c4"], ["p7", "Lors d'un contrôle fiscal, le FEC doit être remis…", ["sous forme dématérialisée, à la demande du vérificateur", "sur papier, à la fin de chaque année", "au greffe avec les comptes annuels", "à l'URSSAF chaque mois"], "Fichier des écritures comptables de l'exercice, dans un format normé ; un défaut de remise est sanctionné.", "p7c5"]]);
 F.push(...[["p1", "Rapprochement bancaire : que faire de chaque écart ?", "Sur le relevé, pas en compta (frais, virements reçus, prélèvements) : on l'enregistre. En compta, pas sur le relevé (chèques émis ou remis non passés) : rien, le décalage disparaîtra.", "Les soldes rectifiés doivent être égaux.", "p1c5"], ["p5", "Budget de trésorerie : 3 réflexes", "TTC, au mois réel de l'encaissement ou du décaissement (délais clients et fournisseurs) ; TVA du mois payée le mois suivant ; ni amortissements ni provisions.", "Investissement : décaissement au mois du paiement.", "p5c5"], ["p5", "Écarts sur MOD", "Sur temps = (Tr − Tp) × taux préétabli. Sur taux = (taux réel − taux préétabli) × Tr. Global = coût réel − coût préétabli de la production réelle.", "Positif = défavorable.", "p5c4"], ["p7", "SQL : les pièges", "WHERE filtre les lignes, HAVING les groupes ; une valeur vide se teste avec IS NULL ; BETWEEN inclut les bornes ; UPDATE ou DELETE sans WHERE touchent toute la table.", "Jointure : FROM T1 INNER JOIN T2 ON T1.clé = T2.clé.", "p7c2"]]);
+/* P2, P4, P6 : compléments (octobre 2026) */
+Q.push(...[["p2", "Des actions achetées pour être revendues à court terme (placement de trésorerie) s'enregistrent au compte…", ["503 Actions (valeurs mobilières de placement)", "261 Titres de participation", "271 Titres immobilisés", "512 Banque"], "Les VMP sont des titres achetés pour en tirer un revenu ou une plus-value à court terme : 503 pour les actions, 506 pour les obligations.", "p2c3"], ["p2", "À la clôture, le cours d'actions de placement est inférieur à leur coût d'achat. On enregistre…", ["6866 au débit et 590 au crédit pour la moins-value latente", "rien : on attend la vente", "667 au débit et 503 au crédit", "6817 au débit et 491 au crédit"], "Prudence : la moins-value latente est dépréciée (6866 / 590). La plus-value latente, elle, n'est jamais enregistrée.", "p2c3"], ["p2", "Une garantie donnée aux clients sur les produits vendus justifie à la clôture…", ["une provision 6815 / 1512 pour le coût probable des réparations", "une dépréciation des créances clients", "une charge constatée d'avance", "aucune écriture tant qu'aucun client ne s'est plaint"], "L'obligation existe dès la vente et la sortie de ressources est probable : provision pour garanties données aux clients (1512).", "p2c3"], ["p2", "Stock de marchandises : coût d'achat 10 000 €, valeur nette de réalisation estimée 8 500 €. La dépréciation est de…", ["1 500 €", "8 500 €", "10 000 €", "0 € : le stock reste au coût"], "On compare le coût à la valeur actuelle (prix de vente probable moins frais de vente) : 10 000 − 8 500 = 1 500 €, en 6817 / 397.", "p2c3"], ["p2", "Pour évaluer les sorties de biens interchangeables, le PCG autorise…", ["le CMUP ou le premier entré, premier sorti (PEPS)", "uniquement le dernier entré, premier sorti", "le prix de vente du jour", "n'importe quelle méthode, sans obligation de permanence"], "CMUP ou PEPS ; la méthode choisie doit être appliquée d'un exercice à l'autre (permanence des méthodes).", "p2c3"], ["p2", "Stock initial de produits finis 20 000 €, stock final 26 000 €. La production stockée de l'exercice est…", ["+6 000 € au crédit du 7135", "−6 000 € au débit du 6037", "+6 000 € au débit du 6031", "26 000 € au crédit du 701"], "Variation des stocks de produits = SF − SI = +6 000 € : la production stockée augmente le résultat (7135).", "p2c3"], ["p2", "À la clôture, un avoir de 600 € HT (TVA 20 %) est promis par un fournisseur mais pas encore reçu. On enregistre…", ["4098 au débit 720 € ; 609 au crédit 600 € ; 44586 au crédit 120 €", "401 au débit 720 € ; 607 au crédit 720 €", "609 au débit 600 € ; 4098 au crédit 600 €", "aucune écriture avant réception de l'avoir"], "Le produit (réduction de charge) concerne l'exercice : on constate un « avoir à recevoir » en 4098, contre-passé à l'ouverture.", "p2c4"], ["p2", "Une ristourne de 1 000 € HT due à un client au titre de N sera facturée en N+1. À la clôture, on enregistre…", ["709 au débit 1 000 € ; 44587 au débit 200 € ; 4198 au crédit 1 200 €", "4198 au débit 1 200 € ; 709 au crédit 1 000 €", "665 au débit 1 000 € ; 411 au crédit 1 000 €", "rien : elle sera comptabilisée en N+1"], "La réduction accordée diminue le chiffre d'affaires de N : avoir à établir en 4198 « Clients – Avoirs à établir ».", "p2c4"], ["p2", "Emprunt de 60 000 € à 5 %, intérêts payés chaque 1er mai. Les intérêts courus non échus au 31 décembre sont de…", ["2 000 €", "3 000 €", "1 000 €", "2 500 €"], "Du 1er mai au 31 décembre : 8 mois. 60 000 × 5 % × 8/12 = 2 000 €, en 661 / 1688.", "p2c4"], ["p2", "Bénéfice 50 000 € ; dotation à la réserve légale 2 500 € ; dividendes 30 000 €. Le solde de 17 500 € est affecté…", ["en autres réserves ou en report à nouveau, selon la décision de l'assemblée", "obligatoirement en réserve légale", "obligatoirement en dividendes", "au capital social"], "L'assemblée générale ordinaire décide librement du sort du solde : réserves facultatives (1068) ou report à nouveau (110).", "p2c5"], ["p2", "L'écriture d'affectation d'un bénéfice débite le compte…", ["120 Résultat de l'exercice (bénéfice)", "129 Résultat de l'exercice (perte)", "457 Associés – dividendes à payer", "1061 Réserve légale"], "Le compte 120, créditeur, est soldé par son débit ; on crédite 1061, 1068, 457 et 110 selon la décision de l'AG.", "p2c5"], ["p2", "Une perte de l'exercice que l'assemblée décide de ne pas imputer sur les réserves est portée…", ["en report à nouveau débiteur (119)", "en réserve légale", "en dividendes négatifs", "au compte 658"], "Le compte 129 est soldé par le débit du 119 « Report à nouveau (solde débiteur) », qui sera apuré par les bénéfices futurs.", "p2c5"], ["p2", "Les micro-entreprises (bilan ≤ 450 000 €, CA ≤ 900 000 €, 10 salariés au plus) peuvent…", ["ne pas établir d'annexe", "ne pas tenir de comptabilité", "ne pas déposer de bilan", "établir leurs comptes tous les deux ans"], "Depuis les seuils relevés en 2024, ces entreprises sont dispensées d'annexe et peuvent demander la confidentialité de leurs comptes.", "p2c6"], ["p2", "Un litige dont l'origine est antérieure à la clôture est connu après la clôture, mais avant l'arrêté des comptes. On…", ["en tient compte dans les comptes de l'exercice (ajustement de la provision)", "l'ignore : il sera traité l'an prochain", "le mentionne seulement dans le rapport de gestion", "annule toute la comptabilité de l'exercice"], "Un événement postérieur qui éclaire une situation existant à la clôture doit être pris en compte. S'il naît après la clôture, on l'indique seulement dans l'annexe.", "p2c6"], ["p2", "Les redevances de crédit-bail restant à payer apparaissent…", ["dans l'annexe, au titre des engagements hors bilan", "au passif du bilan en dettes financières", "à l'actif en immobilisations", "nulle part"], "En comptes individuels, le bien n'est pas à l'actif du locataire : on informe le lecteur dans l'annexe (engagements donnés).", "p2c6"], ["p2", "Une dépréciation du fonds commercial s'enregistre…", ["6816 au débit et 2907 au crédit", "6811 au débit et 2807 au crédit", "6866 au débit et 2907 au crédit", "on ne peut pas déprécier un fonds commercial"], "Le fonds commercial ne s'amortit en général pas, mais il peut être déprécié si sa valeur actuelle devient inférieure à sa valeur comptable.", "p2c2"], ["p2", "Machine : VNC 18 000 €, valeur vénale 12 000 €, valeur d'usage 15 000 €. La dépréciation est de…", ["3 000 €", "6 000 €", "0 €", "15 000 €"], "Valeur actuelle = la plus élevée de la valeur vénale et de la valeur d'usage : 15 000 €. Dépréciation = 18 000 − 15 000 = 3 000 €.", "p2c2"], ["p2", "Après la dépréciation d'une immobilisation amortissable…", ["les dotations futures sont recalculées sur la nouvelle base", "on arrête de l'amortir", "on l'amortit en dégressif", "la dépréciation est reprise au 1er janvier"], "La base amortissable devient la valeur actuelle : le plan d'amortissement est révisé de façon prospective.", "p2c2"], ["p4", "Salaire de base 2 100 € (151,67 h). Ce mois compte 168 heures à travailler ; le salarié est absent 14 h sans solde. La retenue (heures réelles du mois) est de…", ["175 €", "193,84 €", "140 €", "210 €"], "Retenue strictement proportionnelle : 2 100 × 14 / 168 = 175 €. Le diviseur est l'horaire réel du mois, pas 151,67 h.", "p4c3"], ["p4", "En l'absence de convention plus favorable, le préavis de licenciement d'un salarié qui a 3 ans d'ancienneté est de…", ["2 mois", "1 mois", "3 mois", "15 jours"], "Préavis légal : 1 mois entre 6 mois et 2 ans d'ancienneté, 2 mois au-delà de 2 ans (sauf faute grave ou lourde).", "p4c1"], ["p4", "Le reçu pour solde de tout compte signé peut être dénoncé par le salarié…", ["dans les 6 mois qui suivent sa signature", "à tout moment pendant 5 ans", "jamais : il est définitif dès la signature", "dans les 15 jours"], "Passé 6 mois, le reçu devient libératoire pour l'employeur, pour les sommes qui y sont mentionnées.", "p4c1"], ["p4", "Après la signature d'une rupture conventionnelle, chaque partie dispose d'un délai de rétractation de…", ["15 jours calendaires", "8 jours ouvrables", "1 mois", "aucun délai"], "Puis la convention est envoyée à la DREETS, qui dispose de 15 jours ouvrables pour l'homologuer.", "p4c1"], ["p4", "Une démission donne droit…", ["à l'indemnité compensatrice de congés payés, mais pas à l'indemnité de licenciement", "à l'indemnité légale de licenciement", "à la prime de précarité", "à une indemnité de rupture conventionnelle"], "Le salarié qui démissionne touche son salaire jusqu'à la fin du préavis et ses congés non pris, sans indemnité de rupture.", "p4c1"], ["p4", "La complémentaire santé d'entreprise est financée par l'employeur…", ["à hauteur d'au moins 50 %", "entièrement par le salarié", "à 100 % obligatoirement", "uniquement pour les cadres"], "Depuis 2016, toutes les entreprises doivent proposer une mutuelle collective, financée au moins pour moitié par l'employeur.", "p4c3"], ["p4", "La participation de l'employeur aux titres-restaurant doit être comprise entre…", ["50 % et 60 % de la valeur du titre", "10 % et 20 %", "80 % et 100 %", "0 % et 50 %"], "Dans ces bornes, et sous un plafond par titre, la contribution patronale est exonérée de cotisations.", "p4c3"], ["p4", "La cotisation accidents du travail et maladies professionnelles (AT/MP) est…", ["entièrement à la charge de l'employeur", "partagée à parts égales", "entièrement à la charge du salarié", "prélevée sur le net imposable"], "Son taux dépend de l'activité et, pour les entreprises plus grandes, de leur sinistralité.", "p4c3"], ["p4", "Le taux neutre (non personnalisé) du prélèvement à la source s'applique notamment…", ["quand l'employeur n'a pas reçu de taux personnalisé pour le salarié", "à tous les salariés de moins de 26 ans", "quand le salaire dépasse le PASS", "jamais : il a été supprimé"], "L'administration fiscale transmet le taux via la DSN ; à défaut (nouvel embauché, option du salarié), on applique la grille du taux neutre.", "p4c3"], ["p4", "Les cotisations de retraite complémentaire AGIRC-ARRCO dues sont créditées au compte…", ["437 Autres organismes sociaux", "431 Sécurité sociale", "421 Personnel – rémunérations dues", "4421 Prélèvements à la source"], "431 est réservé à l'URSSAF ; les caisses de retraite complémentaire, de prévoyance et de mutuelle passent en 437.", "p4c4"], ["p4", "L'indemnité de licenciement versée à un salarié s'enregistre au débit du compte…", ["6414 Indemnités et avantages divers", "6411 Salaires, appointements", "6451 Cotisations à l'URSSAF", "671 Charges exceptionnelles"], "Elle reste une charge de personnel : 6414.", "p4c4"], ["p4", "Le congé principal doit comporter au moins…", ["12 jours ouvrables continus, pris entre le 1er mai et le 31 octobre", "24 jours ouvrables continus", "5 jours ouvrés, n'importe quand", "30 jours d'un coup"], "Au-delà, le fractionnement du congé principal hors de cette période peut ouvrir droit à 1 ou 2 jours supplémentaires.", "p4c2"], ["p4", "Pour un salarié à temps partiel, les heures complémentaires dans la limite de 1/10 de la durée contractuelle sont majorées de…", ["10 %", "25 %", "50 %", "0 %"], "Au-delà du dixième (et jusqu'au tiers si un accord le permet), la majoration passe à 25 %.", "p4c2"], ["p4", "Le travail de nuit correspond en principe à la période…", ["de 21 h à 6 h", "de 22 h à 5 h", "de 20 h à 8 h", "de minuit à 7 h"], "Le travailleur de nuit bénéficie de contreparties (repos compensateur, éventuellement majoration) et d'un suivi médical renforcé.", "p4c2"], ["p4", "La contribution à la formation professionnelle d'une entreprise de 11 salariés et plus est de…", ["1 % de la masse salariale", "0,55 % de la masse salariale", "0,68 % de la masse salariale", "2 % de la masse salariale"], "0,55 % en dessous de 11 salariés ; s'y ajoute la taxe d'apprentissage (0,68 %), le tout collecté par l'URSSAF.", "p4c5"], ["p4", "Un accident du travail doit être déclaré par l'employeur à la CPAM…", ["dans les 48 heures", "dans le mois", "à la fin de l'année", "seulement s'il entraîne un arrêt de plus de 3 mois"], "Hors dimanches et jours fériés ; le salarié, lui, doit informer l'employeur dans les 24 heures.", "p4c5"], ["p4", "La prévoyance des cadres est obligatoire et financée par l'employeur à hauteur d'au moins…", ["1,50 % de la tranche A", "0,5 % du brut total", "3 % du net", "rien : elle est facultative"], "Obligation issue de la convention de 1947, reprise par l'accord national de 2017.", "p4c3"], ["p6", "La CAF selon la méthode soustractive part…", ["de l'EBE", "du résultat net", "du chiffre d'affaires", "de la valeur ajoutée"], "EBE + autres produits encaissables − autres charges décaissables + produits financiers encaissables − charges financières décaissables − IS.", "p6c1"], ["p6", "Le taux de marque se calcule ainsi :", ["marge commerciale / prix de vente HT × 100", "marge commerciale / coût d'achat × 100", "prix de vente / coût d'achat × 100", "coût d'achat / prix de vente × 100"], "Le taux de marge se rapporte au coût d'achat ; le taux de marque, au prix de vente HT. Le taux de marque est donc toujours plus faible.", "p6c1"], ["p6", "Coût d'achat 80 €, prix de vente HT 100 €. Le taux de marge est de…", ["25 %", "20 %", "80 %", "125 %"], "Marge 20 € ; taux de marge = 20 / 80 = 25 % ; taux de marque = 20 / 100 = 20 %.", "p6c1"], ["p6", "L'excédent de trésorerie d'exploitation (ETE) est égal à…", ["l'EBE moins la variation du BFR d'exploitation", "la CAF moins les dividendes", "le résultat net plus les dotations", "la trésorerie de fin moins celle de début"], "C'est la trésorerie réellement dégagée par l'activité : une hausse du BFRE absorbe une partie de l'EBE.", "p6c1"], ["p6", "Le taux de valeur ajoutée (VA / chiffre d'affaires) mesure surtout…", ["le degré d'intégration de l'entreprise (ce qu'elle fait elle-même)", "sa rentabilité pour les actionnaires", "son niveau d'endettement", "sa trésorerie"], "Un distributeur qui revend sans transformer a un taux faible ; une entreprise qui fabrique tout elle-même, un taux élevé.", "p6c1"], ["p6", "Le ratio de liquidité restreinte se calcule ainsi :", ["(actif circulant − stocks) / dettes à court terme", "actif circulant / dettes à court terme", "disponibilités / dettes à court terme", "stocks / dettes à court terme"], "On retire les stocks, les plus longs à transformer en argent. La liquidité immédiate ne retient que les disponibilités.", "p6c3"], ["p6", "Le ratio de couverture des emplois stables (ressources stables / emplois stables) doit être…", ["supérieur à 1", "inférieur à 0,5", "égal à 0", "négatif"], "S'il dépasse 1, le FRNG est positif : les investissements sont financés par des ressources durables.", "p6c3"], ["p6", "BFR d'exploitation 50 000 € ; chiffre d'affaires HT 600 000 €. Le BFRE représente…", ["30 jours de CA", "12 jours de CA", "50 jours de CA", "120 jours de CA"], "50 000 / 600 000 × 360 = 30 jours : chaque jour de CA supplémentaire demande ce financement.", "p6c3"], ["p6", "Dettes fournisseurs 45 000 € TTC ; achats de l'année 450 000 € HT (TVA 20 %). Le délai fournisseurs est de…", ["30 jours", "36 jours", "45 jours", "25 jours"], "On compare des montants TTC : 45 000 / (450 000 × 1,2) × 360 = 30 jours.", "p6c3"], ["p6", "Rentabilité économique 12 % ; coût de la dette 5 % ; dettes financières / capitaux propres = 1. Avant impôt, la rentabilité financière est de…", ["19 %", "12 %", "7 %", "17 %"], "Rf = Re + (Re − i) × D/CP = 12 % + 7 % × 1 = 19 % : l'effet de levier joue en faveur des actionnaires.", "p6c3"], ["p6", "Au bilan fonctionnel, un bien pris en crédit-bail est retraité ainsi :", ["valeur d'origine en emplois stables, amortissements fictifs en ressources propres, part restante en dettes financières", "on l'ignore", "loyers en emplois stables", "valeur d'origine en actif circulant"], "On fait comme si l'entreprise avait acheté le bien en empruntant : cela rend les entreprises comparables.", "p6c2"], ["p6", "Investissement 50 000 € ; VAN 10 000 €. L'indice de profitabilité est de…", ["1,2", "0,2", "5", "1,02"], "IP = 1 + VAN / I = 1 + 10 000 / 50 000 = 1,2 : chaque euro investi rapporte 1,20 € actualisé.", "p6c4"], ["p6", "Un projet est acceptable selon le TRI si…", ["son TRI est supérieur au taux d'actualisation exigé", "son TRI est négatif", "son TRI est inférieur au taux d'intérêt", "son TRI est égal à 0"], "Au taux exigé, la VAN est alors positive.", "p6c4"], ["p6", "Comparé au délai de récupération simple, le délai de récupération actualisé est…", ["plus long", "plus court", "toujours égal", "sans rapport"], "Actualiser diminue chaque flux futur : il faut donc attendre plus longtemps pour récupérer la mise.", "p6c4"], ["p6", "Intérêts d'emprunt de 4 000 € ; taux d'IS 25 %. Le coût réel après impôt est de…", ["3 000 €", "4 000 €", "1 000 €", "5 000 €"], "Les intérêts sont déductibles : économie d'IS de 1 000 €, coût net 3 000 €.", "p6c5"], ["p6", "Dans un plan de financement, les dividendes versés sont…", ["des emplois", "des ressources", "ignorés", "de l'autofinancement"], "Ressources : CAF, augmentation de capital, emprunts, cessions. Emplois : investissements, hausse du BFR, remboursements, dividendes.", "p6c5"], ["p6", "En pratique, les banques considèrent qu'une entreprise reste endettée raisonnablement tant que…", ["ses dettes financières ne dépassent pas ses capitaux propres", "sa trésorerie est négative", "elle n'a aucun capital", "ses dettes dépassent 10 fois sa CAF"], "Ratio d'endettement ≤ 1 et capacité de remboursement inférieure à 3 ou 4 ans de CAF.", "p6c3"]]);
+F.push(...[["p2", "VMP à l'inventaire", "Moins-value latente : 6866 / 590. Plus-value latente : rien (prudence). Cession : 767 si profit, 667 si perte.", "Actions 503, obligations 506.", "p2c3"], ["p2", "Provisions pour risques : comptes", "Litiges 1511, garanties clients 1512, pertes de change 1515. Dotation 6815 (exploitation), reprise 7815.", "Ajuste chaque année : dotation ou reprise de la différence.", "p2c3"], ["p2", "Avoirs à recevoir / à établir", "Fournisseur : 4098 / 609 + 44586. Client : 709 + 44587 / 4198. Contre-passés au 1er janvier.", "", "p2c4"], ["p2", "Valeur actuelle d'une immobilisation", "La plus élevée entre valeur vénale et valeur d'usage. Dépréciation = VNC − valeur actuelle (6816 / 29xx).", "", "p2c2"], ["p2", "Événements postérieurs à la clôture", "Situation existant à la clôture : on ajuste les comptes. Fait nouveau après la clôture : simple mention dans l'annexe.", "", "p2c6"], ["p4", "Retenue pour absence", "Salaire × heures d'absence / heures réellement à travailler dans le mois.", "Retenue strictement proportionnelle (jurisprudence).", "p4c3"], ["p4", "Préavis légal de licenciement", "Moins de 6 mois : convention ou usage. 6 mois à 2 ans : 1 mois. 2 ans et plus : 2 mois.", "Pas de préavis en cas de faute grave ou lourde.", "p4c1"], ["p4", "Rupture conventionnelle : délais", "Rétractation 15 jours calendaires, puis homologation DREETS en 15 jours ouvrables.", "Indemnité au moins égale à l'indemnité légale de licenciement.", "p4c1"], ["p4", "Contributions sur la masse salariale", "Formation professionnelle : 0,55 % (moins de 11 salariés), 1 % (11 et plus). Taxe d'apprentissage : 0,68 %.", "Collectées par l'URSSAF via la DSN.", "p4c5"], ["p4", "Comptes des organismes sociaux", "431 URSSAF ; 437 retraite complémentaire, prévoyance, mutuelle ; 4421 prélèvement à la source.", "", "p4c4"], ["p6", "CAF soustractive", "EBE + autres produits encaissables − autres charges décaissables + produits financiers encaissables − charges financières − IS.", "Même résultat que la méthode additive.", "p6c1"], ["p6", "Taux de marge et taux de marque", "Marge = PV HT − coût d'achat. Taux de marge = marge / coût. Taux de marque = marge / PV HT.", "", "p6c1"], ["p6", "Liquidité", "Générale : actif circulant / dettes CT. Restreinte : (AC − stocks) / dettes CT. Immédiate : disponibilités / dettes CT.", "", "p6c3"], ["p6", "Indice de profitabilité", "IP = 1 + VAN / investissement. Projet intéressant si IP > 1.", "Utile pour comparer des projets de tailles différentes.", "p6c4"]]);
+(() => { const S = {"p2c3": {"h": "Les titres de placement", "b": [["d", "Valeurs mobilières de placement", "Titres achetés pour en tirer un revenu ou une plus-value à court terme : 503 (actions), 506 (obligations). Coût d'entrée : prix d'achat, frais d'acquisition en charges ou incorporés."], ["d", "À l'inventaire", "On compare le coût au cours moyen du dernier mois. Moins-value latente : dépréciation 6866 / 590. Plus-value latente : aucune écriture."], ["d", "À la cession", "Le profit va en 767 « Produits nets sur cessions de VMP », la perte en 667 ; la dépréciation éventuelle est reprise (590 / 7866)."], ["trap", "Ne confonds pas VMP (503, court terme) et titres de participation (261, détenus durablement pour exercer une influence)."]]}, "p2c4": {"h": "Avoirs à recevoir et à établir", "b": [["d", "Avoir à recevoir", "Une réduction promise par un fournisseur au titre de l'exercice, sans avoir reçu : 4098 au débit (TTC), 609 et 44586 au crédit."], ["d", "Avoir à établir", "Une ristourne due à un client au titre de l'exercice : 709 et 44587 au débit, 4198 au crédit (TTC)."], ["tip", "Même logique que les factures non parvenues ou à établir : on rattache l'opération à l'exercice qu'elle concerne, puis on contre-passe au 1er janvier."]]}, "p2c6": {"h": "L'annexe et les événements après la clôture", "b": [["d", "Annexe", "Explique les chiffres du bilan et du compte de résultat : méthodes d'évaluation, tableau des immobilisations, provisions, engagements hors bilan (crédit-bail, cautions)."], ["d", "Micro-entreprises", "Bilan ≤ 450 000 €, CA ≤ 900 000 €, 10 salariés au plus (deux seuils sur trois) : dispense d'annexe."], ["l", ["Événement postérieur lié à une situation qui existait à la clôture (litige déjà né, client déjà en difficulté) : on ajuste les comptes.", "Événement né après la clôture (incendie en février) : simple information dans l'annexe s'il est significatif."]]]}, "p4c1": {"h": "Préavis et solde de tout compte", "b": [["t", ["Ancienneté", "Préavis légal de licenciement"], [["Moins de 6 mois", "Convention collective ou usage"], ["De 6 mois à 2 ans", "1 mois"], ["2 ans et plus", "2 mois"]]], ["d", "Dispense de préavis", "Si l'employeur dispense le salarié d'effectuer son préavis, il lui verse une indemnité compensatrice. Pas de préavis en cas de faute grave ou lourde."], ["d", "Solde de tout compte", "Inventaire des sommes versées à la fin du contrat ; signé, il peut être dénoncé dans les 6 mois, puis devient libératoire."], ["d", "Rupture conventionnelle", "Rétractation 15 jours calendaires, homologation DREETS en 15 jours ouvrables ; indemnité au moins égale à l'indemnité légale."]]}, "p4c3": {"h": "Absences et retenues", "b": [["why", "Un salarié mensualisé touche le même salaire de base chaque mois, quel que soit le nombre de jours. Quand il s'absente sans être payé, on retire une somme strictement proportionnelle au temps d'absence."], ["d", "Méthode des heures réelles", "Retenue = salaire mensuel × heures d'absence / heures réellement à travailler dans le mois (jours ouvrés × 7 h pour un temps plein)."], ["ex", "absence de 14 h", ["Salaire de base 2 100 € ; le mois compte 24 jours ouvrés, soit 168 h.", "Retenue = 2 100 × 14 / 168 = 175 €.", "Salaire brut du mois = 2 100 − 175 = 1 925 €."]], ["trap", "Diviser toujours par 151,67 h n'est pas exact : selon le mois, le salarié perdrait trop ou pas assez."]]}, "p4c5": {"h": "Les contributions sur les salaires", "b": [["d", "Formation professionnelle", "0,55 % de la masse salariale en dessous de 11 salariés, 1 % à partir de 11."], ["d", "Taxe d'apprentissage", "0,68 % de la masse salariale (part principale et solde), plus une contribution supplémentaire pour les entreprises de 250 salariés et plus qui emploient trop peu d'alternants."], ["l", ["Ces contributions sont déclarées dans la DSN et payées à l'URSSAF.", "Comptabilisation : 6333 « Participation des employeurs à la formation professionnelle continue » et 6312 « Taxe d'apprentissage » au débit, 431 ou 447 au crédit."]]]}, "p6c1": {"h": "CAF soustractive, marge et marque", "b": [["d", "CAF soustractive", "EBE + autres produits d'exploitation encaissables − autres charges d'exploitation décaissables + produits financiers encaissables − charges financières décaissables − impôt sur les bénéfices."], ["d", "Excédent de trésorerie d'exploitation", "ETE = EBE − variation du BFR d'exploitation : l'argent réellement dégagé par l'activité."], ["t", ["Indicateur", "Formule"], [["Taux de marge", "Marge / coût d'achat HT × 100"], ["Taux de marque", "Marge / prix de vente HT × 100"], ["Taux de valeur ajoutée", "VA / chiffre d'affaires × 100"]]], ["tip", "Coût 80 €, prix 100 € : taux de marge 25 %, taux de marque 20 %. Le taux de marque est toujours le plus petit des deux."]]}, "p6c3": {"h": "Ratios de liquidité", "b": [["t", ["Ratio", "Formule", "Lecture"], [["Liquidité générale", "Actif circulant / dettes à court terme", "> 1 : les actifs courts couvrent les dettes courtes"], ["Liquidité restreinte", "(Actif circulant − stocks) / dettes à court terme", "Sans compter sur la vente des stocks"], ["Liquidité immédiate", "Disponibilités / dettes à court terme", "Ce qui peut être payé tout de suite"], ["Couverture des emplois stables", "Ressources stables / emplois stables", "> 1 : FRNG positif"]]], ["d", "BFR en jours de CA", "BFRE / CA HT × 360 : permet de prévoir le besoin quand l'activité augmente."]]}}; Object.keys(S).forEach(id => { const c = CHAP.find(x => x.id === id); if (c) { const i = c.sections.findIndex(z => /^En clair/.test(z.h)); c.sections.push(S[id]); } }); })();
 /* Simulateur d'oral E6 / E7 : questions types du jury et éléments de réponse attendus */
 const ORAL = [
 /* ---------- E6 · P1 Opérations commerciales ---------- */
@@ -3109,6 +3164,7 @@ function chapPicker(cats, mode) {
 /* ---------- Navigation et accueil (version 5) ---------- */
 const SVG = p => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const ICON = {
+  duel: SVG('<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4M7 17l-3 3M3 19l2 2"/>'),
   speak: SVG('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
   stop: SVG('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>'),
   cal: SVG('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 13v4M10 15h4"/>'),
@@ -3148,6 +3204,7 @@ function go(v, opts) {
   if (exTick && v !== "exrun") { clearInterval(exTick); exTick = null; }
   if (defiTick && v !== "defi") { clearInterval(defiTick); defiTick = null; }
   if (v !== "oral") clearInterval(orTick);
+  if (v !== "duel") duelStop();
   if (opts && opts.reset) { R = null; C = null; }
   closeSheet(); peekClose(true); ttsStop();
   if (tourI >= 0) { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); }
@@ -3197,7 +3254,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { pack: vPack, classe: vClasse, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { duel: vDuel, pack: vPack, classe: vClasse, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   v.dataset.view = view;
   renderTop();
@@ -3290,6 +3347,7 @@ function vHome() {
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
   ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
+  ${duelHomeCard()}
   ${classeCard()}
   <section class="stack">
     <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
@@ -5284,9 +5342,227 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { return localStorage.getItem("gl-extab") || "quiz"; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${DOSS.length} dossiers E5 · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`], ["duel", ICON.duel, "Duels", DUEL_NET() ? "Défie un camarade" : "Contre le Grand Livre"]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
+/* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
+const DUEL_NET = () => (typeof window.GL_DUEL === "object" && window.GL_DUEL) || null;
+const DUEL_T = 20;
+let DU = null, duTick = null, duPoll = null;
+let DH = { list: null, mates: [], at: 0, busy: false, err: "", inv: 0 };
+const duelCfg = () => { S.duf = S.duf || { cats: ["p1", "p2", "p3"], n: 10 }; return S.duf; };
+const duScore = (ans, t) => ans.reduce((s, ok, i) => s + (ok ? 100 + Math.max(0, 50 - Math.floor((t[i] || 0) / 1000) * 3) : 0), 0);
+const duHue = s => { let x = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) % 360; return x; };
+const duIni = n => String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+const duAv = (n, cls) => `<span class="du-av${cls ? " " + cls : ""}" style="--ah:${duHue(n)}" aria-hidden="true">${h(duIni(n))}</span>`;
+function duelStop() { clearInterval(duTick); duTick = null; clearInterval(duPoll); duPoll = null; }
+function duelPool(cats) { return QS.filter(x => cats.includes(x.c) && !lockedCat(x.c) && x.o && x.o.length === 4); }
+function duelPick(cats, n) { const p = shuffle(duelPool(cats)); return p.slice(0, n).map(x => x.id); }
+function duelItems(ids, seed) {
+  const by = {}; QS.forEach(x => { by[x.id] = x; });
+  return ids.map((id, i) => { const it = by[id]; if (!it) return null; const r = rng((seed >>> 0) + i * 7919), o = [0, 1, 2, 3];
+    for (let k = 3; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [o[k], o[j]] = [o[j], o[k]]; } return { it, order: o }; });
+}
+async function loadDuels(force) {
+  const N = DUEL_NET(); if (!N || DH.busy) return;
+  if (!force && DH.list && Date.now() - DH.at < 30000) return;
+  DH.busy = true;
+  try { const j = await N.list(); DH.list = j.duels || []; DH.mates = j.mates || []; DH.at = Date.now(); DH.err = ""; }
+  catch (e) { DH.err = (e && e.message) || "Duels indisponibles pour l'instant."; if (!DH.list) DH.list = []; }
+  DH.busy = false;
+  const inv = duelInvites().length, chg = inv !== DH.inv; DH.inv = inv;
+  if ((view === "ex" && EXT === "duel") || (view === "home" && chg)) render();
+}
+const duelInvites = () => (DH.list || []).filter(d => d.me === "b" && d.you && !d.you.started && !d.you.ans.length && d.status !== "done" && d.status !== "declined");
+function duelHomeCard() {
+  if (!DUEL_NET()) return "";
+  loadDuels();
+  const inv = duelInvites(); if (!inv.length) return "";
+  const d = inv[0];
+  return `<button class="wk-cta du-inv" data-act="duOpen" data-id="${h(d.id)}"><span class="wk-ic">${ICON.duel}</span><span><b>${h(d.opp ? d.opp.name : "Un camarade")} te défie en duel !</b><small>${d.n} questions${d.opp && d.opp.done ? ` · score à battre : ${d.opp.score}` : ""}${inv.length > 1 ? ` · et ${inv.length - 1} autre${inv.length > 2 ? "s" : ""} défi${inv.length > 2 ? "s" : ""}` : ""}</small></span><span class="wk-go">Relever ›</span></button>`;
+}
+function duelHome() {
+  const N = DUEL_NET(), cfg = duelCfg(), cats = CATS.filter(c => (QBY[c.id] || []).length && !lockedCat(c.id));
+  if (N) loadDuels();
+  const inv = N ? duelInvites() : [], hist = N ? (DH.list || []).filter(d => !inv.includes(d)).slice(0, 10) : [];
+  const st = S.dus || { w: 0, l: 0, d: 0 }, pool = duelPool(cfg.cats).length;
+  const res = d => { if (d.status === "declined") return ["Refusé", ""]; if (d.status !== "done") return [d.you && d.you.done ? "En attente" : "À jouer", "p"]; const a = d.you.score, b = d.opp ? d.opp.score : 0; return a > b ? ["Victoire", "w"] : a < b ? ["Défaite", "l"] : ["Égalité", ""]; };
+  return `<section class="stack">
+    <div class="sec-head"><h2>Duels</h2><p>Les mêmes questions pour toi et ton adversaire, ${DUEL_T} secondes par question. Une bonne réponse rapporte 100 points, plus un bonus de vitesse.</p></div>
+    <div class="du-hero"><div class="du-vs"><div class="du-p">${duAv(P().name || window.GL_NAME || "Moi")}<b>Toi</b></div><span class="du-x">VS</span><div class="du-p"><span class="du-av" style="--ah:45" aria-hidden="true">?</span><b>Ton adversaire</b></div></div>
+      <p class="muted" style="text-align:center;position:relative;z-index:1">${st.w + st.l + st.d ? `Ton bilan : <b>${st.w}</b> victoire${st.w > 1 ? "s" : ""}, <b>${st.l}</b> défaite${st.l > 1 ? "s" : ""}, <b>${st.d}</b> égalité${st.d > 1 ? "s" : ""}.` : "Ton premier duel t'attend."}</p></div>
+    ${inv.length ? `<div class="stack" style="gap:8px"><h3>Défis reçus</h3>${inv.map(d => `<div class="du-card du-inv" style="cursor:default">${duAv(d.opp ? d.opp.name : "?")}<span><b>${h(d.opp ? d.opp.name : "Un camarade")}</b><br><small class="muted">${d.n} questions · ${d.cats.map(c => CAT[c] ? CAT[c].code : c).join(", ")}${d.opp && d.opp.done ? ` · ${d.opp.score} points à battre` : ""}</small></span><span class="row" style="gap:6px"><button class="btn small" data-act="duDecline" data-id="${h(d.id)}">Refuser</button><button class="btn small primary" data-act="duOpen" data-id="${h(d.id)}">Jouer</button></span></div>`).join("")}</div>` : ""}
+    <div class="pf-set" style="padding:16px;display:grid;gap:12px">
+      <h3>Nouveau duel</h3>
+      <div><div class="label">Matières</div><div class="picker">${cats.map(c => `<button class="chip" data-act="duCat" data-c="${c.id}" aria-pressed="${cfg.cats.includes(c.id)}"><span class="mono">${h(c.code)}</span>${h(c.name)}</button>`).join("")}</div></div>
+      <div class="row"><span class="label" style="margin:0">Questions</span><div class="pf-seg" role="group">${[5, 10, 15].map(n => `<button type="button" data-act="duN" data-n="${n}" aria-pressed="${cfg.n === n}">${n}</button>`).join("")}</div><span class="muted small">${pool} questions disponibles</span></div>
+      ${N ? `<div class="row"><button class="btn primary" data-act="duNew" ${pool < cfg.n ? "disabled" : ""}>${ICON.duel}Créer un duel avec un code</button><button class="btn" data-act="duBot" ${pool < cfg.n ? "disabled" : ""}>Contre le Grand Livre</button></div>
+        ${DH.mates.length ? `<div><div class="label">Ou défie directement un camarade du classement</div><div class="du-mates">${DH.mates.map(m => `<button class="chip" data-act="duMate" data-k="${h(m.k)}" ${pool < cfg.n ? "disabled" : ""}><span class="du-av" style="width:22px;height:22px;font-size:.6rem;--ah:${duHue(m.p)}" aria-hidden="true">${h(duIni(m.p))}</span>${h(m.p)}</button>`).join("")}</div></div>` : `<p class="muted small" style="margin:0">Les camarades qui ont rejoint le classement de la classe apparaîtront ici pour être défiés directement.</p>`}`
+        : `<div class="row"><button class="btn primary" data-act="duBot" ${pool < cfg.n ? "disabled" : ""}>${ICON.duel}Duel contre le Grand Livre</button></div><p class="muted small" style="margin:0">${isGuest() ? "Crée ton compte pour défier tes camarades." : "Les duels entre camarades se jouent sur le site partagé du Grand Livre. Ici, affronte un adversaire virtuel."}</p>`}
+    </div>
+    ${N ? `<div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Rejoindre un duel</h3><p class="muted small" style="margin:0">Ton camarade t'a donné un code de 5 caractères.</p>
+      <div class="row"><input id="duCode" class="pf-in du-code-in" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Code du duel"><button class="btn primary" data-act="duJoin">Rejoindre</button></div>
+      ${DH.err ? `<p class="muted small" style="margin:0">${h(DH.err)}</p>` : ""}</div>` : ""}
+    ${hist.length ? `<div class="stack" style="gap:8px"><h3>Mes duels</h3>${hist.map(d => { const [t, c] = res(d); return `<button class="du-card" data-act="duOpen" data-id="${h(d.id)}">${duAv(d.opp ? d.opp.name : "?")}<span><b>${h(d.opp ? d.opp.name : "En attente d'un adversaire")}</b><br><small class="muted">${d.n} questions · ${d.you ? d.you.score : 0}${d.opp && (d.status === "done") ? " – " + d.opp.score : ""} points · code ${h(d.id)}</small></span><span class="du-tag ${c}">${t}</span></button>`; }).join("")}</div>` : ""}
+  </section>`;
+}
+function duelBegin(o) {
+  duelStop();
+  const items = duelItems(o.ids, o.seed).filter(Boolean);
+  if (!items.length) { toast("Ces questions ne sont pas disponibles dans ta version. Recharge la page."); return; }
+  DU = Object.assign({ items, i: 0, picks: [], times: [], stage: "lobby", qT0: 0 }, o);
+  if (DU.bot) {
+    const acc = .55 + Math.random() * .25; DU.botAns = items.map(() => Math.random() < acc); DU.botT = items.map(() => 3500 + Math.random() * 11000);
+    DU.oppName = "Le Grand Livre"; DU.stage = "count"; DU.startAt = Date.now() + 3200;
+  }
+  duelLoop(); go("duel");
+}
+function duelFromSrv(d) {
+  if (!d) return;
+  if (DU && DU.id === d.id) { duelSync(d); return; }
+  const mine = d.you || { ans: [], t: [] };
+  duelBegin({ id: d.id, ids: d.ids, seed: d.seed, srv: d, oppName: d.opp ? d.opp.name : "", stage0: true });
+  DU.picks = mine.ans.map(ok => ok ? 1 : 0); DU.times = mine.t.slice(); DU.i = mine.ans.length;
+  duelSync(d, true);
+}
+function duelSync(d, first) {
+  if (!DU || DU.bot) return;
+  const rr = () => { if (view === "duel") render(); };
+  DU.srv = d; if (d.opp) DU.oppName = d.opp.name;
+  if (d.status === "done") { if (DU.stage !== "end") duelEnd(); return; }
+  if (DU.i >= DU.items.length) { if (DU.stage !== "wait") { DU.stage = "wait"; rr(); } else duelBoard(); return; }
+  if (d.status === "wait" && !(d.you && d.you.started)) { if (DU.stage !== "lobby") { DU.stage = "lobby"; rr(); } return; }
+  if (DU.stage === "lobby") {
+    const wait = d.mode === "live" && d.startAt > d.now ? d.startAt - d.now : 3000;
+    DU.stage = "count"; DU.startAt = Date.now() + wait; rr(); return;
+  }
+  if (DU.stage === "play" || DU.stage === "wait") duelBoard();
+}
+function duelLoop() {
+  duelStop();
+  duTick = setInterval(() => {
+    if (!DU || view !== "duel") return;
+    if (DU.stage === "count") { const left = Math.ceil((DU.startAt - Date.now()) / 1000); const el = document.getElementById("duCount");
+      if (left <= 0) { DU.stage = "play"; DU.qT0 = Date.now(); if (DU.bot && !DU.botStart) DU.botStart = DU.qT0; render(); tone("lvl"); return; }
+      if (el && el.dataset.n !== String(left)) { el.dataset.n = String(left); el.textContent = left; el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; tone("xp"); buzz(10); } return; }
+    if (DU.stage === "play") {
+      const el = document.getElementById("duBar"), tt = document.getElementById("duSec"), left = Math.max(0, DUEL_T * 1000 - (Date.now() - DU.qT0));
+      if (el) el.style.width = (left / (DUEL_T * 10)) + "%";
+      if (tt) { const s = Math.ceil(left / 1000); tt.textContent = s + " s"; tt.classList.toggle("low", s <= 5); }
+      if (DU.bot) duelBoard();
+      if (left <= 0 && !DU.lock) duelAnswer(-1);
+    }
+    if (DU.stage === "wait" && DU.bot) { if (duBotN() >= DU.items.length) duelEnd(); else duelBoard(); }
+  }, 100);
+  if (!DU.bot) duPoll = setInterval(async () => {
+    const N = DUEL_NET(); if (!DU || !N || view !== "duel" || DU.stage === "end" || document.hidden) return;
+    try { const j = await N.get(DU.id); duelSync(j.duel); } catch (e) {}
+  }, 1500);
+}
+function duBotN() { if (!DU || !DU.bot || !DU.botStart) return 0; let t = DU.botStart, n = 0; for (const x of DU.botT) { t += x + 900; if (Date.now() >= t) n++; else break; } return n; }
+function duOpp() {
+  if (DU.bot) { const n = duBotN(); const ans = DU.botAns.slice(0, n); return { name: DU.oppName, n, ans, score: duScore(ans, DU.botT), done: n >= DU.items.length, joined: true }; }
+  const o = DU.srv && DU.srv.opp; return o ? { name: o.name, n: o.n, ok: o.ok, score: o.score, done: o.done, joined: o.joined, ans: o.ans } : { name: DU.oppName || "En attente…", n: 0, score: 0, done: false, joined: false };
+}
+function duDots(n, ans, cur, total) { let x = ""; for (let i = 0; i < total; i++) x += `<i class="${i < n ? (ans ? (ans[i] ? "ok" : "ko") : "on") : ""}${i === cur ? " cur" : ""}"></i>`; return `<span class="du-dots" aria-hidden="true">${x}</span>`; }
+function duBoardHTML() {
+  const o = duOpp(), me = duScore(DU.picks.map(Boolean), DU.times);
+  return `<div class="du-board" id="duBoard" aria-live="polite">
+    <div class="du-side"><b>Toi</b><span class="du-sc" id="duMe">${me}</span>${duDots(DU.picks.length, DU.picks, DU.stage === "play" ? DU.i : -1, DU.items.length)}</div>
+    <span class="du-x" style="font-size:1.1rem">VS</span>
+    <div class="du-side r"><b>${h(o.name)}</b><span class="du-sc" id="duOp">${o.score}</span>${duDots(o.n, DU.bot ? o.ans : null, -1, DU.items.length)}</div>
+  </div>`;
+}
+function duelBoard() { const b = document.getElementById("duBoard"); if (!b) return; const old = document.getElementById("duOp"), prev = old ? old.textContent : ""; b.outerHTML = duBoardHTML(); const nw = document.getElementById("duOp"); if (nw && prev && nw.textContent !== prev) { nw.classList.add("bump"); setTimeout(() => nw.classList.remove("bump"), 300); } }
+function duelAnswer(pos) {
+  if (!DU || DU.stage !== "play" || DU.lock) return;
+  const cur = DU.items[DU.i], ok = pos >= 0 && cur.order[pos] === 0, t = Math.min(DUEL_T * 1000, Date.now() - DU.qT0);
+  DU.lock = true; DU.picks.push(ok ? 1 : 0); DU.times.push(t);
+  recordQ(cur.it, ok, pos >= 0 ? cur.it.o[cur.order[pos]] : ""); touch();
+  tone(ok ? "ok" : "ko"); buzz(ok ? 15 : [35, 45, 35]);
+  document.querySelectorAll(".du-opt").forEach((b, p) => { b.disabled = true; if (cur.order[p] === 0) b.classList.add("right", "du-opt", "flash-ok"); else if (p === pos) b.classList.add("wrong"); });
+  const me = document.getElementById("duMe"); if (me) { me.textContent = duScore(DU.picks.map(Boolean), DU.times); if (ok) { me.classList.add("bump"); setTimeout(() => me.classList.remove("bump"), 300); } }
+  const N = DUEL_NET(), i = DU.i;
+  if (!DU.bot && N) N.ans(DU.id, i, ok, t).then(j => { if (DU && j && j.duel && DU.id === j.duel.id) { DU.srv = j.duel; if (DU.i >= DU.items.length && DU.stage !== "end") duelSync(j.duel); } }).catch(() => {});
+  setTimeout(() => {
+    if (!DU || DU.stage === "end") return; DU.lock = false; DU.i++;
+    if (DU.i >= DU.items.length) { if ((DU.bot && duBotN() >= DU.items.length) || (DU.srv && DU.srv.status === "done")) return duelEnd(); DU.stage = "wait"; render(); return; }
+    DU.qT0 = Date.now(); render();
+  }, ok ? 650 : 1300);
+}
+function duelEnd() {
+  if (!DU) return;
+  DU.stage = "end"; duelStop();
+  const me = duScore(DU.picks.map(Boolean), DU.times), o = duOpp(), r = me > o.score ? "w" : me < o.score ? "l" : "d";
+  S.dlog = S.dlog || {};
+  if (!DU.bot && !S.dlog[DU.id]) { S.dlog[DU.id] = r; const k = Object.keys(S.dlog); if (k.length > 60) delete S.dlog[k[0]]; S.dus = S.dus || { w: 0, l: 0, d: 0 }; S.dus[r]++; S.xp += r === "w" ? 30 : r === "d" ? 15 : 5; touch(); }
+  render();
+  setTimeout(() => { if (view !== "duel") return; if (r === "w") { fxStamp("Victoire", me + " à " + o.score); confettiBurst(80); tone("lvl"); } else if (r === "d") fxStamp("Égalité", me + " partout"); else fxStamp("Défaite", o.score + " à " + me); }, 350);
+  DH.at = 0;
+}
+function vDuel() {
+  if (!DU) { setExTab("duel"); return vExHome(); }
+  const o = duOpp(), myName = P().name || window.GL_NAME || "Moi";
+  const top = `<div class="runner-top"><span class="progress-text"><button class="quit" data-act="duQuit" aria-label="Quitter le duel">✕</button>Duel${DU.bot ? " contre le Grand Livre" : ` · code ${h(DU.id)}`}</span><span class="ep">${DU.items.length} questions</span></div>`;
+  if (DU.stage === "lobby") {
+    const joined = o && o.joined && DU.srv && DU.srv.opp;
+    return `<section class="runner stack">${top}
+      <div class="du-hero"><div class="du-vs"><div class="du-p">${duAv(myName)}<b>Toi</b></div><span class="du-x">VS</span><div class="du-p" id="duLobbyOpp">${joined ? duAv(o.name) : `<span class="du-av" style="--ah:45">?</span>`}<b>${joined ? h(o.name) : DU.srv && DU.srv.opp ? h(DU.srv.opp.name) : "En attente…"}</b></div></div></div>
+      <div class="pf-set" style="padding:18px;display:grid;gap:14px;justify-items:center;text-align:center">
+        <p style="margin:0">${DU.srv && DU.srv.opp ? `Défi envoyé à <b>${h(DU.srv.opp.name)}</b>. Il le verra en ouvrant le Grand Livre.` : "Donne ce code à ton adversaire :"}</p>
+        <div class="du-code" aria-label="Code ${h(DU.id)}">${DU.id.split("").map(c => `<span>${h(c)}</span>`).join("")}</div>
+        <div class="du-wait" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="muted small" style="margin:0">Dès qu'il rejoint, le duel démarre pour vous deux en même temps.</p>
+        <div class="row" style="justify-content:center">${navigator.share ? `<button class="btn" data-act="duShare">Partager le code</button>` : `<button class="btn" data-act="duCopy">Copier le code</button>`}<button class="btn primary" data-act="duSolo">Jouer sans attendre</button></div>
+        <p class="muted small" style="margin:0">« Jouer sans attendre » : tu fais ton duel maintenant, ton adversaire le fera plus tard avec les mêmes questions.</p>
+      </div></section>`;
+  }
+  if (DU.stage === "count") return `<section class="runner stack">${top}
+      <div class="du-hero"><div class="du-vs"><div class="du-p">${duAv(myName)}<b>Toi</b></div><span class="du-x">VS</span><div class="du-p">${duAv(o.name)}<b>${h(o.name)}</b></div></div></div>
+      <div class="du-count" id="duCount" data-n="" aria-live="assertive">3</div><p class="muted" style="text-align:center">Prépare-toi : ${DUEL_T} secondes par question.</p></section>`;
+  if (DU.stage === "play") {
+    const cur = DU.items[DU.i], it = cur.it, c = CAT[it.c], L4 = ["A", "B", "C", "D"];
+    return `<section class="runner">${top}${duBoardHTML()}
+      <div class="du-tt"><span>Question ${DU.i + 1} / ${DU.items.length}</span><span id="duSec">${DUEL_T} s</span></div>
+      <div class="du-timer"><i id="duBar" style="width:100%"></i></div>
+      <div class="qcard"><span class="ep" style="align-self:flex-start">${h(c.code)} · ${h(c.name)}</span><p class="qtext">${h(it.q)}</p>
+        <div class="options">${cur.order.map((oi, p) => `<button class="opt du-opt" data-act="duPick" data-pos="${p}"><span class="k">${L4[p]}</span><span>${h(it.o[oi])}</span></button>`).join("")}</div></div>
+      <span class="kbd">Touches 1 à 4 pour répondre</span></section>`;
+  }
+  if (DU.stage === "wait") return `<section class="runner stack">${top}${duBoardHTML()}
+      <div class="pf-set" style="padding:18px;display:grid;gap:12px;justify-items:center;text-align:center">
+        <b style="font-size:1.1rem">Tu as terminé avec ${duScore(DU.picks.map(Boolean), DU.times)} points !</b>
+        <div class="du-wait" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="muted" style="margin:0">${DU.bot ? "Le Grand Livre termine ses questions…" : o.joined ? `${h(o.name)} est en train de jouer (${o.n}/${DU.items.length}).` : `${h(o.name || "Ton adversaire")} n'a pas encore commencé. Tu verras le résultat dans S'entraîner › Duels${DUEL_NET() ? ", et tu recevras une notification si tes rappels sont activés" : ""}.`}</p>
+        <button class="btn" data-act="duBack">Retour aux duels</button></div></section>`;
+  const me = duScore(DU.picks.map(Boolean), DU.times), r = me > o.score ? "w" : me < o.score ? "l" : "d";
+  const oa = o.ans || [], ot = DU.bot ? DU.botT : ((DU.srv && DU.srv.opp && DU.srv.opp.t) || []);
+  return `<section class="runner stack">${top}
+    <div class="du-hero"><div class="du-vs"><div class="du-p">${duAv(myName)}<b>Toi</b><span class="du-sc" style="font-size:2rem">${me}</span></div><span class="du-x">${r === "w" ? "🏆" : r === "l" ? "VS" : "="}</span><div class="du-p">${duAv(o.name)}<b>${h(o.name)}</b><span class="du-sc" style="font-size:2rem">${o.score}</span></div></div>
+      <p style="text-align:center;margin:0;position:relative;z-index:1;font:800 1.3rem var(--f-display)">${r === "w" ? "Victoire !" : r === "l" ? "Défaite… la revanche ?" : "Égalité parfaite"}</p>
+      <p class="muted" style="text-align:center;margin:0;position:relative;z-index:1">${DU.picks.filter(Boolean).length}/${DU.items.length} bonnes réponses pour toi, ${oa.filter(Boolean).length}/${DU.items.length} pour ${h(o.name)}.${!DU.bot && S.dlog && S.dlog[DU.id] ? ` +${r === "w" ? 30 : r === "d" ? 15 : 5} XP` : ""}</p></div>
+    <div class="pf-set du-res" style="padding:14px 16px"><h3>Question par question</h3>
+      ${DU.items.map((x, i) => { const mine = DU.picks[i], th = oa[i]; return `<div class="du-row"><span class="du-mk ${mine ? "ok" : ""}" title="Toi">${mine ? "✓" : "✗"}</span><span><b>${h(x.it.q)}</b><br><small class="muted">Réponse : ${h(x.it.o[0])} · toi ${((DU.times[i] || 0) / 1000).toFixed(1).replace(".", ",")} s</small>${!mine && x.it.ch && CHID[x.it.ch] ? `<br><button class="btn small peek-cta" data-act="fichePeek" data-id="${h(x.it.ch)}">${ICON.book}Revoir la fiche</button>` : ""}</span><span class="du-mk ${th === undefined ? "na" : th ? "ok" : ""}" title="${h(o.name)}">${th === undefined ? "–" : th ? "✓" : "✗"}</span><span class="muted small">${ot[i] ? ((ot[i]) / 1000).toFixed(1).replace(".", ",") + " s" : ""}</span></div>`; }).join("")}
+    </div>
+    <div class="row"><button class="btn primary" data-act="duAgain">${DU.bot ? "Rejouer" : "Revanche"}</button><button class="btn" data-act="duBack">Retour aux duels</button></div>
+  </section>`;
+}
+async function duelCreate(opp) {
+  const N = DUEL_NET(), cfg = duelCfg(); if (!N) return;
+  const ids = duelPick(cfg.cats, cfg.n); if (ids.length < 5) return toast("Choisis plus de matières.");
+  try { const j = await N.create({ ids, cats: cfg.cats, opp: opp || undefined }); duelFromSrv(j.duel); if (opp) toast("Défi envoyé !"); }
+  catch (e) { toast((e && e.message) || "Impossible de créer le duel pour l'instant."); }
+}
+async function duelJoinCode(code) {
+  const N = DUEL_NET(); code = String(code || "").trim().toUpperCase(); if (!N || code.length < 4) return toast("Tape le code du duel.");
+  try { const j = await N.join(code); duelFromSrv(j.duel); } catch (e) { toast((e && e.message) || "Code introuvable."); }
+}
+function duelDeepLink() {
+  try { const u = new URL(location.href), c = u.searchParams.get("duel"); if (!c || !DUEL_NET()) return; u.searchParams.delete("duel"); history.replaceState(null, "", u.pathname + u.search + u.hash); setTimeout(() => duelJoinCode(c), 600); } catch (e) {}
+}
+document.addEventListener("keydown", e => { if (view === "duel" && DU && DU.stage === "play" && /^[1-4]$/.test(e.key) && !e.target.closest("input,textarea")) duelAnswer(+e.key - 1); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && view === "duel" && DU && !DU.bot && DUEL_NET()) DUEL_NET().get(DU.id).then(j => duelSync(j.duel)).catch(() => {}); });
+
 /* ---------- Simulateur d'oral ---------- */
 let OR = null, OF = { e: "E6", n: 5, t: 120 }, orTick = null;
 function oralHome() {
@@ -5531,6 +5807,7 @@ function vExHome() {
     </section>` : ""}
     ${EXT === "ctl" ? packHome() : ""}
     ${EXT === "oraux" ? oralHome() : ""}
+    ${EXT === "duel" ? duelHome() : ""}
     ${EXT === "redac" ? `<section class="stack">
       <div class="sec-head"><h2>Rédactions</h2><p>CEJM, analyse de processus, culture générale : tu rédiges, puis tu compares au corrigé modèle avec une grille d'auto-évaluation.</p></div>
       <div class="ex-grid">${REDAC.map(redCard).join("")}</div>
@@ -6097,6 +6374,92 @@ const GENS = [
     return { enonce: `<p>On place ${fmt(C)} € à intérêts composés au taux annuel de ${String(i).replace(".", ",")} % pendant ${n} ans.</p>`,
       fields: [{ label: "Valeur acquise", ans: Cn, tol: 0.05 }, { label: "Intérêts totaux", ans: r2(Cn - C), tol: 0.05 }],
       corr: `<p>Cn = ${fmt(C)} × ${fmt4(1 + i / 100)}^${n} = ${fmt(Cn)} € ; intérêts = ${fmt(Cn - C)} €.</p>` };
+ } },
+ { id: "p2regul", cat: "p2", title: "Charges à payer, produits à recevoir, intérêts courus", make() {
+    const k = pk(["fnp", "fae", "icne"]);
+    if (k === "fnp") {
+      const ht = ri(8, 90) * 25, tva = r2(ht * 0.2), ttc = r2(ht + tva);
+      const lines = [L("6061", "Fournitures non stockables (eau, énergie)", ht), L("44586", "TVA sur factures non parvenues", tva), L("408", "Fournisseurs – Factures non parvenues", 0, ttc)];
+      return { enonce: `<p>Au 31 décembre N, la facture d'électricité de décembre (${fmt(ht)} € HT, TVA 20 %) n'est pas encore arrivée. La consommation est connue grâce au relevé du compteur.</p>`,
+        fields: [{ label: "Charge à rattacher à N (HT)", ans: ht }, { label: "Montant crédité au 408", ans: ttc }], lines,
+        corr: `<p>La consommation concerne N : on enregistre la charge en N même sans facture (indépendance des exercices). TVA ${fmt(tva)} € en 44586, dette TTC ${fmt(ttc)} € en 408.</p>` + jr(lines) + `<p>Écriture contre-passée le 1er janvier N+1 ; la vraie facture est ensuite saisie normalement.</p>` };
+    }
+    if (k === "fae") {
+      const ht = ri(10, 120) * 50, tva = r2(ht * 0.2), ttc = r2(ht + tva);
+      const lines = [L("418", "Clients – Factures à établir", ttc), L("706", "Prestations de services", 0, ht), L("44587", "TVA sur factures à établir", 0, tva)];
+      return { enonce: `<p>Une mission de conseil a été entièrement réalisée en décembre N pour ${fmt(ht)} € HT (TVA 20 %). La facture ne sera envoyée qu'en janvier N+1.</p>`,
+        fields: [{ label: "Produit à rattacher à N (HT)", ans: ht }, { label: "Montant débité au 418", ans: ttc }], lines,
+        corr: `<p>Le service est rendu en N : le produit appartient à N. Créance TTC ${fmt(ttc)} € en 418, TVA ${fmt(tva)} € en 44587.</p>` + jr(lines) + `<p>Contre-passation le 1er janvier N+1.</p>` };
+    }
+    const cap = ri(4, 40) * 5000, t = pk([3, 3.5, 4, 4.5, 5]), X = ri(2, 12), m = 13 - X, ic = r2(cap * t / 100 * m / 12);
+    const lines = [L("661", "Charges d'intérêts", ic), L("1688", "Intérêts courus sur emprunts", 0, ic)];
+    return { enonce: `<p>L'entreprise rembourse un emprunt de ${fmt(cap)} € au taux de ${String(t).replace(".", ",")} %. Les intérêts de l'année sont payés chaque ${X === 1 ? "1er janvier" : "1er " + MOIS[X - 1]}. Clôture au 31 décembre N.</p>`,
+      fields: [{ label: "Nombre de mois courus au 31/12", ans: m }, { label: "Intérêts courus non échus", ans: ic }], lines,
+      corr: `<p>Du 1er ${MOIS[X - 1]} au 31 décembre : ${m} mois. ${fmt(cap)} × ${String(t).replace(".", ",")} % × ${m}/12 = ${fmt(ic)} €.</p>` + jr(lines) };
+ } },
+ { id: "p2depimmo", cat: "p2", title: "Dépréciation d'une immobilisation", make() {
+    const vo = ri(10, 60) * 1000, n = pk([5, 8, 10]), y = ri(1, n - 2), am = r2(vo / n * y), vnc = r2(vo - am);
+    const vv = Math.round(vnc * pk([0.55, 0.7, 0.85, 1.1]) / 10) * 10, vu = Math.round(vnc * pk([0.6, 0.75, 0.9, 1.05]) / 10) * 10, va = Math.max(vv, vu), dep = r2(Math.max(0, vnc - va));
+    const lines = [L("6816", "Dotations aux dépréciations des immobilisations", dep), L("2915", "Dépréciations des installations techniques", 0, dep)];
+    return { enonce: `<p>Une machine acquise ${fmt(vo)} € HT est amortie en linéaire sur ${n} ans ; elle a exactement ${y} an${y > 1 ? "s" : ""} au 31 décembre N. Un concurrent a sorti un modèle bien plus performant (indice de perte de valeur).</p><p>Valeur vénale (prix de vente net des frais) : ${fmt(vv)} €. Valeur d'usage (avantages futurs attendus) : ${fmt(vu)} €.</p>`,
+      fields: [{ label: "VNC au 31/12", ans: vnc }, { label: "Valeur actuelle", ans: va }, { label: "Dépréciation à constater (0 si aucune)", ans: dep }], ...(dep ? { lines } : {}),
+      corr: `<p>VNC = ${fmt(vo)} − ${fmt(vo)} × ${y}/${n} = ${fmt(vnc)} €. Valeur actuelle = la plus élevée de ${fmt(vv)} et ${fmt(vu)} = ${fmt(va)} €.</p>` + (dep ? `<p>Valeur actuelle inférieure à la VNC : dépréciation de ${fmt(dep)} €.</p>` + jr(lines) + `<p>Les dotations suivantes sont recalculées sur la nouvelle base de ${fmt(va)} €.</p>` : `<p>La valeur actuelle est au moins égale à la VNC : aucune dépréciation.</p>`) };
+ } },
+ { id: "p2prov", cat: "p2", title: "Provision pour litige : dotation ou reprise", make() {
+    const old = ri(0, 8) * 1000; let nw = ri(0, 10) * 1000; if (nw === old) nw = old + 1500;
+    const d = r2(nw - old), lines = d > 0 ? [L("6815", "Dotations aux provisions d'exploitation", d), L("1511", "Provisions pour litiges", 0, d)] : [L("1511", "Provisions pour litiges", -d), L("7815", "Reprises sur provisions d'exploitation", 0, -d)];
+    return { enonce: `<p>Un ancien salarié conteste son licenciement devant les prud'hommes. ${old ? `Au 31 décembre N−1, une provision de ${fmt(old)} € a été constituée.` : `Aucune provision n'avait été constituée en N−1.`} Au 31 décembre N, l'avocat ${nw ? `estime la condamnation probable à ${fmt(nw)} €` : `estime que le risque a disparu (désistement du salarié)`}.</p>`,
+      fields: [{ label: "Montant de la provision au 31/12/N", ans: nw }, { label: "Dotation (montant positif) ou reprise (montant négatif)", ans: d }], lines,
+      corr: `<p>La provision doit être égale au risque estimé : ${fmt(nw)} €. Elle passe de ${fmt(old)} à ${fmt(nw)} € : ${d > 0 ? `dotation complémentaire de ${fmt(d)} €` : `reprise de ${fmt(-d)} €`}.</p>` + jr(lines) };
+ } },
+ { id: "p2affect", cat: "p2", title: "Affectation du bénéfice", make() {
+    const cap = ri(4, 30) * 10000, rl0 = Math.round(cap * pk([0.03, 0.06, 0.09]) / 100) * 100, ben = ri(20, 150) * 500;
+    const rl = r2(Math.max(0, Math.min(ben * 0.05, cap * 0.1 - rl0))), div = Math.floor((ben - rl) * pk([0.4, 0.5, 0.6, 0.7]) / 100) * 100, rest = r2(ben - rl - div);
+    const lines = [L("120", "Résultat de l'exercice (bénéfice)", ben), L("1061", "Réserve légale", 0, rl), L("457", "Associés – Dividendes à payer", 0, div), L("110", "Report à nouveau (solde créditeur)", 0, rest)];
+    return { enonce: `<p>SA au capital de ${fmt(cap)} € ; réserve légale déjà constituée : ${fmt(rl0)} € ; bénéfice de l'exercice : ${fmt(ben)} €. L'assemblée décide de doter la réserve légale du minimum obligatoire, de distribuer ${fmt(div)} € de dividendes et de porter le solde en report à nouveau.</p>`,
+      fields: [{ label: "Dotation à la réserve légale", ans: rl }, { label: "Report à nouveau", ans: rest }], lines,
+      corr: `<p>Réserve légale : 5 % × ${fmt(ben)} = ${fmt(ben * 0.05)} €, dans la limite de 10 % du capital (reste ${fmt(cap * 0.1 - rl0)} €) : ${fmt(rl)} €. Solde : ${fmt(ben)} − ${fmt(rl)} − ${fmt(div)} = ${fmt(rest)} €.</p>` + jr(lines) };
+ } },
+ { id: "p4abs", cat: "p4", title: "Retenue pour absence (heures réelles du mois)", make() {
+    const S = ri(18, 32) * 100, j = pk([20, 21, 22, 23]), H = j * 7, h = pk([7, 14, 21, 3.5, 10.5]), ret = r2(S * h / H), alt = r2(S * h / 151.67);
+    return { enonce: `<p>Salarié à temps plein (35 h), salaire de base ${fmt(S)} €. Ce mois-ci compte ${j} jours ouvrés, soit ${H} heures à travailler. Il s'absente ${String(h).replace(".", ",")} heures sans solde.</p>`,
+      fields: [{ label: "Retenue pour absence", ans: ret, tol: 0.05 }, { label: "Salaire de base après retenue", ans: r2(S - ret), tol: 0.05 }],
+      corr: `<p>Retenue strictement proportionnelle : ${fmt(S)} × ${String(h).replace(".", ",")} / ${H} = ${fmt(ret)} € ; salaire ${fmt(S - ret)} €.</p><p>Avec 151,67 h au dénominateur, on aurait trouvé ${fmt(alt)} € : c'est inexact, car le nombre d'heures du mois varie.</p>` };
+ } },
+ { id: "p4lic", cat: "p4", title: "Indemnité légale de licenciement", make() {
+    const m12 = ri(20, 45) * 100, m3 = r2(m12 * pk([0.95, 1, 1.05, 1.12])), ref = Math.max(m12, m3), ya = ri(1, 22), mo = pk([0, 3, 6, 9]), anc = ya + mo / 12;
+    const ind = r2(ref / 4 * Math.min(anc, 10) + ref / 3 * Math.max(0, anc - 10));
+    return { enonce: `<p>Un salarié est licencié pour insuffisance professionnelle (pas de faute grave). Ancienneté à la fin du préavis : ${ya} an${ya > 1 ? "s" : ""}${mo ? ` et ${mo} mois` : ""}.</p><p>Salaire brut mensuel moyen des 12 derniers mois : ${fmt(m12)} € ; des 3 derniers mois : ${fmt(m3)} €. La convention collective n'est pas plus favorable.</p>`,
+      fields: [{ label: "Salaire de référence", ans: ref }, { label: "Indemnité légale", ans: ind, tol: 1 }],
+      corr: `<p>Salaire de référence : le plus favorable des deux, ${fmt(ref)} €.</p><p>${anc <= 10 ? `1/4 × ${fmt(ref)} × ${fmt4(anc)} an(s) = ${fmt(ind)} €.` : `1/4 × ${fmt(ref)} × 10 ans + 1/3 × ${fmt(ref)} × ${fmt4(anc - 10)} an(s) = ${fmt(ind)} €.`}</p><p>Les mois incomplets comptent au prorata. Il faut au moins 8 mois d'ancienneté.</p>` };
+ } },
+ { id: "p4pas", cat: "p4", title: "Net imposable et prélèvement à la source", make() {
+    const B = ri(18, 45) * 100, n0 = r2(B * pk([0.77, 0.78, 0.79])), csg = r2(B * 0.9825 * 0.029), ni = r2(n0 + csg), t = pk([0, 1.5, 2.5, 3.9, 4.8, 6.4, 7.9, 9.6, 11.3]), pas = r2(ni * t / 100), nap = r2(n0 - pas);
+    return { enonce: `<p>Salaire brut ${fmt(B)} € ; net à payer avant impôt ${fmt(n0)} €. CSG non déductible et CRDS : 2,90 % de 98,25 % du brut. Taux de prélèvement à la source transmis par l'administration : ${String(t).replace(".", ",")} %.</p>`,
+      fields: [{ label: "CSG non déductible + CRDS", ans: csg, tol: 0.05 }, { label: "Net imposable", ans: ni, tol: 0.05 }, { label: "Prélèvement à la source", ans: pas, tol: 0.05 }, { label: "Net à payer", ans: nap, tol: 0.1 }],
+      corr: `<p>CSG non déductible + CRDS = ${fmt(B)} × 98,25 % × 2,90 % = ${fmt(csg)} € ; elles ne réduisent pas l'impôt : net imposable = ${fmt(n0)} + ${fmt(csg)} = ${fmt(ni)} €.</p><p>PAS = ${fmt(ni)} × ${String(t).replace(".", ",")} % = ${fmt(pas)} € ; net à payer = ${fmt(n0)} − ${fmt(pas)} = ${fmt(nap)} € (le PAS est crédité au 4421).</p>` };
+ } },
+ { id: "p6caf2", cat: "p6", title: "CAF par la méthode soustractive", make() {
+    const ebe = ri(40, 400) * 1000, ap = ri(0, 10) * 500, ac = ri(0, 10) * 500, pf = ri(0, 8) * 500, cf = ri(2, 30) * 500, is = ri(0, 40) * 500;
+    const caf = ebe + ap - ac + pf - cf - is, div = Math.floor(Math.max(0, caf) * pk([0, 0.2, 0.3, 0.4]) / 1000) * 1000, af = caf - div;
+    return { enonce: `<p>EBE ${fmt(ebe)} € ; autres produits d'exploitation encaissables ${fmt(ap)} € ; autres charges d'exploitation décaissables ${fmt(ac)} € ; produits financiers encaissables ${fmt(pf)} € ; charges d'intérêts ${fmt(cf)} € ; impôt sur les bénéfices ${fmt(is)} €. Dividendes versés dans l'année : ${fmt(div)} €.</p>`,
+      fields: [{ label: "CAF", ans: caf }, { label: "Autofinancement", ans: af }],
+      corr: `<p>CAF = ${fmt(ebe)} + ${fmt(ap)} − ${fmt(ac)} + ${fmt(pf)} − ${fmt(cf)} − ${fmt(is)} = ${fmt(caf)} €.</p><p>Autofinancement = CAF − dividendes = ${fmt(af)} €.</p><p>Les dotations et reprises ne figurent pas ici : elles n'entrent pas dans l'EBE et ne touchent pas la trésorerie.</p>` };
+ } },
+ { id: "p6drc", cat: "p6", title: "Délai de récupération à flux variables", make() {
+    const I = ri(6, 20) * 10000; let f = [0, 1, 2, 3, 4].map(() => Math.round(I * (0.15 + Math.random() * 0.25) / 1000) * 1000);
+    if (f.reduce((a, b) => a + b, 0) <= I) f = f.map(x => x * 2);
+    let cum = 0, k = 0; while (cum + f[k] < I) { cum += f[k]; k++; }
+    const d = r2(k + (I - cum) / f[k]), mois = Math.round((I - cum) / f[k] * 12);
+    return { enonce: `<p>Investissement de ${fmt(I)} €. Flux nets de trésorerie attendus : ${f.map((x, i) => `année ${i + 1} : ${fmt(x)} €`).join(" ; ")}. Les flux sont réguliers au cours de chaque année.</p>`,
+      fields: [{ label: "Délai de récupération (en années, ex. 2,45)", ans: d, tol: 0.02 }],
+      corr: tb(["Année", "Flux", "Cumul"], f.slice(0, k + 1).map((x, i) => [i + 1, fmt(x), fmt(f.slice(0, i + 1).reduce((a, b) => a + b, 0))])) + `<p>Fin de l'année ${k}, il reste ${fmt(I - cum)} € à récupérer sur les ${fmt(f[k])} € de l'année ${k + 1} : ${fmt(I - cum)} / ${fmt(f[k])} = ${fmt4((I - cum) / f[k])} an, soit environ ${mois} mois.</p><p>Délai = ${fmt(d)} ans (${k} an${k > 1 ? "s" : ""} et ${mois} mois). Plus il est court, moins le projet est risqué.</p>` };
+ } },
+ { id: "p6marge", cat: "p6", title: "Marge, taux de marge et taux de marque", make() {
+    const c = ri(20, 400) * 5, pv = r2(c * pk([1.25, 1.3, 1.4, 1.5, 1.6, 1.8, 2])), m = r2(pv - c), tm = r2(m / c * 100), tq = r2(m / pv * 100);
+    return { enonce: `<p>Un article est acheté ${fmt(c)} € HT et revendu ${fmt(pv)} € HT.</p>`,
+      fields: [{ label: "Marge unitaire", ans: m }, { label: "Taux de marge (%)", ans: tm, tol: 0.05 }, { label: "Taux de marque (%)", ans: tq, tol: 0.05 }],
+      corr: `<p>Marge = ${fmt(pv)} − ${fmt(c)} = ${fmt(m)} €.</p><p>Taux de marge = ${fmt(m)} / ${fmt(c)} = ${fmt(tm)} % (par rapport au coût). Taux de marque = ${fmt(m)} / ${fmt(pv)} = ${fmt(tq)} % (par rapport au prix de vente).</p>` };
  } }
 ];
 const GEN = Object.fromEntries(GENS.map(g => [g.id, g]));
@@ -6758,6 +7121,21 @@ document.addEventListener("click", e => {
     case "wkFiche": closeSheet(); fichePeek(b.dataset.id); break;
     case "fichePeek": fichePeek(b.dataset.id); break;
     case "peekClose": peekClose(); break;
+    case "duCat": { const c = duelCfg(), k = b.dataset.c; c.cats = c.cats.includes(k) ? c.cats.filter(x => x !== k) : c.cats.concat(k); if (!c.cats.length) c.cats = [k]; touch(); render(); break; }
+    case "duN": duelCfg().n = +b.dataset.n; touch(); render(); break;
+    case "duNew": duelCreate(); break;
+    case "duMate": duelCreate(b.dataset.k); break;
+    case "duBot": { const c = duelCfg(), ids = duelPick(c.cats, c.n); if (ids.length < 5) { toast("Choisis plus de matières."); break; } duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); break; }
+    case "duJoin": duelJoinCode((document.getElementById("duCode") || {}).value); break;
+    case "duOpen": { const d = (DH.list || []).find(x => x.id === b.dataset.id); if (d && d.me === "b" && !d.you.started) duelJoinCode(d.id); else if (d) { DU = null; duelFromSrv(d); if (DUEL_NET()) DUEL_NET().get(d.id).then(j => duelSync(j.duel)).catch(() => {}); } else duelJoinCode(b.dataset.id); break; }
+    case "duDecline": { const N = DUEL_NET(); if (N) N.decline(b.dataset.id).then(() => loadDuels(true)).catch(() => {}); DH.list = (DH.list || []).filter(x => x.id !== b.dataset.id); render(); break; }
+    case "duPick": duelAnswer(+b.dataset.pos); break;
+    case "duSolo": { const N = DUEL_NET(); if (N && DU) N.start(DU.id).then(j => { DU.srv = j.duel; }).catch(() => {}); if (DU) { DU.stage = "count"; DU.startAt = Date.now() + 3000; render(); } break; }
+    case "duShare": navigator.share({ title: "Duel Grand Livre", text: "Je te défie en duel sur le Grand Livre ! Code : " + DU.id, url: location.origin + "/?duel=" + DU.id }).catch(() => {}); break;
+    case "duCopy": try { navigator.clipboard.writeText(DU.id); toast("Code copié"); } catch (e) {} break;
+    case "duQuit": { if (DU && DU.stage === "play" && !confirm("Quitter le duel ? Les questions restantes compteront comme fausses si tu ne reviens pas.")) break; duelStop(); DU = null; setExTab("duel"); go("ex"); loadDuels(true); break; }
+    case "duBack": duelStop(); DU = null; setExTab("duel"); go("ex"); loadDuels(true); break;
+    case "duAgain": { const was = DU; duelStop(); DU = null; if (!was || was.bot) { const c = duelCfg(), ids = duelPick(c.cats, c.n); duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); } else { const N = DUEL_NET(), c = { cats: was.srv && was.srv.cats && was.srv.cats.length ? was.srv.cats : duelCfg().cats }, ids = duelPick(c.cats, was.items.length); if (N && N.rematch) N.rematch(was.id, ids).then(j => { duelFromSrv(j.duel); toast("Revanche proposée !"); }).catch(e => { toast((e && e.message) || "Revanche impossible pour l'instant."); setExTab("duel"); go("ex"); }); else { setExTab("duel"); go("ex"); } } break; }
     case "tts": ttsToggle(b); break;
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn; ttsStop(); ttsToggle(bt); } break; }
     case "pkIcs": icsSheet(PK); break;
@@ -6816,6 +7194,7 @@ const local = loadLocal(); if (local) S = local;
 normS();
 render();
 initSync();
+duelDeepLink();
 
 /* ---------- Glisser entre les onglets (carrousel : l'onglet voisin suit le doigt) ---------- */
 (() => {

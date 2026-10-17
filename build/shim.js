@@ -91,6 +91,16 @@
   /* Signalements : envoyés au serveur (en mode essai, gardés sur l'appareil) */
   if (!GUEST) window.GL_REPORT = function (r) { return api("POST", "/api/report", r); };
   if (!GUEST) window.GL_CLASS = function () { return api("GET", "/api/class"); };
+  if (!GUEST) window.GL_DUEL = {
+    list: function () { return api("GET", "/api/duels"); },
+    create: function (o) { return api("POST", "/api/duel", o); },
+    join: function (code) { return api("POST", "/api/duel/join", { code: code }); },
+    get: function (id) { return api("GET", "/api/duel/" + encodeURIComponent(id)); },
+    start: function (id) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/start", {}); },
+    ans: function (id, i, ok, t) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/ans", { i: i, ok: ok, t: t }); },
+    rematch: function (id, ids) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/rematch", { ids: ids }); },
+    decline: function (id) { return api("POST", "/api/duel/" + encodeURIComponent(id) + "/decline", {}); }
+  };
 
   /* Rappels quotidiens (notifications) */
   function b64(u) { var p = "=".repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }

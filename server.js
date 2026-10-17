@@ -321,6 +321,127 @@ async function pushTick() {
   } catch (e) { console.error("pushTick", e); }
 }
 
+/* ---------- Duels entre élèves ----------
+   Le créateur choisit les questions (identifiants) ; le serveur garde l'état, calcule les scores et sert de relais.
+   Un duel s'identifie par un code de 5 caractères à donner à son adversaire. */
+const DUEL_ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const duelScore = p => p.ans.reduce((s, ok, i) => s + (ok ? 100 + Math.max(0, 50 - Math.floor((p.t[i] || 0) / 1000) * 3) : 0), 0);
+async function duelName(u) {
+  try { const d = await store.getProgress(u.id); const ps = d && d.cl && d.cl.p; if (ps) return String(ps).replace(/[<>\u0000-\u001f]/g, "").slice(0, 24); } catch (e) {}
+  return String(u.name || "?").split(" ")[0].slice(0, 24);
+}
+function duelView(x, uid) {
+  const me = x.a.id === uid ? "a" : "b", you = x[me], op = x[me === "a" ? "b" : "a"], fin = x.status === "done";
+  const pub = p => p ? { name: p.name, joined: !!p.joined, n: p.ans.length, ok: p.ans.filter(Boolean).length, score: duelScore(p), done: !!p.done, ans: fin ? p.ans : undefined, t: fin ? p.t : undefined } : null;
+  return { id: x.id, cats: x.cats, n: x.ids.length, ids: x.ids, seed: x.seed, mode: x.mode, status: x.status, startAt: x.startAt || 0, created: x.created, now: Date.now(), me,
+    you: you ? { name: you.name, ans: you.ans, t: you.t, done: !!you.done, score: duelScore(you), started: !!you.started } : null, opp: pub(op) };
+}
+async function duelFor(req, res) {
+  const x = await store.duelGet(String(req.params.id || "").toUpperCase());
+  if (!x || !(x.a.id === req.user.id || (x.b && x.b.id === req.user.id))) { res.status(404).json({ error: "Duel introuvable." }); return null; }
+  return x;
+}
+async function duelNotify(uid, title, body, url) {
+  try { await vapid(); for (const s of await store.subsFull(uid)) { try { await webpush.sendNotification(s.sub, JSON.stringify({ title, body, tag: "gl-duel", url }), { TTL: 3 * 3600 }); } catch (e) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await store.delSub(s.endpoint); } } } catch (e) {}
+}
+app.post("/api/duel", auth, async (req, res, next) => {
+  try {
+    if (limited("du:" + req.user.id, 40, 3600e3)) return res.status(429).json({ error: "Beaucoup de duels d'un coup : réessaie dans un moment." });
+    const b = req.body || {}, ids = Array.isArray(b.ids) ? b.ids.map(String).filter(i => /^[a-z][a-z0-9]{0,2}q\d{1,4}$/.test(i)) : [];
+    if (ids.length < 5 || ids.length > 20) return res.status(400).json({ error: "Duel invalide." });
+    const cats = (Array.isArray(b.cats) ? b.cats : []).map(String).filter(c => /^[a-z0-9]{2,3}$/.test(c)).slice(0, 12);
+    let id = ""; for (let k = 0; k < 8; k++) { id = Array.from(crypto.randomBytes(5), v => DUEL_ABC[v % DUEL_ABC.length]).join(""); if (!(await store.duelGet(id))) break; }
+    const x = { id, created: Date.now(), cats, ids, seed: crypto.randomBytes(4).readUInt32BE(0), mode: "live", status: "wait", startAt: 0,
+      a: { id: req.user.id, name: await duelName(req.user), ans: [], t: [], joined: true }, b: null };
+    if (b.opp) {
+      const rows = (await store.allProgress()).filter(r => r.id !== req.user.id);
+      const o = rows.find(r => sign("duel:" + r.id).slice(0, 16) === String(b.opp));
+      if (!o) return res.status(404).json({ error: "Camarade introuvable." });
+      const u = await store.userById(o.id); if (!u || u.blocked) return res.status(404).json({ error: "Camarade introuvable." });
+      x.b = { id: u.id, name: await duelName(u), ans: [], t: [], joined: false };
+      duelNotify(u.id, "⚔️ " + x.a.name + " te défie !", ids.length + " questions en duel. Ouvre le Grand Livre pour relever le défi.", "/?duel=" + id);
+    }
+    await store.duelPut(x);
+    res.json({ duel: duelView(x, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.post("/api/duel/join", auth, async (req, res, next) => {
+  try {
+    if (limited("dj:" + req.user.id, 30, 600e3)) return res.status(429).json({ error: "Trop d'essais : attends quelques minutes." });
+    const x = await store.duelGet(String((req.body || {}).code || "").trim().toUpperCase());
+    if (!x || x.status === "done" || x.status === "declined" || Date.now() - x.created > 7 * 864e5) return res.status(404).json({ error: "Aucun duel en cours avec ce code." });
+    if (x.a.id === req.user.id) return res.json({ duel: duelView(x, req.user.id) });
+    if (x.b && x.b.id !== req.user.id) return res.status(403).json({ error: "Ce duel est réservé à un autre élève." });
+    if (!x.b) x.b = { id: req.user.id, name: await duelName(req.user), ans: [], t: [] };
+    if (!x.b.joined) {
+      x.b.joined = true;
+      if (x.status === "wait" && !x.a.started) { x.status = "play"; x.mode = "live"; x.startAt = Date.now() + 5000; }
+      else { x.status = "play"; }
+    }
+    await store.duelPut(x);
+    res.json({ duel: duelView(x, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.get("/api/duel/:id", auth, async (req, res, next) => {
+  try { const x = await duelFor(req, res); if (!x) return; res.setHeader("Cache-Control", "no-store"); res.json({ duel: duelView(x, req.user.id) }); } catch (e) { next(e); }
+});
+app.post("/api/duel/:id/start", auth, async (req, res, next) => {
+  try {
+    const x = await duelFor(req, res); if (!x) return;
+    const me = x.a.id === req.user.id ? x.a : x.b;
+    if (!me.started) { me.started = true; if (x.status === "wait") { x.status = "play"; x.mode = "async"; } }
+    await store.duelPut(x); res.json({ duel: duelView(x, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.post("/api/duel/:id/ans", auth, async (req, res, next) => {
+  try {
+    const x = await duelFor(req, res); if (!x) return;
+    const me = x.a.id === req.user.id ? x.a : x.b, b = req.body || {}, i = Number(b.i);
+    if (x.status === "done" || x.status === "declined") return res.json({ duel: duelView(x, req.user.id) });
+    if (i !== me.ans.length || i >= x.ids.length) return res.json({ duel: duelView(x, req.user.id) });
+    me.started = true; me.ans.push(!!b.ok); me.t.push(Math.max(300, Math.min(30000, Math.round(Number(b.t) || 30000))));
+    if (me.ans.length >= x.ids.length) { me.done = true; me.at = Date.now(); }
+    const other = me === x.a ? x.b : x.a;
+    if (me.done && other && other.done) {
+      x.status = "done";
+      const sa = duelScore(me), sb = duelScore(other);
+      if (x.mode === "async") duelNotify(other.id, "⚔️ Duel terminé contre " + me.name, sa > sb ? me.name + " l'emporte " + sa + " à " + sb + "." : sa < sb ? "Tu gagnes " + sb + " à " + sa + " !" : "Égalité " + sa + " partout.", "/?duel=" + x.id);
+    } else if (me.done && x.mode === "async" && other && !other.ans.length && me === x.a) {
+      duelNotify(other.id, "⚔️ " + me.name + " a fait son duel", "À toi de jouer : " + duelScore(me) + " points à battre !", "/?duel=" + x.id);
+    }
+    await store.duelPut(x);
+    res.json({ duel: duelView(x, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.post("/api/duel/:id/rematch", auth, async (req, res, next) => {
+  try {
+    if (limited("du:" + req.user.id, 40, 3600e3)) return res.status(429).json({ error: "Beaucoup de duels d'un coup : réessaie dans un moment." });
+    const old = await duelFor(req, res); if (!old) return;
+    const ids = Array.isArray((req.body || {}).ids) ? req.body.ids.map(String).filter(i => /^[a-z][a-z0-9]{0,2}q\d{1,4}$/.test(i)) : [];
+    if (ids.length < 5 || ids.length > 20) return res.status(400).json({ error: "Duel invalide." });
+    const otherId = old.a.id === req.user.id ? (old.b && old.b.id) : old.a.id;
+    const u = otherId ? await store.userById(otherId) : null; if (!u || u.blocked) return res.status(404).json({ error: "Adversaire introuvable." });
+    let id = ""; for (let k = 0; k < 8; k++) { id = Array.from(crypto.randomBytes(5), v => DUEL_ABC[v % DUEL_ABC.length]).join(""); if (!(await store.duelGet(id))) break; }
+    const x = { id, created: Date.now(), cats: old.cats, ids, seed: crypto.randomBytes(4).readUInt32BE(0), mode: "live", status: "wait", startAt: 0,
+      a: { id: req.user.id, name: await duelName(req.user), ans: [], t: [], joined: true }, b: { id: u.id, name: await duelName(u), ans: [], t: [], joined: false } };
+    duelNotify(u.id, "⚔️ " + x.a.name + " veut sa revanche !", ids.length + " questions en duel. Ouvre le Grand Livre pour jouer.", "/?duel=" + id);
+    await store.duelPut(x); res.json({ duel: duelView(x, req.user.id) });
+  } catch (e) { next(e); }
+});
+app.post("/api/duel/:id/decline", auth, async (req, res, next) => {
+  try { const x = await duelFor(req, res); if (!x) return; if (x.status !== "done") x.status = "declined"; await store.duelPut(x); res.json({ ok: true }); } catch (e) { next(e); }
+});
+app.get("/api/duels", auth, async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const list = (await store.duelsOf(req.user.id)).filter(x => Date.now() - x.created < 30 * 864e5).map(x => duelView(x, req.user.id));
+    const rows = (await store.allProgress()).filter(r => r.id !== req.user.id);
+    const mates = rows.map(r => ({ k: sign("duel:" + r.id).slice(0, 16), p: String((r.data && r.data.cl && r.data.cl.p) || "").replace(/[<>\u0000-\u001f]/g, "").slice(0, 24) })).filter(m => m.p);
+    res.json({ duels: list, mates });
+  } catch (e) { next(e); }
+});
+setInterval(() => store.duelPurge(Date.now() - 30 * 864e5).catch(() => {}), 6 * 3600e3).unref();
+
 /* ---------- Sauvegardes de la base (7 derniers jours) ---------- */
 async function makeDump() { return zlib.gzipSync(Buffer.from(JSON.stringify(Object.assign({ app: "grand-livre-bts-cg", at: new Date().toISOString() }, await store.dumpAll())), "utf8"), { level: 9 }).toString("base64"); }
 async function dailyBackup(force) {
