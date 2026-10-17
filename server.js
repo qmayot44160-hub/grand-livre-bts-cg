@@ -885,4 +885,8 @@ store.init().then(() => {
   setInterval(pushTick, 5 * 60e3).unref(); setTimeout(pushTick, 20e3).unref();
   setInterval(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60 * 60e3).unref(); setTimeout(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60e3).unref();
   app.listen(PORT, () => console.log(`Grand Livre en ligne sur le port ${PORT} (stockage : ${store.kind}, correction Claude : ${AI_KEY ? "activée" : "désactivée"})`));
+  setTimeout(async () => { // diagnostic ponctuel : progression des comptes administrateurs et de leurs sauvegardes
+    try { for (const u of await store.usersAll()) { if (!ADMIN_USERS.includes(u.name_key || nameKey(u.name))) continue; const cur = await store.getProgress(u.id), v = await myVersions(u.id);
+      console.log("[diag]", u.name, "actuel", cur ? (cur.xp || 0) + " XP, " + Object.keys(cur.q || {}).length + " questions, u=" + new Date(cur.u || 0).toISOString() : "aucun", "| versions:", v.map(x => x.id + "=" + (x.d.xp || 0) + "XP@" + new Date(x.d.u || 0).toISOString()).join(", ") || "aucune"); } } catch (e) { console.error("[diag]", e.message); }
+  }, 3000);
 }).catch(e => { console.error("Impossible d'initialiser le stockage", e); process.exit(1); });
