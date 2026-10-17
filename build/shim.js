@@ -148,7 +148,7 @@
       return d;
     }
     d.innerHTML = '<div class="gl-acc-row"><div><b>Mon compte</b><p class="muted" style="margin:.2em 0 0">Compte : <b class="gl-name"></b>. Ta progression est enregistrée sur ce compte et te suit sur tous tes appareils.</p></div>' +
-      '<div class="gl-acc-btns"><button class="btn" type="button" data-gl="pw">Changer de mot de passe</button><button class="btn" type="button" data-gl="out">Se déconnecter</button></div></div>' +
+      '<div class="gl-acc-btns"><button class="btn" type="button" data-gl="pw">Changer de mot de passe</button><button class="btn" type="button" data-gl="inst" hidden>Installer l\'appli</button><button class="btn" type="button" data-gl="out">Se déconnecter</button></div></div>' +
       '<form class="gl-pw" hidden><label>Mot de passe actuel<input type="password" name="old" autocomplete="current-password"></label><label>Nouveau mot de passe<input type="password" name="password" autocomplete="new-password" minlength="6"></label><div class="gl-acc-btns"><button class="btn primary" type="submit">Enregistrer</button></div><p class="gl-msg muted" role="status"></p></form>' +
       '<div class="gl-sep"></div><div class="gl-acc-row gl-push"><div><b>Rappel quotidien</b><p class="muted gl-push-txt" style="margin:.2em 0 0">Une notification par jour quand des cartes ou des questions t\'attendent, sauf si tu as déjà révisé.</p></div>' +
       '<div class="gl-acc-btns"><select class="gl-hour" aria-label="Heure du rappel">' + hours(18) + '</select><button class="btn" type="button" data-gl="push">Activer</button><button class="btn" type="button" data-gl="ptest" hidden>Tester</button></div></div><p class="gl-msg muted gl-push-msg" role="status"></p>' +
@@ -157,6 +157,7 @@
       '<form class="gl-del" hidden><p><b>C\'est définitif.</b> Ta progression ne pourra pas être récupérée. Pense à télécharger une sauvegarde avant si tu veux la garder.</p><label>Ton mot de passe pour confirmer<input type="password" name="password" autocomplete="current-password" required></label><div class="gl-acc-btns"><button class="btn" type="button" data-gl="delno">Annuler</button><button class="btn gl-danger" type="submit">Supprimer définitivement</button></div><p class="gl-msg" role="alert"></p></form>' +
       '<p class="gl-legal"><a href="/mentions-legales">Mentions légales et conditions d\'utilisation</a><a href="/confidentialite">Confidentialité</a></p>';
     d.querySelector(".gl-name").textContent = ME.name;
+    if (window.GLInstall && window.GLInstall.available) d.querySelector('[data-gl="inst"]').hidden = false;
     var pb = d.querySelector('[data-gl="push"]'), pt = d.querySelector('[data-gl="ptest"]'), pm = d.querySelector(".gl-push-msg"), hs = d.querySelector(".gl-hour");
     function pushUi(h) { var on = h != null; pb.textContent = on ? "Désactiver" : "Activer"; pb.dataset.on = on ? "1" : ""; pt.hidden = !on; if (on) hs.value = String(h); }
     if (!PUSH.ok()) { pb.disabled = true; hs.disabled = true; pm.textContent = PUSH.ios() ? "Sur iPhone : ajoute d'abord le Grand Livre à l'écran d'accueil (Partager › Sur l'écran d'accueil), puis ouvre-le depuis l'icône pour activer les rappels." : "Les notifications ne sont pas disponibles dans ce navigateur."; }
@@ -164,7 +165,8 @@
     hs.addEventListener("change", async function () { if (pb.dataset.on) { try { await PUSH.on(+hs.value); pm.textContent = "Rappel déplacé à " + hs.value + " h."; } catch (x) { pm.textContent = x.message || "Impossible de changer l'heure."; } } });
     d.addEventListener("click", async function (e) {
       var b = e.target.closest("[data-gl]"); if (!b) return;
-      if (b.dataset.gl === "out") logout();
+      if (b.dataset.gl === "out") { if (typeof askConfirm === "function") askConfirm("Se déconnecter ?", "Ta progression reste enregistrée sur ton compte. Tu pourras te reconnecter quand tu veux.", "Se déconnecter").then(function (ok) { if (ok) logout(); }); else logout(); }
+      if (b.dataset.gl === "inst" && window.GLInstall) window.GLInstall.go();
       if (b.dataset.gl === "pw") { var f = d.querySelector(".gl-pw"); f.hidden = !f.hidden; }
       if (b.dataset.gl === "del") { var g = d.querySelector(".gl-del"); g.hidden = false; g.querySelector("input").focus(); }
       if (b.dataset.gl === "delno") { d.querySelector(".gl-del").hidden = true; }
@@ -207,38 +209,18 @@
 
   /* Menu « compte » dans la barre du haut : installer l'appli, retour à la page de connexion */
   async function logout() { try { await fetch("/api/logout", { method: "POST" }); } catch (x) {} await toLogin(); }
-  function addLogout() {
+  function addLogout() { // bouton « Mon profil » : ouvre directement la page profil (réglages, compte, déconnexion)
     var top = document.querySelector(".top-inner");
     if (!top || top.querySelector(".gl-menu")) return;
     var w = document.createElement("div"); w.className = "gl-menu";
     var b = document.createElement("button");
-    b.type = "button"; b.className = "gl-out"; b.title = "Mon compte (" + ME.name + ")";
-    b.setAttribute("aria-label", "Mon compte : profil, installer l'appli ou se déconnecter"); b.setAttribute("aria-haspopup", "menu"); b.setAttribute("aria-expanded", "false");
+    b.type = "button"; b.className = "gl-out"; b.title = "Mon profil (" + (GUEST ? "mode essai" : ME.name) + ")";
+    b.setAttribute("aria-label", "Mon profil, réglages et compte");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
-    var m = document.createElement("div"); m.className = "gl-pop"; m.setAttribute("role", "menu"); m.hidden = true;
-    m.innerHTML = '<div class="gl-pop-who"></div>' +
-      '<button type="button" role="menuitem" data-m="profil"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Mon profil et réglages</button>' +
-      '<button type="button" role="menuitem" data-m="install"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Installer l\'appli</button>' +
-      '<button type="button" role="menuitem" data-m="out"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg>Se déconnecter</button>';
-    m.querySelector(".gl-pop-who").textContent = GUEST ? "Mode essai" : ME.name;
-    if (GUEST) { var o = m.querySelector('[data-m="out"]'); o.lastChild.textContent = "Créer mon compte"; o.dataset.m = "signup"; }
-    function show(on) { m.hidden = !on; b.setAttribute("aria-expanded", on ? "true" : "false"); }
-    b.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var inst = m.querySelector('[data-m="install"]'); inst.hidden = !(window.GLInstall && window.GLInstall.available);
-      show(m.hidden);
-    });
-    m.addEventListener("click", function (e) {
-      var it = e.target.closest("[data-m]"); if (!it) return;
-      show(false);
-      if (it.dataset.m === "install" && window.GLInstall) window.GLInstall.go();
-      if (it.dataset.m === "out") { it.disabled = true; logout(); }
-      if (it.dataset.m === "signup") location.href = "/#signup";
-      if (it.dataset.m === "profil" && typeof go === "function") go("profil");
-    });
-    document.addEventListener("click", function (e) { if (!w.contains(e.target)) show(false); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") show(false); });
-    w.appendChild(b); w.appendChild(m); top.appendChild(w);
+    b.dataset.ic = b.innerHTML;
+    b.addEventListener("click", function () { if (typeof go === "function") go("profil"); });
+    w.appendChild(b); top.appendChild(w);
+    try { if (typeof renderTop === "function") renderTop(); } catch (x) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addLogout); else addLogout();
   var st = document.createElement("style");
