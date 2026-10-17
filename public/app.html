@@ -1650,6 +1650,31 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .wk-read { display: grid; gap: 6px; } .wk-read > div { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 640px) { .wk-sheet { align-items: flex-end; padding: 0; } .wk-box { border-radius: 18px 18px 0 0; width: 100%; padding-bottom: calc(20px + env(safe-area-inset-bottom)); } }
 
+
+/* Profil : onglets et version compacte */
+.pf-more { color: rgba(255,255,255,.85); }
+.pf-more > summary { cursor: pointer; font-size: .85rem; font-weight: 700; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
+.pf-more > summary::-webkit-details-marker { display: none; }
+.pf-more > summary::after { content: "▾"; transition: transform .2s; } .pf-more[open] > summary::after { transform: rotate(180deg); }
+.pf-more[open] > summary { margin-bottom: 10px; } .pf-more .pf-how { margin-top: 10px; }
+.pf-tabs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 64px)); z-index: 6; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin: 4px 0; background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; box-shadow: var(--lift); }
+.pf-tabs button { border: 0; background: none; font: inherit; font-weight: 700; font-size: .92rem; color: var(--muted); padding: 10px 6px; border-radius: 999px; cursor: pointer; min-height: 42px; transition: background .2s, color .2s; }
+.pf-tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.pf-settings:empty { display: none; }
+@media (max-width: 760px) {
+  .pf-mats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .pf-mat-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "c r" "n n" "v v"; padding: 10px 10px 10px 12px; gap: 4px 6px; }
+  .pf-mat-r .pf-ring { width: 40px; height: 40px; }
+  .pf-mat-r .pf-mat-n { white-space: normal; font-size: .86rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .pf-mat-r .pf-mat-v { font-size: .7rem; line-height: 1.3; }
+  .pf-mat-r .tabcode { justify-self: start; }
+  .pf-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .pf-tile { padding: 10px 6px; text-align: center; justify-items: center; border-radius: 12px; }
+  .pf-tile b { font-size: 1.25rem; } .pf-tile b small { font-size: .62rem; }
+  .pf-tile span { font-size: .68rem; line-height: 1.2; } .pf-tile > small { display: none; }
+}
+
+
 </style>
 
 <header class="top">
@@ -3935,6 +3960,7 @@ function bkApply(d) {
   try { localStorage.setItem("gl-backup-prev", JSON.stringify(S)); } catch (e) {}
   S = JSON.parse(JSON.stringify(d)); normS(); S.u = Date.now(); renderTop.xp = S.xp; dirty = true; touch(); render();
 }
+let PFT = (() => { let t = "prog"; try { t = localStorage.getItem("gl-pft") || "prog"; } catch (e) {} return { t: ["prog", "set", "acc"].includes(t) ? t : "prog", lad: false }; })();
 function vProfil() {
   const p = P(), L = levelOf(S.xp), span = L.next ? L.next - L.floor : 1, prog = L.next ? Math.round((S.xp - L.floor) / span * 100) : 100;
   const tl = totalLessons(), known = FS.filter(x => S.c[x.id] && S.c[x.id][0] >= 3).length, seen = FS.filter(x => S.c[x.id]).length;
@@ -3972,10 +3998,12 @@ function vProfil() {
       </div>
       <div class="pf-xp"><div class="pf-xp-bar"><i style="width:${prog}%"></i></div>
         <p>${L.next ? `Encore <b>${L.next - S.xp} XP</b> pour devenir <b>${h(L.nextName.toLowerCase())}</b>.` : "Niveau maximum atteint : bravo !"}</p></div>
+      <details class="pf-more"${PFT.lad ? " open" : ""}><summary>Les 6 niveaux et comment gagner des XP</summary>
       <ol class="pf-ladder">${LEVELS.map((l, i) => `<li class="${i < lvIdx ? "done" : i === lvIdx ? "cur" : ""}"><span class="dot">${i < lvIdx ? "✓" : i + 1}</span><span class="t">${h(l[1])}</span><span class="x">${l[0]} XP</span></li>`).join("")}</ol>
-      <p class="pf-how">Un chapitre est validé quand tu réussis son contrôle (80 %) deux jours différents. Tu gagnes des XP en lisant (leçon lue), en répondant juste aux quiz (5 XP la première fois dans la journée, puis 20 XP de bonus quand la question devient acquise), en révisant tes cartes et en réussissant les exercices. Une mauvaise réponse ne rapporte rien : répondre au hasard ne fait pas monter de niveau.</p>
+      <p class="pf-how">Un chapitre est validé quand tu réussis son contrôle (80 %) deux jours différents. Tu gagnes des XP en lisant (leçon lue), en répondant juste aux quiz (5 XP la première fois dans la journée, puis 20 XP de bonus quand la question devient acquise), en révisant tes cartes et en réussissant les exercices. Une mauvaise réponse ne rapporte rien : répondre au hasard ne fait pas monter de niveau.</p></details>
     </section>
-    <section class="stack"><h2>Mes chiffres</h2>
+    <nav class="pf-tabs" role="tablist" aria-label="Sections du profil">${[["prog", "Progression"], ["set", "Réglages"], ["acc", "Compte"]].map(([k, l]) => `<button role="tab" data-act="pfTab" data-t="${k}" aria-selected="${PFT.t === k}">${l}</button>`).join("")}</nav>
+    ${PFT.t === "prog" ? `<section class="stack"><h2>Mes chiffres</h2>
       <div class="pf-tiles">${tiles.map(([v, l, sub]) => `<div class="pf-tile"><b>${v}</b><span>${l}</span><small>${sub}</small></div>`).join("")}</div>
     </section>
     <section class="stack"><div class="sec-head"><h2>Mon activité</h2><p>Chaque case est un jour. Plus elle est foncée, plus tu as révisé.</p></div>
@@ -3987,8 +4015,8 @@ function vProfil() {
     </section>
     <section class="stack"><div class="sec-head"><h2>Ma progression par matière</h2><p>Anneau extérieur : <b>leçons lues</b> · milieu : <b>quiz et cartes travaillés</b> · centre : <b>maîtrisés</b>.</p></div>
       ${mastNote}<div class="pf-mats">${mats}</div>
-    </section>
-    <section class="stack pf-settings"><h2>Réglages</h2>
+    </section>` : ""}
+    ${PFT.t === "set" ? `<section class="stack pf-prefs">
       <div class="pf-set">
         <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "☀︎ Jour"], ["dark", "☾ Nuit"]])}</div>
         <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
@@ -4002,7 +4030,8 @@ function vProfil() {
         <div class="pf-row"><div><b>Date des premiers écrits</b><span>Mets celle de ta convocation : le compte à rebours s'y adapte.</span></div><input id="pfDate" class="pf-in" type="date" aria-label="Date des premiers écrits" value="${h(btsState().date)}"></div>
       </div>
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
-    </section>
+    </section>` : ""}
+    ${PFT.t === "acc" ? `<div class="pf-settings" aria-hidden="true"></div>
     ${(S.rp || []).length ? `<section class="stack"><div class="sec-head"><h2>Mes signalements</h2><p>${S.rp.length} erreur${S.rp.length > 1 ? "s" : ""} signalée${S.rp.length > 1 ? "s" : ""}, gardée${S.rp.length > 1 ? "s" : ""} ici. Copie-les et envoie-les pour qu'elles soient corrigées.</p></div>
       <div class="rep-list">${S.rp.slice(0, 20).map(r => `<div class="rep-it"><small>${h(REP_KIND[r.t] || r.t)} · ${new Date(r.d).toLocaleDateString("fr-FR")}</small><b>${h(r.ch)}</b><span>« ${h(r.l)} »</span>${r.cm ? `<em>${h(r.cm)}</em>` : ""}</div>`).join("")}</div>
       <div class="row"><button class="btn" data-act="repCopy">Copier mes signalements</button><button class="btn" data-act="repClear">Vider la liste</button></div></section>` : ""}
@@ -4014,7 +4043,7 @@ function vProfil() {
         ${BK.err ? `<p class="bk-err" role="alert">${h(BK.err)}</p>` : ""}
         ${(() => { try { return localStorage.getItem("gl-backup-prev") ? `<div class="pf-row"><div><b>Annuler le dernier import</b><span>Revenir à la progression d'avant l'import.</span></div><button class="btn small" data-act="bkUndo">Revenir en arrière</button></div>` : ""; } catch (e) { return ""; } })()}
       </div>
-    </section>`;
+    </section>` : ""}`;
 }
 function ctlSection(cat) {
   const L = ctlChaps(cat); if (!L.length) return "";
@@ -7777,6 +7806,7 @@ document.addEventListener("click", e => {
       const k = +b.dataset.m, t = `${fmtN20(it.pts * it.res.score)} / ${it.pts}`; ["dosPts", "dosEp"].forEach(p => { const e = document.getElementById(p + k); if (e) e.textContent = t; });
       const n = document.getElementById("dosNote"); if (n) n.innerHTML = `${fmtN20(dosNote())}<small> /20</small>`; break; }
     case "exRedac": { const r = REDACBY[b.dataset.rid]; if (r && lockedCat(r.cat)) { lockSheet(r.cat); break; } RD = { id: b.dataset.rid }; go("redac"); break; }
+    case "pfTab": PFT.t = b.dataset.t; try { localStorage.setItem("gl-pft", PFT.t); } catch (e) {} render(); break;
     case "avPick": avSheet(); break;
     case "avSet": { const v = b.dataset.av || ""; if (v) S.av = v; else delete S.av; touch(); closeSheet(); render(); renderTop(); tone(v ? "pop" : "soft"); if (v) { toast("Avatar : " + AVK[v].n); confettiBurst(24); } avLoad(true); break; }
     case "scOpen": scFrom = view === "mat" ? "mat" : "ex"; schStart(b.dataset.sid, "voir"); go("schema"); break;
