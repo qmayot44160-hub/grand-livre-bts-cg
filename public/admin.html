@@ -106,6 +106,32 @@ input.in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px colo
 .ftile{border:1px solid var(--rule);border-radius:12px;padding:9px 11px;display:grid;gap:1px;background:var(--sheet)}
 .ftile span{font-size:.8rem;font-weight:700;color:var(--muted)}.ftile b{font:800 1.3rem/1.15 var(--f-display);font-variant-numeric:tabular-nums}
 .ftile small{color:var(--muted);font-size:.74rem}.ftile.off b{color:var(--muted);opacity:.6}.ftile.on{border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+.xrow{display:flex;gap:8px;flex-wrap:wrap}.xrow .btn{flex:1;min-width:140px}
+#print{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  html,body{background:#fff!important;color:#111!important}
+  body>*:not(#print){display:none!important}
+  #print{display:block!important;font:10.5pt/1.4 "Inter",system-ui,sans-serif;color:#111}
+  #print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1f2a6b;padding-bottom:6px;margin-bottom:12px}
+  #print header h1{font-size:17pt;margin:0;color:#1f2a6b}#print header p{margin:2px 0 0;color:#555;font-size:9.5pt}
+  #print header .brand{font-weight:800;color:#1f2a6b;text-align:right;font-size:9.5pt}
+  #print h2{font-size:12pt;color:#1f2a6b;margin:14px 0 6px;break-after:avoid}
+  #print section{break-inside:avoid}
+  #print .pk{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  #print .pk div{border:1px solid #cfd3e6;border-radius:6px;padding:6px 8px}#print .pk b{display:block;font-size:14pt}#print .pk span{color:#555;font-size:8.5pt}
+  #print table{width:100%;border-collapse:collapse;font-size:9pt}
+  #print th{background:#eef0f8;text-align:left;font-weight:700;color:#1f2a6b}
+  #print th,#print td{border:1px solid #d6d9e8;padding:3px 6px;vertical-align:top}
+  #print td.n,#print th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  #print tr{break-inside:avoid}
+  #print .bar{display:inline-block;height:7px;border-radius:3px;background:#2c43c6;vertical-align:middle;margin-right:5px}
+  #print .pheat{display:flex;gap:3px}#print .pheat i{display:block;width:14px;height:14px;border-radius:3px;background:#e6e8f2}#print .pheat i.on{background:#2c43c6}
+  #print .note{color:#555;font-size:8.5pt;margin:4px 0 0}
+  #print footer{margin-top:16px;border-top:1px solid #ccc;padding-top:4px;color:#777;font-size:8pt}
+  #print .warn{color:#b35c00;font-weight:700}#print .bad{color:#b3261e;font-weight:700}#print .ok{color:#1d7a46;font-weight:700}
+}
 .mrow .lab{display:flex;align-items:center;gap:8px;min-width:0}
 .tabcode{display:inline-grid;place-items:center;min-width:44px;height:26px;padding:0 8px;border-radius:8px;background:var(--c,var(--accent));color:#fff;font:700 .76rem/1 var(--f-mono);letter-spacing:.02em}
 :root[data-theme="dark"] .tabcode{color:#12142a}
@@ -599,6 +625,67 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     return card;
   }
 
+  /* ---------- Export pour le prof : PDF (impression) et tableau (CSV pour Excel) ---------- */
+  function T(tag, attrs, kids) { return el(tag, attrs, kids); }
+  function table(head, rows, num) {
+    num = num || [];
+    return T("table", null, [T("thead", null, [T("tr", null, head.map(function (h, i) { return T("th", { cls: num.indexOf(i) >= 0 ? "n" : "", text: h }); }))]),
+      T("tbody", null, rows.map(function (r) { return T("tr", null, r.map(function (c, i) { return c instanceof Node ? T("td", null, [c]) : T("td", { cls: num.indexOf(i) >= 0 ? "n" : "", text: c == null ? "—" : String(c) }); })); }))]);
+  }
+  function pctCell(p, cls) { if (p == null) return "—"; return T("span", { cls: cls || "" }, [T("i", { cls: "bar", style: "width:" + Math.round(Math.max(2, p) * .5) + "px" }), document.createTextNode(p + " %")]); }
+  function rCls(p) { return p == null ? "" : p >= 70 ? "ok" : p >= 55 ? "warn" : "bad"; }
+  function todayLong() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
+  function isoDay() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function slug(x) { return String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+  function printDoc(fileTitle, title, sub, parts) {
+    var box = $("print"); if (!box) { box = el("div", { id: "print" }); document.body.append(box); }
+    box.replaceChildren.apply(box, [T("header", null, [T("div", null, [T("h1", { text: title }), T("p", { text: sub })]), T("div", { cls: "brand", html: "Grand Livre BTS CG<br>Édité le " + new Date().toLocaleDateString("fr-FR") })])].concat(parts, [T("footer", { text: "Chiffres issus de l'appli Grand Livre BTS CG (progression enregistrée par chaque élève). Les réussites portent sur les quiz ; les usages sur la semaine en cours." })]));
+    var old = document.title; document.title = fileTitle;
+    var done = function () { document.title = old; window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done); tone("tap");
+    setTimeout(function () { window.print(); setTimeout(done, 1500); }, 60);
+  }
+  function csvDownload(name, head, rows) {
+    var q = function (v) { v = v == null ? "" : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var txt = "\ufeff" + [head].concat(rows).map(function (r) { return r.map(q).join(";"); }).join("\r\n");
+    var a = el("a", { href: URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" })), download: name }); document.body.append(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast("Tableau téléchargé : " + name); tone("ok");
+  }
+  async function exportClassPdf() {
+    try {
+      var j = await stats(), st = (await students()).filter(function (s) { return !s.blocked; }), u = j.usage, parts = [];
+      var tot = j.matieres.reduce(function (a, m) { return a + m.reponses; }, 0), ok = j.matieres.reduce(function (a, m) { return a + m.reponses * m.reussite / 100; }, 0);
+      parts.push(T("section", null, [T("h2", { text: "En bref" }), T("div", { cls: "pk" }, [[j.eleves, "élèves inscrits"], [j.actifs.semaine + " / " + j.eleves, "actifs sur 7 jours"], [j.actifs.mois, "actifs sur 30 jours"], [(tot ? Math.round(ok / tot * 100) : 0) + " %", "réussite moyenne aux quiz (" + tot + " réponses)"]].map(function (k) { return T("div", null, [T("b", { text: String(k[0]) }), T("span", { text: k[1] })]); }))]));
+      if (j.matieres.length) parts.push(T("section", null, [T("h2", { text: "Réussite par matière" }), table(["Matière", "Réussite", "Réponses", "Élèves"], j.matieres.map(function (m) { return [LBL[catOf(m.c)] || m.c, pctCell(m.reussite, rCls(m.reussite)), m.reponses, m.eleves]; }), [2, 3])]));
+      var watch = st.filter(function (s) { return (!s.jours7 && s.reponses > 0) || (s.reponses >= 20 && s.reussite < 55); });
+      parts.push(T("section", null, [T("h2", { text: "Élèves" }), table(["Élève", "Dernière activité", "Jours / 7", "Jours / 30", "Réponses", "Réussite", "Acquises", "À revoir", "XP"], st.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "fr"); }).map(function (s) { return [s.name, s.updated ? day(s.updated) : "—", s.jours7, s.jours30, s.reponses, pctCell(s.reussite, rCls(s.reussite)), s.acquises, s.aRevoir, s.xp.toLocaleString("fr-FR")]; }), [2, 3, 4, 6, 7, 8]),
+        watch.length ? T("p", { cls: "note", text: "À surveiller : " + watch.map(function (s) { return s.name + " (" + (!s.jours7 ? "inactif cette semaine" : "réussite " + s.reussite + " %") + ")"; }).join(", ") + "." }) : null]));
+      if (u) parts.push(T("section", null, [T("h2", { text: "Usage des outils, semaine " + weekLbl(u.debut) }), table(["Outil", "Élèves cette semaine", "Volume", "Déjà essayé"], u.features.map(function (x) { return [x.nom, x.eleves + " / " + u.eleves, x.eleves ? (x.k === "plan" ? "avancé à " + Math.round(x.total / x.eleves) + " %" : funit(x.k, x.total)) : "—", x.deja]; }), [1, 3])]));
+      if (j.ratees.length) parts.push(T("section", null, [T("h2", { text: "Questions les plus ratées (à revoir en classe)" }), table(["Matière", "Chapitre", "Question", "Élèves", "Réussite"], j.ratees.slice(0, 15).map(function (r) { return [LBL[catOf(r.c)] || r.c, r.ch || "", r.q || r.id, r.eleves, pctCell(r.reussite, rCls(r.reussite))]; }), [3])]));
+      printDoc("Bilan classe " + isoDay(), "Bilan de la classe", "BTS CG · " + todayLong(), parts);
+    } catch (e) { toast(e.message || "Export impossible"); }
+  }
+  async function exportClassCsv() {
+    try {
+      var j = await stats(), st = await students(), u = j.usage || { features: [], parEleve: [] }, by = {};
+      u.parEleve.forEach(function (p) { by[p.id] = p.f; });
+      var head = ["Élève", "Inscrit le", "Dernière activité", "Niveau", "XP", "Série (jours)", "Jours actifs / 7", "Jours actifs / 30", "Réponses aux quiz", "Réussite (%)", "Questions acquises", "Cahier d'erreurs", "Classement", "Rappels", "Suspendu"].concat(u.features.map(function (x) { return x.k === "plan" ? "Plan de la semaine (% fait)" : x.nom + " · semaine"; }));
+      var rows = st.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "fr"); }).map(function (s) { var f = by[s.id] || {};
+        return [s.name, s.created ? new Date(s.created).toLocaleDateString("fr-FR") : "", s.updated ? new Date(s.updated).toLocaleDateString("fr-FR") : "", s.niveau, s.xp, s.serie, s.jours7, s.jours30, s.reponses, s.reussite == null ? "" : s.reussite, s.acquises, s.aRevoir, s.classement ? "oui" : "non", s.rappels ? "oui" : "non", s.blocked ? "oui" : "non"].concat(u.features.map(function (x) { return f[x.k] || 0; })); });
+      csvDownload("GL-classe-" + isoDay() + ".csv", head, rows);
+    } catch (e) { toast(e.message || "Export impossible"); }
+  }
+  function exportStudentPdf(s) {
+    var parts = [];
+    parts.push(T("section", null, [T("h2", { text: "En bref" }), T("div", { cls: "pk" }, [[s.reussite == null ? "—" : s.reussite + " %", "réussite aux quiz (" + s.reponses + " réponses)"], [s.acquises, "questions acquises"], [s.aRevoir, "dans le cahier d'erreurs"], [s.jours7 + " / 7", "jours actifs cette semaine (" + s.jours30 + " sur 30)"], [s.niveau, s.xp.toLocaleString("fr-FR") + " XP"], [s.serie ? s.serie + " j" : "—", "série en cours"], [s.fiches, "fiches lues"], [s.lecons, "leçons lues"]].map(function (k) { return T("div", null, [T("b", { text: String(k[0]) }), T("span", { text: k[1] })]); }))]));
+    parts.push(T("section", null, [T("h2", { text: "Jours de révision (4 dernières semaines)" }), T("div", { cls: "pheat" }, s.activite.map(function (v) { return T("i", { cls: v ? "on" : "" }); }))]));
+    if (s.matieres.length) parts.push(T("section", null, [T("h2", { text: "Par matière" }), table(["Matière", "Réussite", "Réponses", "Acquises"], s.matieres.map(function (m) { return [m.c, pctCell(m.reussite, rCls(m.reussite)), m.reponses, m.acquises]; }), [2, 3])]));
+    if (s.fragiles.length) parts.push(T("section", null, [T("h2", { text: "Chapitres les plus fragiles" }), table(["Matière", "Chapitre", "Réussite", "Réponses"], s.fragiles.map(function (f) { return [f.c, f.t, pctCell(f.reussite, rCls(f.reussite)), f.reponses]; }), [3])]));
+    if (s.controles.length) parts.push(T("section", null, [T("h2", { text: "Contrôles préparés" }), table(["Matière", "Contrôle", "Date", "Dernier blanc"], s.controles.map(function (c) { return [c.c, c.nom || "Contrôle", c.date ? new Date(c.date + "T12:00:00").toLocaleDateString("fr-FR") : "", c.dernier == null ? "pas encore" : pctCell(c.dernier, rCls(c.dernier))]; }))]));
+    if (s.usage) parts.push(T("section", null, [T("h2", { text: "Outils utilisés cette semaine" }), table(["Outil", "Cette semaine", "Déjà essayé"], s.usage.map(function (x) { return [x.nom, x.semaine ? (x.k === "plan" ? x.semaine + " % du plan" : funit(x.k, x.semaine)) : "—", x.deja || x.semaine ? "oui" : "jamais"]; }))]));
+    printDoc("Bilan " + slug(s.name) + " " + isoDay(), "Bilan de " + s.name, "Inscrit le " + day(s.created) + " · dernière activité " + (s.updated ? day(s.updated) : "—") + " · " + todayLong(), parts);
+  }
+
   /* ---------- Classe ---------- */
   async function vClasse(force) {
     if (!CACHE.stats) busy();
@@ -612,6 +699,9 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       ]);
       var out = [hero, el("div", { cls: "kpis" }, [kpi(j.eleves, "élèves inscrits", "users"), kpi(j.actifs.jour, "actifs aujourd'hui", "bolt"), kpi(j.actifs.mois, "actifs sur 30 jours", "eye"), kpi(j.signalements, "signalements à traiter", "flag", "", j.signalements ? "alert" : "good")])];
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Élèves actifs par jour" }), el("span", { cls: "muted small", text: "4 semaines" })]), bars(j.jours.map(function (x) { return x.n; }), function (i, v) { return new Date(j.jours[i].dn * 864e5).toLocaleDateString("fr-FR", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }) + " : " + pl(v, "élève"); })]));
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Exporter pour le prof" }), el("span", { cls: "muted small", text: "bilan à transmettre" })]),
+        el("div", { cls: "xrow" }, [el("button", { cls: "btn primary small", html: I.dl + "Bilan PDF", onclick: exportClassPdf }), el("button", { cls: "btn small", html: I.dl + "Tableau Excel", onclick: exportClassCsv })]),
+        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "PDF : choisis « Enregistrer en PDF » dans la fenêtre d'impression. Le tableau (.csv) s'ouvre dans Excel ou Google Sheets." })]));
       if (j.usage) out.push(usageCard(j.usage));
       var top = st.filter(function (s) { return !s.blocked && s.jours7; }).sort(function (a, b) { return b.jours7 - a.jours7 || b.serie - a.serie || b.xp - a.xp; }).slice(0, 3);
       if (top.length) {
@@ -739,6 +829,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         return el("div", { cls: "ftile " + (on ? "on" : "off") }, [el("span", { text: (FEMO[x.k] || "") + " " + x.nom }), el("b", { text: on ? x.semaine + (x.k === "plan" ? " %" : "") : "—" }), el("small", { text: x.k === "plan" ? (on ? "du plan fait" : x.deja ? "suivi les semaines passées" : "pas encore suivi") : on ? funit(x.k, x.semaine).replace(/^\d+ /, "") : x.deja ? "déjà essayé avant" : "jamais essayé" })]);
       }))]));
       if (s.controles.length) out.push(el("div", { cls: "card" }, [el("h3", { text: "Contrôles préparés" })].concat(s.controles.map(function (c) { return el("div", { cls: "mrow" }, [tabcode(c.c), el("span", { cls: "small", text: (c.nom || "Contrôle") + (c.date ? " · " + new Date(c.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "") }), el("span", { cls: "pill" + (c.dernier >= 70 ? " ok" : c.dernier == null ? "" : " warn"), text: c.dernier == null ? "pas de blanc" : "blanc " + c.dernier + " %" })]); }))));
+      out.push(el("button", { cls: "btn", html: I.dl + "Exporter sa fiche en PDF", onclick: function () { exportStudentPdf(s); } }));
       out.push(el("p", { cls: "muted small", style: "text-align:center", text: "Rappels " + (s.rappels ? "activés" : "désactivés") + " · " + pl(s.lecons, "leçon lue", "leçons lues") + " · " + pl(s.cartes, "carte maîtrisée", "cartes maîtrisées") }));
       out.push(actions(s, S));
       S.body.replaceChildren.apply(S.body, out);
