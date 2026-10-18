@@ -45,7 +45,7 @@ Autorisé seulement :
 - ouverture et fermeture d'une feuille ou d'un menu : 200 ms ;
 - barres de progression qui se remplissent : 300 ms ;
 - indicateur de chargement.
-- l'étagère de classeurs en 3D de l'accueil, signature de l'appli : matières en couleurs sourdes, meuble gris clair, lumière neutre, aucun mouvement au repos ; un classeur ne sort que sous le pointeur ou le doigt.
+- l'étagère de classeurs en 3D de l'accueil, signature de l'appli : matières dans leurs couleurs franches mais satinées, meuble bleu encre, lumière neutre avec ombres, aucun mouvement au repos ; un classeur ne sort que sous le pointeur ou le doigt.
 Interdit : confettis, parallaxe au défilement, éléments qui rebondissent, apparitions au défilement, autre 3D décorative, curseur personnalisé, animations en boucle décoratives.
 Le réglage « réduire les animations » du système coupe tout.
 Les sons doux de l'appli restent (désactivables dans les réglages).

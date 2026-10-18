@@ -6671,12 +6671,12 @@ function shelfHint() { try { return matchMedia("(pointer: coarse)").matches ? "G
 function noiseFill(g, w, hh, a, n) { for (let k = 0; k < n; k++) { g.fillStyle = `rgba(${Math.random() < .5 ? "0,0,0" : "255,255,255"},${Math.random() * a})`; g.fillRect(Math.random() * w, Math.random() * hh, 1 + Math.random() * 2, 1 + Math.random() * 2); } }
 function spineTexture(cat, dark) {
   const T = window.THREE, cv = document.createElement("canvas"); cv.width = 512; cv.height = 2048;
-  const g = cv.getContext("2d"), hs = HUE[cat] || [214, 30], col = `hsl(${hs[0]}, ${Math.round(hs[1] * .5)}%, ${dark ? 40 : 34}%)`; g.scale(2, 2);
+  const g = cv.getContext("2d"), hs = HUE[cat] || [214, 30], col = `hsl(${hs[0]}, ${Math.round(hs[1] * .78)}%, ${dark ? 44 : 38}%)`; g.scale(2, 2);
   g.fillStyle = col; g.fillRect(0, 0, 256, 1024);
   noiseFill(g, 256, 1024, .025, 2500);
   /* tranche arrondie : ombre sur les bords, reflet vers la gauche */
   const grad = g.createLinearGradient(0, 0, 256, 0);
-  grad.addColorStop(0, "rgba(0,0,0,.28)"); grad.addColorStop(.08, "rgba(0,0,0,.04)"); grad.addColorStop(.9, "rgba(0,0,0,.04)"); grad.addColorStop(1, "rgba(0,0,0,.3)");
+  grad.addColorStop(0, "rgba(0,0,0,.38)"); grad.addColorStop(.08, "rgba(0,0,0,.05)"); grad.addColorStop(.18, "rgba(255,255,255,.12)"); grad.addColorStop(.3, "rgba(255,255,255,0)"); grad.addColorStop(.9, "rgba(0,0,0,.06)"); grad.addColorStop(1, "rgba(0,0,0,.4)");
   g.fillStyle = grad; g.fillRect(0, 0, 256, 1024);
   /* liserés haut et bas */
   g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(0, 0, 256, 8); g.fillRect(0, 1016, 256, 8);
@@ -6739,9 +6739,9 @@ function initShelf() {
   r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
   if (T.sRGBEncoding) r.outputEncoding = T.sRGBEncoding; if (T.ACESFilmicToneMapping) { r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 1.15; }
   const scene = new T.Scene(), cam = new T.PerspectiveCamera(30, 1.6, 0.1, 100);
-  scene.add(new T.HemisphereLight(0xffffff, 0x9aa6b8, 0.6));
+  scene.add(new T.HemisphereLight(0xffffff, 0x59657a, 0.45));
   scene.add(new T.AmbientLight(0xffffff, 0.18));
-  const dl = new T.DirectionalLight(0xffffff, 0.95); dl.position.set(-3.5, 6.5, 6); dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); dl.shadow.radius = 5; dl.shadow.bias = -0.0006; Object.assign(dl.shadow.camera, { left: -6, right: 6, top: 5, bottom: -2, near: 1, far: 22 }); scene.add(dl);
+  const dl = new T.DirectionalLight(0xffffff, 1.25); dl.position.set(-3.5, 6.5, 6); dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); dl.shadow.radius = 5; dl.shadow.bias = -0.0006; Object.assign(dl.shadow.camera, { left: -6, right: 6, top: 5, bottom: -2, near: 1, far: 22 }); scene.add(dl);
   const dl2 = new T.DirectionalLight(0xffffff, 0.3); dl2.position.set(5, 2.5, 4); scene.add(dl2);
   const rim = new T.PointLight(0xffffff, 0.2, 12); rim.position.set(0, 4.2, 2.2); scene.add(rim);
   const group = new T.Group(); scene.add(group);
@@ -6749,8 +6749,8 @@ function initShelf() {
   const Mat = T.MeshPhysicalMaterial || T.MeshStandardMaterial;
   CATS.forEach((c, i) => {
     const hgt = 2.35 + ((i * 37) % 5) * 0.08, depth = 1.9 + ((i * 53) % 3) * 0.05, geo = new T.BoxGeometry(0.6, hgt, depth);
-    const side = new Mat({ color: 0xffffff, roughness: .75, metalness: 0 });
-    const spine = new Mat({ roughness: .7, metalness: 0 });
+    const side = new Mat({ color: 0xffffff, roughness: .5, metalness: 0, clearcoat: .25, clearcoatRoughness: .5 });
+    const spine = new Mat({ roughness: .45, metalness: 0, clearcoat: .3, clearcoatRoughness: .45 });
     const top = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .9 });
     const m = new T.Mesh(geo, [side, side, top, top, spine, side]);
     const x = (i - (n - 1) / 2) * 0.68;
@@ -6759,12 +6759,12 @@ function initShelf() {
     m.castShadow = true; m.receiveShadow = true; group.add(m); binders.push(m);
   });
   /* meuble en bois : planche, montants, fond */
-  const woodMat = new T.MeshStandardMaterial({ color: 0xdde3ea, roughness: .8, metalness: 0 });
+  const woodMat = new T.MeshStandardMaterial({ color: 0x1e3a5f, roughness: .55, metalness: 0 });
   const plank = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.2, 2.5), woodMat);
   plank.position.set(0, -0.1, -0.15); plank.receiveShadow = true; plank.castShadow = true; group.add(plank); SHELF.plank = plank;
-  const lip = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0xc3cbd6, roughness: .8 }));
+  const lip = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0x0b1a2c, roughness: .5 }));
   lip.position.set(0, -0.12, 1.11); group.add(lip);
-  const sideMat = new T.MeshStandardMaterial({ color: 0xdde3ea, roughness: .8 });
+  const sideMat = new T.MeshStandardMaterial({ color: 0x1e3a5f, roughness: .55 });
   [-1, 1].forEach(sg => { const up = new T.Mesh(new T.BoxGeometry(0.16, 3.3, 2.5), sideMat); up.position.set(sg * (width / 2 + 0.23), 1.45, -0.15); up.castShadow = true; up.receiveShadow = true; group.add(up); });
   const back = new T.Mesh(new T.PlaneGeometry(width + 0.5, 3.2), new T.MeshStandardMaterial({ roughness: .95, color: 0xeef1f5 }));
   back.position.set(0, 1.45, -1.38); back.receiveShadow = true; group.add(back); SHELF.back = back; SHELF.sideMat = sideMat;
@@ -6796,9 +6796,9 @@ function paintShelf(force) {
     const c = new T.Color(col); if (T.sRGBEncoding && c.convertSRGBToLinear) c.convertSRGBToLinear(); m.userData.side.color = c.multiplyScalar(dark ? .8 : 1);
     if (m.userData.top.map) m.userData.top.map.dispose(); m.userData.top.map = pagesTexture(col); m.userData.top.needsUpdate = true;
   });
-  SHELF.plank.material.color = new T.Color(dark ? 0x2b3546 : 0xdde3ea);
-  if (SHELF.sideMat) SHELF.sideMat.color = new T.Color(dark ? 0x2b3546 : 0xdde3ea);
-  if (SHELF.back) SHELF.back.material.color = new T.Color(dark ? 0x1a2230 : 0xeef1f5);
+  SHELF.plank.material.color = new T.Color(dark ? 0x2a3a52 : 0x0f2238);
+  if (SHELF.sideMat) SHELF.sideMat.color = new T.Color(dark ? 0x2a3a52 : 0x0f2238);
+  if (SHELF.back) SHELF.back.material.color = new T.Color(dark ? 0x232d3d : 0xe3e8ef);
 }
 function sizeShelf() {
   const host = document.getElementById("shelf3d"); if (!host || !SHELF.r) return;
@@ -6806,7 +6806,7 @@ function sizeShelf() {
   SHELF.r.setSize(w, hh, false); SHELF.cam.aspect = w / hh;
   const vf = SHELF.cam.fov * Math.PI / 180, spanW = CATS.length * 0.68 + 0.95, spanH = 3.7;
   const dW = (spanW / 2) / Math.tan(vf / 2) / SHELF.cam.aspect, dH = (spanH / 2) / Math.tan(vf / 2);
-  SHELF.dist = Math.max(dW, dH) * 1.08 + 1.25; SHELF.cam.updateProjectionMatrix();
+  SHELF.dist = Math.max(dW, dH) * 1.04 + 0.95; SHELF.cam.updateProjectionMatrix();
 }
 function shelfFrame(now) {
   if (!SHELF.r || !SHELF.r.domElement.isConnected) { SHELF.running = false; return; }
