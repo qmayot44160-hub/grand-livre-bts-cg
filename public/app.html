@@ -8055,6 +8055,7 @@ function vExHome() {
       <h1>S'entraîner</h1>
       <p class="muted">Choisis le type d'entraînement : chaque onglet regroupe un format.</p>
     </section>
+      ${(() => { const el = errList(), td = el.filter(e => !e.ok).length, wk = weakChaps(5); return `<button class="wk-cta" data-act="goErr"><span class="wk-ic">${ICON.errbook}</span><span><b>Mes erreurs et points faibles</b><small>${el.length ? `${td} question${td > 1 ? "s" : ""} à revoir${wk.length ? ` · ${wk.length} chapitre${wk.length > 1 ? "s" : ""} faible${wk.length > 1 ? "s" : ""} : ${h(chLabel(wk[0].k))}` : ""}` : "Rien pour l'instant : tes erreurs de quiz arriveront ici."}</small></span><span class="wk-go">Ouvrir ›</span></button>`; })()}
     ${exTabs()}
     ${EXT === "quiz" ? `<section class="stack">
       <div class="sec-head"><h2>Quiz et flashcards</h2><p>Toutes matières mélangées, ou une matière précise juste en dessous.</p></div>
@@ -8066,7 +8067,6 @@ function vExHome() {
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button></div>
-      ${(() => { const el = errList(), td = el.filter(e => !e.ok).length, wk = weakChaps(5); return `<button class="wk-cta" data-act="goErr"><span class="wk-ic">${ICON.errbook}</span><span><b>Mes erreurs et points faibles</b><small>${el.length ? `${td} question${td > 1 ? "s" : ""} à revoir${wk.length ? ` · ${wk.length} chapitre${wk.length > 1 ? "s" : ""} faible${wk.length > 1 ? "s" : ""} : ${h(chLabel(wk[0].k))}` : ""}` : "Rien pour l'instant : tes erreurs de quiz arriveront ici."}</small></span><span class="wk-go">Ouvrir ›</span></button>`; })()}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>` : ""}
