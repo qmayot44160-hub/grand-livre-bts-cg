@@ -6513,6 +6513,12 @@ function exSecIdx(k, c) {
   return best;
 }
 const DWFX = { p3c2: ["principales corrections", "Réintégrer ou déduire, et pourquoi"], p1c3: ["Exigibilité et déductibilité", "TVA déductible ou non, et pourquoi"], p3c1: ["Base d'imposition", "TVA exigible, déductible, et pourquoi"], p2c1: ["coût d'acquisition", "Charge ou immobilisation, et pourquoi"], p5c3: ["Le coût variable", "Charge fixe ou variable, et pourquoi"], p6c2: ["La structure", "Classer les postes du bilan fonctionnel"] };
+function dwHome() {
+  const L = Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat));
+  return `<div class="sec-head"><h2>Décider et justifier</h2><p>Pour chaque situation, choisis d'abord la décision, puis la bonne raison. C'est juste seulement si les deux le sont.</p></div>
+    <div class="row"><button class="btn primary" data-act="dwMix">Tout mélanger (15 questions)</button></div>
+    <div class="ft-grid">${L.map(k => { const c = CHID[k]; return `<button class="ft-it" style="${hueStyle(c.cat)}" data-act="dwRun" data-ch="${k}"><span class="ft-ic" aria-hidden="true">${ICON.list}</span><span><b>${h(DWFX[k][1])}</b><small>${h(CAT[c.cat].code)} · ${h(c.title)} · 10 questions</small></span></button>`; }).join("")}</div>`;
+}
 function dwBtn(c, big) { const d = DWFX[c.id]; return d && CTLX[c.id] ? `<button class="btn${big ? " primary" : ""}" data-act="dwRun" data-ch="${c.id}">${h(d[1])} (10)</button>` : ""; }
 function ficheInlineEx(c, si) {
   if (!c._exs) { c._exs = {}; const cnt = {}; ficheExKeys(c).forEach(k => { const j = exSecIdx(k, c); if (j < 0 || (cnt[j] || 0) >= 2) return; cnt[j] = (cnt[j] || 0) + 1; (c._exs[j] = c._exs[j] || []).push(k); }); }
@@ -7232,7 +7238,7 @@ const ICON_EXT = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="curre
 let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; return t === "duel" ? "quiz" : t; } catch (e) { return "quiz"; } })();
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
-  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
+  const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["justif", ICON.list, "Décider et justifier", `${Object.keys(DWFX).filter(k => CTLX[k] && !lockedCat(CHID[k] && CHID[k].cat)).length} entraînements · décision puis pourquoi`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
@@ -7978,6 +7984,7 @@ function vExHome() {
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
     </section>` : ""}
+    ${EXT === "justif" ? `<section class="stack">${dwHome()}</section>` : ""}
     ${EXT === "chiffres" ? `<section class="stack">${cxHome()}${dosSection()}</section>` : ""}
     ${EXT === "annales" ? `<div class="ann-stats"><span class="pill"><b>${ANN.length}</b> sujets</span><span class="pill"><b>${ANNEX.length}</b> exercices</span><span class="pill"><b>${done}</b> faits</span></div><section class="stack">
       <div class="sec-head"><h2>Annales officielles</h2><p>Touche un sujet pour voir ses exercices.</p></div>
@@ -9081,6 +9088,7 @@ document.addEventListener("click", e => {
     case "pick": pick(+b.dataset.pos); break;
     case "tw1": tw1(+b.dataset.i); break;
     case "tw2": tw2(+b.dataset.pos); break;
+    case "dwMix": { const L = shuffle([].concat(...Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat)).map(k => CTLX[k](3)))).slice(0, 15); if (L.length) startRun(L, "quiz"); break; }
     case "dwRun": { const L = (CTLX[b.dataset.ch] ? CTLX[b.dataset.ch](10) : []); peekClose(true); if (L.length) startRun(shuffle(L), "quiz"); break; }
     case "next": next(); break;
     case "prev": if (R.i > 0) { R.i--; render(); } break;
