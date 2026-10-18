@@ -4908,6 +4908,7 @@ function dwQ(id, c, q, k, why, decs, whyBy, e, amb) {
   shuffle((whyBy[k] || []).filter(okW)).some(w => add(k, w));
   const others = shuffle(decs.filter(d => d !== k));
   for (let r = 0; o.length < 4 && r < 6; r++) { const d = others[r % others.length]; shuffle((whyBy[d] || []).filter(okW)).some(w => add(d, w)); }
+  if (o.length < 4 && whyBy._) shuffle(whyBy._).forEach(w => { if (o.length < 4) add(pk(decs), w); });
   if (o.length !== 4) return null;
   const allW = [...new Set([].concat(...Object.values(whyBy)))], wrong = shuffle(allW.filter(okW)).slice(0, 3);
   const two = wrong.length === 3 ? { d: decs.slice(), k, w: [why].concat(wrong) } : null;
@@ -4955,9 +4956,77 @@ const DW_CV = { decs: ["Charge variable", "Charge fixe"],
     ["Charge fixe", "f", "Salaire mensuel fixe de la comptable", "Il ne varie pas avec l'activité : charge fixe (charge de structure)."],
     ["Charge fixe", "f", "Prime d'assurance annuelle des locaux", "Montant fixé au contrat, indépendant des ventes : charge fixe."]
   ] };
+const DW_CDD = { decs: ["CDD possible", "CDD interdit"],
+  why: { rem: "Remplacement d'un salarié absent : motif autorisé", acc: "Accroissement temporaire d'activité : motif autorisé", sai: "Emploi saisonnier : motif autorisé", perm: "Emploi durable lié à l'activité normale et permanente : il faut un CDI", gr: "Remplacer un salarié gréviste est interdit", dang: "Certains travaux particulièrement dangereux sont interdits en CDD" },
+  amb: {}, items: [
+    ["CDD possible", "rem", "Embaucher une comptable pendant le congé maternité de la titulaire du poste", "Le remplacement d'un salarié absent est un motif de recours au CDD."],
+    ["CDD possible", "acc", "Renforcer l'équipe pendant 3 mois pour honorer une grosse commande exceptionnelle", "Accroissement temporaire d'activité : motif autorisé, avec un écrit précisant ce motif."],
+    ["CDD possible", "sai", "Recruter des cueilleurs pour les vendanges", "Emploi saisonnier : travaux qui reviennent chaque année à la même période."],
+    ["CDD interdit", "perm", "Pourvoir le poste d'assistant comptable, nécessaire toute l'année, avec des CDD successifs", "Un CDD ne peut pas pourvoir durablement un emploi lié à l'activité normale et permanente : risque de requalification en CDI."],
+    ["CDD interdit", "gr", "Embaucher pour remplacer des salariés en grève", "Le Code du travail interdit le CDD pour remplacer un salarié gréviste."],
+    ["CDD interdit", "dang", "Embaucher pour des travaux exposant à certains agents chimiques très dangereux figurant sur une liste réglementaire", "Ces travaux particulièrement dangereux sont interdits aux salariés en CDD."]
+  ] };
+const DW_FAUTE = { decs: ["Faute simple", "Faute grave", "Faute lourde"],
+  why: { s: "Elle justifie le licenciement, mais le salarié peut rester pendant le préavis", g: "Elle rend impossible le maintien du salarié dans l'entreprise, même pendant le préavis", l: "Elle est commise avec l'intention de nuire à l'employeur" },
+  extra: ["Elle doit avoir été commise au moins trois fois", "Elle dépend de l'ancienneté du salarié"],
+  amb: {}, items: [
+    ["Faute simple", "s", "Retards répétés de quelques minutes malgré un avertissement", "Comportement fautif qui justifie un licenciement, sans empêcher l'exécution du préavis."],
+    ["Faute simple", "s", "Refus ponctuel d'effectuer une tâche relevant de ses fonctions", "Insubordination isolée : cause réelle et sérieuse, préavis et indemnité de licenciement maintenus."],
+    ["Faute grave", "g", "Coups portés à un collègue sur le lieu de travail", "Violences au travail : le salarié ne peut pas rester, même le temps du préavis. Pas d'indemnité de licenciement ni de préavis."],
+    ["Faute grave", "g", "Conduite d'un chariot élévateur en état d'ivresse", "Danger pour soi et pour les autres : maintien impossible dans l'entreprise."],
+    ["Faute lourde", "l", "Transmettre volontairement le fichier clients à un concurrent pour nuire à son employeur", "L'intention de nuire à l'employeur caractérise la faute lourde."],
+    ["Faute lourde", "l", "Saboter volontairement une machine pour bloquer la production et nuire à l'entreprise", "Acte délibéré destiné à nuire : faute lourde."]
+  ] };
+const DW_MODIF = { decs: ["Modification du contrat", "Changement des conditions de travail"],
+  why: { m: "Elle touche un élément essentiel du contrat : l'accord du salarié est obligatoire", c: "Elle relève du pouvoir de direction : l'employeur peut l'imposer" },
+  extra: ["Toute décision de l'employeur exige l'accord écrit du salarié", "Seul le CSE peut l'autoriser"],
+  amb: {}, items: [
+    ["Modification du contrat", "m", "Baisse du salaire de base de 5 %", "La rémunération est un élément essentiel : sans l'accord du salarié, l'employeur ne peut pas la baisser."],
+    ["Modification du contrat", "m", "Mutation définitive de Toulon à Lyon, sans clause de mobilité", "Lieu de travail hors du secteur géographique : élément essentiel, accord obligatoire. Le refus n'est pas une faute."],
+    ["Modification du contrat", "m", "Passage d'un temps plein à un temps partiel", "La durée du travail est un élément essentiel du contrat."],
+    ["Modification du contrat", "m", "Nouvelles fonctions relevant d'une qualification inférieure", "La qualification est un élément essentiel du contrat."],
+    ["Changement des conditions de travail", "c", "Horaires décalés d'une heure dans la journée (8 h - 16 h au lieu de 9 h - 17 h)", "Changer les horaires dans la journée relève du pouvoir de direction : le refus peut être une faute."],
+    ["Changement des conditions de travail", "c", "Déménagement du bureau dans une commune voisine, dans le même secteur géographique", "Lieu dans le même secteur : simple changement des conditions de travail."],
+    ["Changement des conditions de travail", "c", "Nouvelle tâche correspondant à la qualification du salarié", "Tâches de même qualification : pouvoir de direction de l'employeur."]
+  ] };
+const DW_VICE = { decs: ["Contrat valable", "Contrat annulable"],
+  why: { err: "Erreur sur une qualité essentielle de la prestation", dol: "Dol : manœuvres, mensonge ou silence volontaire pour obtenir l'accord", vio: "Violence : contrainte physique ou morale, y compris l'abus de dépendance", inc: "Incapacité : une partie n'a pas la capacité de contracter", val: "Erreur sur la valeur : ce n'est pas une cause de nullité", mot: "Erreur sur un simple motif personnel, non intégré au contrat : pas une cause de nullité" },
+  amb: { err: ["dol"], dol: ["err"], val: ["mot"], mot: ["val"] }, items: [
+    ["Contrat annulable", "err", "Achat d'un tableau présenté comme un original alors que c'est une copie", "Erreur sur une qualité essentielle (l'authenticité) : vice du consentement, nullité relative."],
+    ["Contrat annulable", "dol", "Le vendeur cache volontairement que la voiture a été gravement accidentée, information déterminante pour l'acheteur", "Réticence dolosive : silence volontaire sur une information déterminante."],
+    ["Contrat annulable", "vio", "Signature obtenue sous la menace de révéler des faits de la vie privée", "Contrainte morale : violence, vice du consentement."],
+    ["Contrat annulable", "vio", "Un fournisseur unique impose un prix excessif en profitant de la dépendance de son client", "Abus de l'état de dépendance pour obtenir un avantage excessif : assimilé à la violence."],
+    ["Contrat annulable", "inc", "Achat d'une moto par un mineur non émancipé, sans ses parents", "Le mineur non émancipé n'a pas la capacité de conclure seul un tel contrat."],
+    ["Contrat valable", "val", "Achat d'un ordinateur payé 15 % plus cher que chez un concurrent", "L'erreur sur la valeur, sans erreur sur les qualités essentielles, n'entraîne pas la nullité."],
+    ["Contrat valable", "mot", "Achat d'un appartement pour se rapprocher d'un emploi finalement refusé, sans que ce motif figure au contrat", "Un motif personnel non intégré au contrat n'est pas une cause de nullité."]
+  ] };
+const DW_RESP = { decs: ["Responsabilité contractuelle", "Responsabilité extracontractuelle"],
+  why: { c: "Inexécution ou mauvaise exécution d'un contrat entre l'auteur et la victime", fp: "Fait personnel : une faute cause un dommage à un tiers, hors contrat", fc: "Fait des choses : dommage causé par une chose dont on a la garde", fa: "Fait d'autrui : l'employeur répond des dommages causés par son salarié" },
+  extra: ["Il faut d'abord une condamnation pénale"],
+  amb: {}, items: [
+    ["Responsabilité contractuelle", "c", "Le fournisseur livre une marchandise non conforme à la commande", "Les parties sont liées par un contrat de vente mal exécuté : responsabilité contractuelle."],
+    ["Responsabilité contractuelle", "c", "Le prestataire informatique ne répare pas le serveur dans le délai prévu au contrat", "Retard dans l'exécution d'une obligation contractuelle."],
+    ["Responsabilité contractuelle", "c", "L'expert-comptable commet une erreur dans la déclaration fiscale de son client", "Mauvaise exécution de la lettre de mission : responsabilité contractuelle."],
+    ["Responsabilité extracontractuelle", "fp", "Un concurrent dénigre publiquement les produits de l'entreprise", "Aucun contrat entre eux : faute personnelle (concurrence déloyale), dommage, lien de causalité."],
+    ["Responsabilité extracontractuelle", "fc", "L'enseigne mal fixée d'un magasin tombe sur un passant", "Le magasin est gardien de l'enseigne : responsabilité du fait des choses."],
+    ["Responsabilité extracontractuelle", "fa", "Le salarié d'une entreprise de travaux brise la vitrine du commerce voisin du chantier", "L'employeur (commettant) répond du dommage causé par son préposé dans ses fonctions."]
+  ] };
+const DW_RGPD = { decs: ["Donnée personnelle", "Pas une donnée personnelle"],
+  why: { id: "Elle permet d'identifier une personne physique, directement ou indirectement", no: "Elle ne permet d'identifier aucune personne physique" },
+  extra: ["Elle est publique, donc le RGPD ne s'applique pas", "Seules les données sensibles (santé, religion…) sont personnelles"],
+  amb: {}, items: [
+    ["Donnée personnelle", "id", "Nom et prénom d'un client", "Identification directe d'une personne physique."],
+    ["Donnée personnelle", "id", "Adresse e-mail professionnelle prenom.nom@entreprise.fr", "Même professionnelle, elle identifie une personne : donnée personnelle."],
+    ["Donnée personnelle", "id", "Numéro de client dans le logiciel de facturation", "Il permet de retrouver la personne indirectement : donnée personnelle."],
+    ["Donnée personnelle", "id", "Adresse IP d'un visiteur du site", "Identification indirecte : donnée personnelle."],
+    ["Donnée personnelle", "id", "Photo d'un salarié publiée sur l'intranet", "L'image identifie directement la personne."],
+    ["Pas une donnée personnelle", "no", "Nombre total de clients par région, sans aucun nom", "Statistique agrégée : aucune personne physique n'est identifiable."],
+    ["Pas une donnée personnelle", "no", "Chiffre d'affaires d'une société de 200 salariés", "Information sur une personne morale : le RGPD protège les personnes physiques."]
+  ] };
 const NAT_RE = /Classe \d · (actif|passif|charge|produit|capitaux propres)/i, NAT = { actif: "Actif (bilan)", passif: "Passif (bilan)", "capitaux propres": "Passif (bilan)", charge: "Charge (compte de résultat)", produit: "Produit (compte de résultat)" };
 function dwBank(B, pre, c, qf, n) {
   const whyBy = {}; B.items.forEach(x => { (whyBy[x[0]] = whyBy[x[0]] || []); if (!whyBy[x[0]].includes(B.why[x[1]])) whyBy[x[0]].push(B.why[x[1]]); });
+  if (B.extra) whyBy._ = B.extra.slice();
   Object.keys(B.why).forEach(k => { if (!B.items.some(x => x[1] === k)) { const d = /x$/.test(k) ? (k === "vx" ? "Charge variable" : "Charge fixe") : null; if (d) whyBy[d].push(B.why[k]); } });
   return shuffle(B.items).map((x, i) => dwQ(pre + i, c, qf(x[2]), x[0], B.why[x[1]], B.decs, whyBy, x[3], (B.amb[x[1]] || []).map(w => B.why[w]))).filter(Boolean).slice(0, n);
 }
@@ -4968,6 +5037,12 @@ function natQs(ch, n) {
 const CTLX = {
   p1c3: n => dwBank(DW_TVA, "gx-tv", "p1", t => `« ${t} » : la TVA est-elle déductible, et pourquoi ?`, n),
   p2c1: n => dwBank(DW_IMMO, "gx-im", "p2", t => `« ${t} » : charge ou immobilisation, et pourquoi ?`, n),
+  p4c1: n => shuffle(dwBank(DW_CDD, "gx-cd", "p4", t => `« ${t} » : CDD possible ou interdit ?`, n).concat(dwBank(DW_FAUTE, "gx-fa", "p4", t => `« ${t} » : quel type de faute ?`, n))).slice(0, n),
+  t5c2: n => dwBank(DW_MODIF, "gx-mo", "ce", t => `« ${t} » : modification du contrat ou changement des conditions de travail ?`, n),
+  t1c3: n => dwBank(DW_VICE, "gx-vi", "ce", t => `« ${t} » : le contrat est-il valable ?`, n),
+  t3c3: n => dwBank(DW_RESP, "gx-re", "ce", t => `« ${t} » : quel type de responsabilité ?`, n),
+  t4c3: n => dwBank(DW_RGPD, "gx-dp", "ce", t => `« ${t} » : est-ce une donnée personnelle ?`, n),
+  p7c4: n => dwBank(DW_RGPD, "gx-dq", "p7", t => `« ${t} » : est-ce une donnée personnelle ?`, n),
   p5c3: n => dwBank(DW_CV, "gx-cv", "p5", t => `« ${t} » : charge variable ou charge fixe, et pourquoi ?`, n),
   p3c2(n) {
     const R = "Réintégrer", D = "Déduire", Z = "Aucune correction", P = RD_P(R, D, Z), by = {};
@@ -6513,7 +6588,7 @@ function exSecIdx(k, c) {
   (c.sections || []).forEach((x, j) => { if (/^en clair/i.test(x.h)) return; const T = new Set(hintTokens(x.h + " " + x.h + " " + JSON.stringify(x.b || []))); let n = 0; tok.forEach(w => { if (T.has(w)) n++; }); if (n > bs) { bs = n; best = j; } });
   return best;
 }
-const DWFX = { p3c2: ["principales corrections", "Réintégrer ou déduire, et pourquoi"], p1c3: ["Exigibilité et déductibilité", "TVA déductible ou non, et pourquoi"], p3c1: ["Base d'imposition", "TVA exigible, déductible, et pourquoi"], p2c1: ["coût d'acquisition", "Charge ou immobilisation, et pourquoi"], p5c3: ["Le coût variable", "Charge fixe ou variable, et pourquoi"], p6c2: ["La structure", "Classer les postes du bilan fonctionnel"] };
+const DWFX = { p3c2: ["principales corrections", "Réintégrer ou déduire, et pourquoi"], p1c3: ["Exigibilité et déductibilité", "TVA déductible ou non, et pourquoi"], p3c1: ["Base d'imposition", "TVA exigible, déductible, et pourquoi"], p2c1: ["coût d'acquisition", "Charge ou immobilisation, et pourquoi"], p5c3: ["Le coût variable", "Charge fixe ou variable, et pourquoi"], p6c2: ["La structure", "Classer les postes du bilan fonctionnel"], p4c1: ["Les différents contrats", "CDD et fautes, et pourquoi"], t5c2: ["Modification du contrat", "Modifier le contrat ou les conditions de travail, et pourquoi"], t1c3: ["conditions de validité", "Contrat valable ou annulable, et pourquoi"], t3c3: ["La responsabilité civile", "Quelle responsabilité, et pourquoi"], t4c3: ["données personnelles", "Donnée personnelle ou non, et pourquoi"], p7c4: ["Le RGPD", "Donnée personnelle ou non, et pourquoi"] };
 /* Questions « décision puis pourquoi » pour une matière (et éventuellement des chapitres précis) */
 function dwFor(cat, chs, n, kw) {
   const keys = Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat) && (!cat || CHID[k].cat === cat) && (!chs || !chs.length || chs.includes(k)) && (!kw || !kwList(kw).length || kwHit(kw, DWFX[k][1], CHID[k].title)));
@@ -6525,9 +6600,10 @@ function dwHome() {
   const L = Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat));
   return `<div class="sec-head"><h2>Décider et justifier</h2><p>Pour chaque situation, choisis d'abord la décision, puis la bonne raison. C'est juste seulement si les deux le sont.</p></div>
     <div class="row"><button class="btn primary" data-act="dwMix">Tout mélanger (15 questions)</button></div>
-    <div class="ft-grid">${L.map(k => { const c = CHID[k]; return `<button class="ft-it" style="${hueStyle(c.cat)}" data-act="dwRun" data-ch="${k}"><span class="ft-ic" aria-hidden="true">${ICON.list}</span><span><b>${h(DWFX[k][1])}</b><small>${h(CAT[c.cat].code)} · ${h(c.title)} · 10 questions</small></span></button>`; }).join("")}</div>`;
+    <div class="ft-grid">${L.map(k => { const c = CHID[k]; return `<button class="ft-it" style="${hueStyle(c.cat)}" data-act="dwRun" data-ch="${k}"><span class="ft-ic" aria-hidden="true">${ICON.list}</span><span><b>${h(DWFX[k][1])}</b><small>${h(CAT[c.cat].code)} · ${h(c.title)} · ${dwN(k)} questions</small></span></button>`; }).join("")}</div>`;
 }
-function dwBtn(c, big) { const d = DWFX[c.id]; return d && CTLX[c.id] ? `<button class="btn${big ? " primary" : ""}" data-act="dwRun" data-ch="${c.id}">${h(d[1])} (10)</button>` : ""; }
+const DWN = {}; function dwN(k) { if (DWN[k] == null) { try { DWN[k] = CTLX[k](10).length; } catch (e) { DWN[k] = 0; } } return DWN[k]; }
+function dwBtn(c, big) { const d = DWFX[c.id]; return d && CTLX[c.id] && dwN(c.id) ? `<button class="btn${big ? " primary" : ""}" data-act="dwRun" data-ch="${c.id}">${h(d[1])} (${dwN(c.id)})</button>` : ""; }
 function ficheInlineEx(c, si) {
   if (!c._exs) { c._exs = {}; const cnt = {}; ficheExKeys(c).forEach(k => { const j = exSecIdx(k, c); if (j < 0 || (cnt[j] || 0) >= 2) return; cnt[j] = (cnt[j] || 0) + 1; (c._exs[j] = c._exs[j] || []).push(k); }); }
   const L = c._exs[si] || [], dw = DWFX[c.id] && nk(c.sections[si].h).includes(nk(DWFX[c.id][0])) ? dwBtn(c, true) : ""; if (!L.length && !dw) return "";
