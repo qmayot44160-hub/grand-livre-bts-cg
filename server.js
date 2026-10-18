@@ -27,7 +27,12 @@ const CONTACT = (process.env.CONTACT_EMAIL || "").trim();
 const store = makeStore();
 const PUB = path.join(__dirname, "public");
 const APP_HTML = fs.readFileSync(path.join(PUB, "app.html"), "utf8");
-const LOGIN_HTML = fs.readFileSync(path.join(PUB, "login.html"), "utf8");
+const LOGIN_HTML = (() => {
+  let h = fs.readFileSync(path.join(PUB, "login.html"), "utf8"), f = {};
+  try { f = JSON.parse(fs.readFileSync(path.join(__dirname, "src", "figures.json"), "utf8")); } catch (e) {}
+  const n = v => Number(v) > 0 ? Number(v).toLocaleString("fr-FR").replace(/\u202f|\u00a0/g, "\u202f") : "—";
+  return h.replace("__FIG_LECONS__", n(f.lecons)).replace("__FIG_QUESTIONS__", n(f.questions)).replace("__FIG_CARTES__", n(f.cartes)).replace("__FIG_ANNALES__", n(f.annales));
+})();
 const ADMIN_HTML = fs.readFileSync(path.join(PUB, "admin.html"), "utf8");
 const zlib = require("zlib");
 const APP_VER = crypto.createHash("sha1").update(APP_HTML).digest("hex").slice(0, 12);
@@ -263,6 +268,21 @@ app.post("/api/report", auth, async (req, res, next) => {
     const b = req.body || {}, cut = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
     if (!/^[qclfo]$/.test(String(b.t))) return res.status(400).json({ error: "Signalement invalide." });
     await store.addReport({ user_name: req.user.name, kind: b.t, item: cut(b.id, 80), label: cut(b.l, 200), choice: cut(b.ch, 80), comment: cut(b.cm, 600) });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+/* ---------- Demande d'un enseignant (formulaire de la page d'accueil) : arrive dans GL Admin › Signalements ---------- */
+app.post("/api/contact", express.json({ limit: "8kb" }), async (req, res, next) => {
+  try {
+    const b = req.body || {}, cut = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
+    if (b.website) return res.json({ ok: true }); // champ piège rempli par les robots
+    if (limited("ct:" + req.ip, 5, 3600e3)) return res.status(429).json({ error: "Plusieurs demandes ont déjà été envoyées depuis cet appareil. Réessayez dans une heure." });
+    const name = cut(b.name, 80), org = cut(b.org, 120), email = cut(b.email, 120), msg = cut(b.message, 1000);
+    if (name.length < 2 || org.length < 2) return res.status(400).json({ error: "Indiquez votre nom et votre établissement." });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: "Indiquez une adresse e-mail valide pour qu'on puisse vous répondre." });
+    await store.addReport({ user_name: name, kind: "p", item: "contact", label: org, choice: email, comment: msg });
+    console.log("Demande enseignant reçue :", org);
     res.json({ ok: true });
   } catch (e) { next(e); }
 });

@@ -3,220 +3,246 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Grand Livre BTS CG</title>
-<meta name="theme-color" content="#2c43c6">
+<title>Grand Livre · Révision du BTS CG</title>
+<meta name="theme-color" content="#1E3A5F">
 <script>(function(){var t="light";try{t=localStorage.getItem("gl-theme")||"light"}catch(e){}if(t!=="dark"&&t!=="auto")t="light";document.documentElement.setAttribute("data-theme",t);var n="";try{n=localStorage.getItem("gl-last-name")||""}catch(e){}document.documentElement.className=n?"is-back":"is-new"})();</script>
-<meta name="description" content="Grand Livre BTS CG : classeur de révision du BTS Comptabilité et Gestion, avec un compte par élève.">
+<meta name="description" content="Cours, quiz, cartes mémoire et annales du BTS Comptabilité et Gestion, avec ta progression gardée sur ton compte.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Grand Livre · Révision du BTS CG">
+<meta property="og:description" content="Cours, quiz, cartes mémoire et annales du BTS Comptabilité et Gestion, au même endroit.">
+<meta property="og:image" content="/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <!--VERIFY-->
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400..700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
 <style>
-:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#5a6088;--rule:#e0e4f0;--rule-strong:#c7cde3;--accent:#2c43c6;--accent-soft:#e7eafb;--bad:#b02f3a;--bad-bg:#fbe5e7;--warn:#8a5a00;--warn-bg:#fff3d6;
---f-d:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;--f-b:"Figtree","Segoe UI",system-ui,sans-serif}
-:root[data-theme="dark"]{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--rule-strong:#3b4068;--accent:#9eacff;--accent-soft:#242a55;--bad:#ff9ba3;--bad-bg:#3b1c25;--warn:#ffd27a;--warn-bg:#3a2d10;color-scheme:dark}
-@media (prefers-color-scheme:dark){:root[data-theme="auto"]{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#a3a8c9;--rule:#2a2e50;--rule-strong:#3b4068;--accent:#9eacff;--accent-soft:#242a55;--bad:#ff9ba3;--bad-bg:#3b1c25;--warn:#ffd27a;--warn-bg:#3a2d10;color-scheme:dark}}
+:root{--ink-blue:#1E3A5F;--on-blue:#FFFFFF;--ochre:#B7791F;--ochre-text:#8A5A12;--paper:#F5F7FA;--sheet:#FFFFFF;--ink:#18202B;--muted:#59657A;--rule:#D6DCE4;--ok:#1F7A4D;--bad:#B42318;--radius:8px;
+--f-t:"Source Serif 4",Georgia,serif;--f-b:"Source Sans 3","Segoe UI",system-ui,sans-serif}
+:root[data-theme="dark"]{--ink-blue:#9DB8DC;--on-blue:#121821;--ochre:#E0A84A;--ochre-text:#E0A84A;--paper:#121821;--sheet:#1A2230;--ink:#E6EBF2;--muted:#9AA6B8;--rule:#2B3546;--ok:#5CC28F;--bad:#F2867B;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root[data-theme="auto"]{--ink-blue:#9DB8DC;--on-blue:#121821;--ochre:#E0A84A;--ochre-text:#E0A84A;--paper:#121821;--sheet:#1A2230;--ink:#E6EBF2;--muted:#9AA6B8;--rule:#2B3546;--ok:#5CC28F;--bad:#F2867B;color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0;min-height:100%}
-body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-b);min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
-.shell{width:100%;max-width:1040px;display:grid;grid-template-columns:1.05fr 1fr;background:var(--sheet);border:1px solid var(--rule);border-radius:26px;overflow:hidden;box-shadow:0 2px 4px rgba(20,24,60,.05),0 24px 60px rgba(20,24,60,.12);animation:in .5s cubic-bezier(.2,.8,.2,1) both}
-@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.shell,.go .spin{animation:none!important}}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-b);padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+a{color:var(--ink-blue)}
+:focus-visible{outline:2px solid var(--ink-blue);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-t);font-weight:600;line-height:1.2;margin:0}
 
-/* Colonne de présentation */
-.hero{position:relative;overflow:hidden;color:#fff;padding:38px 38px 34px;display:grid;align-content:space-between;gap:28px;background:radial-gradient(120% 120% at 0% 0%,#5b6cff 0%,#2c43c6 48%,#18237a 100%)}
-.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
-.hero::before{width:340px;height:340px;right:-120px;top:-120px;background:rgba(255,255,255,.07)}
-.hero::after{width:240px;height:240px;left:-90px;bottom:-110px;background:rgba(255,214,107,.10)}
-.hero>*{position:relative}
-.brand{display:flex;align-items:center;gap:12px}
-.logo{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);display:grid;place-items:center}
-.logo svg{width:24px;height:24px}
-.brand b{font:800 1.35rem/1 var(--f-d);letter-spacing:-.01em}
-.brand small{display:block;font-size:.8rem;opacity:.8;margin-top:3px}
-.pitch h1{font:800 clamp(1.9rem,3.4vw,2.6rem)/1.05 var(--f-d);margin:0 0 12px;letter-spacing:-.02em}
-.pitch h1 em{font-style:normal;color:#ffd66b}
-.pitch p{margin:0;opacity:.88;max-width:34ch}
-.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.fig{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 8px;text-align:center}
-.fig b{display:block;font:800 1.3rem/1.1 var(--f-d)}
-.fig span{font-size:.72rem;opacity:.85}
-.preview{background:rgba(10,14,50,.28);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:14px 16px;display:grid;gap:8px}
-.pv-top{display:flex;align-items:center;gap:10px}
-.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:800 .85rem/1 var(--f-d);background:linear-gradient(145deg,#ffd66b,#f2a93b);color:#3a2600;flex:none}
-.pv-top div{flex:1;min-width:0}.pv-top b{display:block;font-size:.92rem}.pv-top small{opacity:.8;font-size:.78rem}
-.pv-xp{font-weight:700;color:#ffd66b;font-size:.85rem}
-.bar{height:8px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
-.bar i{display:block;height:100%;width:62%;border-radius:inherit;background:linear-gradient(90deg,#ffd66b,#ffb341)}
-.pv-row{display:flex;gap:6px;flex-wrap:wrap}
-.pv-row span{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12)}
+/* En-tête */
+.top{display:flex;align-items:center;gap:12px;padding:calc(16px + env(safe-area-inset-top)) 0 16px;border-bottom:1px solid var(--rule)}
+.logo{width:40px;height:40px;border-radius:var(--radius);background:var(--ink-blue);color:var(--on-blue);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.top b{display:block;font:600 1.25rem/1.2 var(--f-t)}
+.top small{display:block;color:var(--muted);font-size:.8125rem}
 
-/* Colonne du formulaire */
-.side{padding:38px 40px;display:grid;align-content:center;gap:20px}
-.side h2{font:800 1.6rem/1.15 var(--f-d);margin:0}
-.side .sub{margin:4px 0 0;color:var(--muted)}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:4px;position:relative}
-.tabs button{position:relative;z-index:1;font:600 .95rem var(--f-b);border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;cursor:pointer;transition:color .2s}
+/* Présentation + accès */
+.main{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;padding:48px 0;align-items:start}
+.pitch h1{font-size:2.4375rem;max-width:18ch}
+.pitch .lead{margin:16px 0 0;color:var(--muted);font-size:1.125rem;max-width:44ch}
+.folio{margin:32px 0 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--sheet);overflow:hidden;max-width:420px}
+.folio caption{text-align:left;font-weight:600;padding:12px 16px;border-bottom:2px solid var(--ink-blue);caption-side:top;background:var(--sheet)}
+.folio table{width:100%;border-collapse:collapse}
+.folio td{padding:10px 16px;border-top:1px solid var(--rule)}
+.folio tr:first-child td{border-top:0}
+.folio td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;width:7ch;border-left:1px solid var(--rule)}
+.folio .src{font-size:.8125rem;color:var(--muted);padding:8px 16px;border-top:1px solid var(--rule)}
+
+.side{display:grid;gap:16px}
+.box{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius);padding:24px;display:grid;gap:16px}
+.side h2{font-size:1.5625rem}
+.sub{margin:4px 0 0;color:var(--muted)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius);padding:4px;position:relative}
+.tabs button{position:relative;z-index:1;font:600 .9375rem var(--f-b);border:0;background:none;color:var(--muted);padding:8px;border-radius:var(--radius);cursor:pointer;transition:color .15s}
 .tabs button[aria-selected="true"]{color:var(--ink)}
-.tabs .pill{position:absolute;z-index:0;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:9px;background:var(--sheet);box-shadow:0 1px 3px rgba(28,33,66,.14);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.tabs .pill{position:absolute;z-index:0;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:var(--radius);background:var(--sheet);border:1px solid var(--rule);transition:transform .2s ease-out}
 .tabs[data-mode="signup"] .pill{transform:translateX(100%)}
-form{display:grid;gap:14px}
-label{display:grid;gap:6px;font-weight:600;font-size:.92rem}
-.hint{font-weight:400;color:var(--muted);font-size:.82rem}
+form{display:grid;gap:16px}
+label{display:grid;gap:4px;font-weight:600;font-size:.9375rem}
+.hint{font-weight:400;color:var(--muted);font-size:.8125rem}
 .field{position:relative;display:flex;align-items:center}
 .field svg.ic{position:absolute;left:12px;width:18px;height:18px;color:var(--muted);pointer-events:none}
-input{font:inherit;width:100%;padding:12px 12px 12px 40px;border:1px solid var(--rule-strong);border-radius:12px;background:var(--paper);color:var(--ink);min-height:48px;transition:border-color .15s,box-shadow .15s}
-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+input,textarea{font:inherit;width:100%;padding:10px 12px 10px 40px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper);color:var(--ink);min-height:44px;transition:border-color .15s}
+textarea{padding:10px 12px;min-height:96px;resize:vertical}
+.plain input{padding-left:12px}
+input:focus,textarea:focus{outline:none;border-color:var(--ink-blue)}
 .field.pw input{padding-right:46px}
-.eye{position:absolute;right:6px;width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center}
-.eye:hover{color:var(--ink);background:var(--accent-soft)}
+.eye{position:absolute;right:4px;width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:var(--radius);cursor:pointer;display:grid;place-items:center}
+.eye:hover{color:var(--ink)}
 .eye svg{width:20px;height:20px}
-.caps{font-size:.82rem;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:6px 10px}
-.go{position:relative;font:700 1rem var(--f-b);border:0;border-radius:12px;padding:13px;min-height:50px;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .1s,filter .15s}
-.go:hover{filter:brightness(1.06)}.go:active{transform:scale(.99)}
-:root[data-theme="dark"] .go{color:#11132a}
-@media (prefers-color-scheme:dark){:root[data-theme="auto"] .go{color:#11132a}}
-.theme{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
-.theme .seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:999px;padding:3px;background:var(--paper)}
-.theme button{font:inherit;font-size:.85rem;border:0;background:none;color:var(--muted);padding:5px 12px;border-radius:999px;cursor:pointer}
-.theme button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(20,24,60,.15)}
+.caps{font-size:.8125rem;font-weight:600;color:var(--ochre-text);border:1px solid var(--ochre);border-radius:var(--radius);padding:6px 10px}
+.go,.alt{font:600 1rem var(--f-b);border-radius:var(--radius);min-height:44px;padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s,border-color .15s}
+.go{border:1px solid var(--ink-blue);background:var(--ink-blue);color:var(--on-blue)}
+.go:hover{background:color-mix(in srgb,var(--ink-blue) 88%,var(--ink))}
+.alt{border:1px solid var(--rule);background:var(--sheet);color:var(--ink)}
+.alt:hover{border-color:var(--ink-blue)}
 .go[disabled]{opacity:.75;cursor:wait}
-.go .spin{width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:sp .7s linear infinite}
+.go .spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.err{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.92rem}
-.note{font-size:.85rem;color:var(--muted);margin:0;display:flex;gap:8px;align-items:flex-start}
-.note svg{flex:none;width:16px;height:16px;margin-top:2px}
-.foot{display:grid;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.err{border:1px solid var(--bad);color:var(--bad);border-radius:var(--radius);padding:10px 12px;font-size:.9375rem}
+.okmsg{border:1px solid var(--ok);color:var(--ok);border-radius:var(--radius);padding:10px 12px;font-size:.9375rem}
+.note{font-size:.875rem;color:var(--muted);margin:0}
+.notme{background:none;border:0;padding:0;font:inherit;font-size:.9375rem;color:var(--ink-blue);text-decoration:underline;cursor:pointer;justify-self:start}
 #glInstallSlot{display:grid}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-@media (max-width:860px){
-  body{place-items:start center;padding:0 0 calc(16px + env(safe-area-inset-bottom))}
-  .shell{grid-template-columns:minmax(0,1fr);border-radius:0 0 24px 24px;border-top:0;max-width:560px;box-shadow:none;background:transparent;border:0}
-  .hero{padding:calc(22px + env(safe-area-inset-top)) 20px 26px;gap:18px;border-radius:0 0 26px 26px}
-  .pitch h1{font-size:1.75rem}
-  .tabs button{font-size:.88rem;padding:10px 4px;white-space:nowrap}
-  .preview{display:none}
-  .figs{gap:6px}.fig{padding:8px 4px}.fig b{font-size:1.1rem}.fig span{font-size:.66rem}
-  .pitch p{display:none}
-  .pitch h1{font-size:1.5rem;margin:0}
-  .figs{display:none}
-  .side{padding:18px 16px 8px;background:transparent}
-  .card{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;padding:18px;display:grid;gap:16px}
-}
-@media (min-width:861px){.card{display:grid;gap:16px}}
-@media (max-width:860px) and (display-mode:standalone){.pitch{display:none}.hero{gap:0;padding-bottom:18px}}
-
-/* Premier passage : écran de bienvenue ; retour : formulaire direct */
+/* Premier passage : liste et boutons ; retour : formulaire direct */
 .welcome{display:none}
-.is-new:not(.form-open) .welcome{display:grid;gap:18px}
-.is-new:not(.form-open) .welcome + div,.is-new:not(.form-open) .card{display:none!important}
-.welcome h2{font:800 clamp(1.5rem,3vw,1.9rem)/1.15 var(--f-d);margin:0;letter-spacing:-.01em}
-.welcome .sub{margin:6px 0 0;color:var(--muted)}
-.wl{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.wl li{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
-.wl .ico{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
-.wl .ico svg{width:18px;height:18px}
+.is-new:not(.form-open) .welcome{display:grid;gap:16px}
+.is-new:not(.form-open) .formhead,.is-new:not(.form-open) .card{display:none!important}
+.card{display:grid;gap:16px}
+.wl{list-style:none;margin:0;padding:0;display:grid}
+.wl li{display:grid;grid-template-columns:20px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--rule)}
+.wl li:first-child{border-top:0;padding-top:0}
+.wl svg{width:20px;height:20px;color:var(--ink-blue);margin-top:2px}
 .wl b{display:block}
-.wl span{color:var(--muted);font-size:.93rem}
-.wbtns{display:grid;gap:10px}
-.wbtns .alt{font:inherit;font-weight:600;border:1px solid var(--rule-strong);background:var(--sheet);color:var(--ink);border-radius:14px;padding:14px;cursor:pointer}
-.notme{background:none;border:0;padding:0;font:inherit;font-size:.9rem;color:var(--accent);text-decoration:underline;cursor:pointer;justify-self:start}
+.wl span{color:var(--muted);font-size:.9375rem}
+.wbtns{display:grid;gap:8px}
+.try{font-weight:600;color:var(--ink-blue);justify-self:start;padding:4px 0}
+.legal-ok{margin:0;font-size:.8125rem;color:var(--muted)}
+
+/* Bloc enseignants */
+.pros{border-top:1px solid var(--rule);padding:48px 0;display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:start}
+.pros h2{font-size:1.5625rem}
+.pros p{margin:12px 0 0;max-width:46ch}
+.pros ul{margin:16px 0 0;padding:0 0 0 20px;display:grid;gap:8px;max-width:46ch}
+.pros .muted{color:var(--muted)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* Pied de page */
+.foot{border-top:1px solid var(--rule);padding:24px 0;display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between;font-size:.875rem;color:var(--muted)}
+.theme{display:flex;align-items:center;gap:8px}
+.theme .seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--radius);padding:2px;background:var(--sheet)}
+.theme button{font:inherit;border:0;background:none;color:var(--muted);padding:4px 12px;border-radius:var(--radius);cursor:pointer}
+.theme button[aria-pressed="true"]{background:var(--paper);color:var(--ink);font-weight:600}
+.legal{display:flex;flex-wrap:wrap;gap:16px}
+
 @media (max-width:860px){
-  .is-new:not(.form-open) .pitch{display:block}
-  .is-new .hero{gap:14px!important}
-  .welcome{padding:2px 0 6px;gap:16px}
-  .welcome .sub{font-size:.95rem}
-  .wl{gap:10px}
-  .wl span{font-size:.88rem;line-height:1.4}
-  .wbtns{position:sticky;bottom:0;padding:12px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--paper) 22%);z-index:2}
+  .main,.pros{grid-template-columns:minmax(0,1fr);gap:24px;padding:24px 0}
+  .pitch h1{font-size:1.75rem}
+  .pitch .lead{font-size:1rem;margin-top:8px}
+  .folio{display:none}
+  .form-open .pitch{display:none}
+  .box{padding:16px}
 }
-.try{display:inline-block;font-weight:600;color:var(--accent,#2c43c6);text-decoration:none;padding:8px 2px}.try:hover{text-decoration:underline}
-.try-row{margin:10px 0 0;text-align:center}.is-new:not(.form-open) .try-row{display:none}
-.legal-ok{margin:10px 0 0;font-size:.82rem;color:var(--muted,#565c82);line-height:1.45}.legal-ok a,.legal a{color:var(--accent,#2c43c6)}
-.legal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-size:.82rem;margin-top:6px}
+@media (max-width:860px) and (display-mode:standalone){.pitch,.pros{display:none}}
 </style>
 </head>
 <body>
-<main class="shell">
-  <section class="hero" aria-label="Présentation">
-    <div class="brand">
-      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h6"/></svg></div>
-      <div><b>Grand Livre</b><small>BTS Comptabilité et Gestion</small></div>
+<header class="top wrap">
+  <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+  <div><b>Grand Livre</b><small>Révision du BTS Comptabilité et Gestion</small></div>
+</header>
+
+<main class="wrap">
+  <div class="main">
+    <section class="pitch" aria-labelledby="h1">
+      <h1 id="h1">Les cours, les quiz et les annales du BTS CG, au même endroit.</h1>
+      <p class="lead">Tu révises chapitre par chapitre. Les questions ratées reviennent jusqu'à ce que tu les saches, et ta progression reste sur ton compte.</p>
+      <div class="folio">
+        <table>
+          <caption>Ce que contient le Grand Livre</caption>
+          <tbody>
+            <tr><td>Leçons</td><td class="n">__FIG_LECONS__</td></tr>
+            <tr><td>Questions de quiz</td><td class="n">__FIG_QUESTIONS__</td></tr>
+            <tr><td>Cartes mémoire</td><td class="n">__FIG_CARTES__</td></tr>
+            <tr><td>Sujets d'annales</td><td class="n">__FIG_ANNALES__</td></tr>
+          </tbody>
+        </table>
+        <div class="src">Compté automatiquement dans le contenu du site.</div>
+      </div>
+    </section>
+
+    <section class="side" aria-label="Accès">
+      <div class="box">
+        <div class="welcome" id="welcome">
+          <h2>Bienvenue</h2>
+          <ul class="wl">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div><b>Cours et fiches</b><span>Les 7 processus et les épreuves générales, chapitre par chapitre.</span></div></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.8 1 6.4 2.6L21 8"/><path d="M21 3v5h-5"/></svg><div><b>Quiz et cartes mémoire</b><span>Une question ratée revient jusqu'à ce qu'elle soit acquise.</span></div></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></svg><div><b>Annales et dossiers E5</b><span>Les sujets officiels et des dossiers d'entraînement, avec leur corrigé.</span></div></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg><div><b>Ta progression</b><span>Gardée sur ton compte et disponible sur tous tes appareils.</span></div></li>
+          </ul>
+          <div class="wbtns"><button type="button" class="go" id="wSignup">Créer mon compte</button><button type="button" class="alt" id="wLogin">J'ai déjà un compte</button></div>
+          <a class="try" href="/essai">Essayer sans compte</a>
+        </div>
+        <div class="formhead">
+          <h2 id="title">Te connecter</h2>
+          <p class="sub" id="subtitle">Reprends là où tu t'étais arrêté.</p>
+          <button type="button" class="notme" id="notme" hidden>Ce n'est pas toi ? Changer de compte</button>
+        </div>
+        <div class="card">
+          <div class="tabs" role="tablist" id="tabs" data-mode="login">
+            <span class="pill" aria-hidden="true"></span>
+            <button type="button" role="tab" id="tLogin" aria-selected="true">Se connecter</button>
+            <button type="button" role="tab" id="tSignup" aria-selected="false">Créer mon compte</button>
+          </div>
+          <form id="f" novalidate>
+            <label for="name">Ton nom<span class="hint">Prénom et initiale, par exemple « Léa M. »</span>
+              <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              <input id="name" name="name" autocomplete="username" required maxlength="40" autocapitalize="words" spellcheck="false"></span></label>
+            <label for="pw">Mot de passe<span class="hint" id="pwHint" hidden>6 caractères minimum. Garde-le bien : il ne peut pas être envoyé par e-mail.</span>
+              <span class="field pw"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input id="pw" name="password" type="password" autocomplete="current-password" required minlength="6">
+              <button type="button" class="eye" id="eye" aria-label="Afficher le mot de passe" aria-pressed="false"></button></span></label>
+            <div class="caps" id="caps" hidden>Majuscules activées (Verr. Maj)</div>
+            <label for="pw2" id="pw2Box" hidden>Confirme ton mot de passe
+              <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <input id="pw2" type="password" autocomplete="new-password"></span></label>
+            <label for="code" id="codeBox" hidden>Code d'inscription<span class="hint">Donné par la personne qui t'a partagé le Grand Livre.</span>
+              <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7a4 4 0 1 1-3.9 4.9L4 19v-3h3v-3h3l1.1-1.1A4 4 0 0 1 15 7z"/></svg>
+              <input id="code" autocomplete="off"></span></label>
+            <div class="err" id="err" role="alert" hidden></div>
+            <button class="go" id="go" type="submit"><span id="goTxt">Se connecter</span></button>
+            <p class="legal-ok" id="legalOk" hidden>En créant ton compte, tu acceptes les <a href="/mentions-legales">conditions d'utilisation</a> et la <a href="/confidentialite">politique de confidentialité</a>.</p>
+          </form>
+          <a class="try" href="/essai">Essayer sans compte</a>
+          <p class="note">Mot de passe oublié : demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</p>
+        </div>
+      </div>
+      <div id="glInstallSlot"></div>
+    </section>
+  </div>
+
+  <section class="pros" id="enseignants" aria-labelledby="hp">
+    <div>
+      <h2 id="hp">Vous êtes enseignant ou formateur en BTS CG ?</h2>
+      <p>Vous créez une classe dans le Grand Livre et vous donnez son code à vos élèves. Vous suivez ensuite leur travail sans corriger de copies supplémentaires.</p>
+      <ul>
+        <li>Qui révise, et à quelle régularité.</li>
+        <li>La réussite par chapitre et les questions les plus ratées, à reprendre en cours.</li>
+        <li>Un bilan de la classe ou d'un élève, à exporter en PDF ou en tableau.</li>
+      </ul>
+      <p class="muted">Les élèves gardent leurs réponses pour eux : vous voyez des résultats, pas leurs copies une à une.</p>
     </div>
-    <div class="pitch">
-      <h1>Révise ton BTS CG <em>un chapitre</em> après l'autre.</h1>
-      <p>Cours expliqués simplement, fiches, quiz, flashcards et vraies annales : tout au même endroit, avec ta progression sauvegardée.</p>
-    </div>
-    <div class="figs" aria-label="Contenu du Grand Livre">
-      <div class="fig"><b>125</b><span>leçons</span></div>
-      <div class="fig"><b>1 350+</b><span>questions</span></div>
-      <div class="fig"><b>750</b><span>flashcards</span></div>
-      <div class="fig"><b>26</b><span>annales</span></div>
-    </div>
-    <div class="preview" aria-hidden="true">
-      <div class="pv-top"><span class="av">LM</span><div><b>Ton profil</b><small>Assistant comptable · série de 4 jours</small></div><span class="pv-xp">230 XP</span></div>
-      <div class="bar"><i></i></div>
-      <div class="pv-row"><span>P3 Fiscalité · 64 %</span><span>E4 CEJM · 41 %</span><span>J-215</span></div>
+    <div class="box">
+      <h3>Demander un accès enseignant</h3>
+      <form id="pf" novalidate>
+        <div class="plain"><label for="pName">Votre nom<input id="pName" name="name" autocomplete="name" maxlength="80" required></label></div>
+        <div class="plain"><label for="pOrg">Établissement<input id="pOrg" name="org" autocomplete="organization" maxlength="120" required></label></div>
+        <div class="plain"><label for="pMail">E-mail pour vous répondre<input id="pMail" name="email" type="email" autocomplete="email" maxlength="120" required></label></div>
+        <label for="pMsg">Message <span class="hint">facultatif</span><textarea id="pMsg" name="message" maxlength="1000"></textarea></label>
+        <label class="hp" aria-hidden="true">Ne pas remplir<input id="pWeb" name="website" tabindex="-1" autocomplete="off"></label>
+        <div class="err" id="pErr" role="alert" hidden></div>
+        <div class="okmsg" id="pOk" role="status" hidden>Demande envoyée. Vous recevrez une réponse par e-mail.</div>
+        <button class="go" id="pGo" type="submit">Envoyer la demande</button>
+        <p class="note">Ces informations servent uniquement à vous répondre. Voir la <a href="/confidentialite">politique de confidentialité</a>.</p>
+      </form>
     </div>
   </section>
 
-  <section class="side">
-    <div class="welcome" id="welcome">
-      <div><h2>Bienvenue sur le Grand Livre</h2><p class="sub">Ton classeur de révision du BTS CG, dans ta poche.</p></div>
-      <ul class="wl">
-        <li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h6"/></svg></span><div><b>Cours et fiches</b><span>Les 7 processus et les épreuves générales, expliqués simplement.</span></div></li>
-        <li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Quiz et flashcards</b><span>Ils reviennent sur tes erreurs jusqu'à ce que ce soit acquis.</span></div></li>
-        <li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><div><b>Annales et dossiers E5</b><span>Comme le jour J, avec la correction ligne par ligne.</span></div></li>
-        <li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span><div><b>Ta progression sauvegardée</b><span>XP, séries et chapitres validés, sur tous tes appareils.</span></div></li>
-      </ul>
-      <div class="wbtns"><button type="button" class="go" id="wSignup">Créer mon compte</button><button type="button" class="alt" id="wLogin">J'ai déjà un compte</button></div>
-      <a class="try" href="/essai">Essayer d'abord sans compte →</a>
-    </div>
-    <div>
-      <h2 id="title">Content de te revoir</h2>
-      <p class="sub" id="subtitle">Connecte-toi pour reprendre là où tu t'étais arrêté.</p>
-      <button type="button" class="notme" id="notme" hidden>Ce n'est pas toi ? Changer de compte</button>
-    </div>
-    <div class="card">
-      <div class="tabs" role="tablist" id="tabs" data-mode="login">
-        <span class="pill" aria-hidden="true"></span>
-        <button type="button" role="tab" id="tLogin" aria-selected="true">Se connecter</button>
-        <button type="button" role="tab" id="tSignup" aria-selected="false">Créer mon compte</button>
-      </div>
-      <form id="f" novalidate>
-        <label for="name">Ton nom<span class="hint">Prénom et initiale, ex. « Léa M. »</span>
-          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-          <input id="name" name="name" autocomplete="username" required maxlength="40" autocapitalize="words" spellcheck="false"></span></label>
-        <label for="pw">Mot de passe<span class="hint" id="pwHint" hidden>6 caractères minimum. Note-le bien : il ne peut pas être envoyé par mail.</span>
-          <span class="field pw"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          <input id="pw" name="password" type="password" autocomplete="current-password" required minlength="6">
-          <button type="button" class="eye" id="eye" aria-label="Afficher le mot de passe" aria-pressed="false"></button></span></label>
-        <div class="caps" id="caps" hidden>Majuscules activées (Verr. Maj)</div>
-        <label for="pw2" id="pw2Box" hidden>Confirme ton mot de passe
-          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          <input id="pw2" type="password" autocomplete="new-password"></span></label>
-        <label for="code" id="codeBox" hidden>Code d'inscription<span class="hint">Donné par la personne qui t'a partagé le Grand Livre.</span>
-          <span class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7a4 4 0 1 1-3.9 4.9L4 19v-3h3v-3h3l1.1-1.1A4 4 0 0 1 15 7z"/></svg>
-          <input id="code" autocomplete="off"></span></label>
-        <div class="err" id="err" role="alert" hidden></div>
-        <button class="go" id="go" type="submit"><span id="goTxt">Se connecter</span></button>
-        <p class="legal-ok" id="legalOk" hidden>En créant ton compte, tu acceptes les <a href="/mentions-legales">conditions d'utilisation</a> et la <a href="/confidentialite">politique de confidentialité</a>.</p>
-      </form>
-      <p class="try-row"><a class="try" href="/essai">Essayer sans compte</a></p>
-      <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg><span>Ta progression (leçons, XP, cartes, quiz) est enregistrée sur ton compte et te suit sur tous tes appareils.</span></p>
-    </div>
-    <div class="foot">
-      <div id="glInstallSlot"></div>
-      <div class="theme"><span>Apparence</span><div class="seg" role="group" aria-label="Apparence"><button type="button" data-t="light">☀︎ Jour</button><button type="button" data-t="dark">☾ Nuit</button><button type="button" data-t="auto">Auto</button></div></div>
-      <p class="note"><span>Mot de passe oublié ? Demande à la personne qui t'a partagé le Grand Livre de le réinitialiser.</span></p>
-      <nav class="legal" aria-label="Pages légales"><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></nav>
-    </div>
-  </section>
+  <footer class="foot">
+    <div class="theme"><span>Apparence</span><div class="seg" role="group" aria-label="Apparence"><button type="button" data-t="light">Jour</button><button type="button" data-t="dark">Nuit</button><button type="button" data-t="auto">Auto</button></div></div>
+    <nav class="legal" aria-label="Pages légales"><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="#enseignants">Enseignants</a></nav>
+  </footer>
 </main>
 <script>
 var CODE = "__SIGNUP_CODE__" === "1", mode = "login";
@@ -239,8 +265,8 @@ function setMode(m) {
   $("pw").autocomplete = m === "login" ? "current-password" : "new-password";
   $("goTxt").textContent = m === "login" ? "Se connecter" : "Créer mon compte";
   var back = m === "login" && last && $("name").value === last;
-  $("title").textContent = m === "login" ? (back ? "Bon retour, " + last.split(" ")[0] + " !" : "Content de te revoir") : "Crée ton compte";
-  $("subtitle").textContent = m === "login" ? (back ? "Entre ton mot de passe pour reprendre là où tu t'étais arrêté." : "Connecte-toi pour reprendre là où tu t'étais arrêté.") : "Choisis ton nom et un mot de passe : ton compte est prêt en 10 secondes.";
+  $("title").textContent = m === "login" ? (back ? "Bonjour " + last.split(" ")[0] : "Te connecter") : "Créer ton compte";
+  $("subtitle").textContent = m === "login" ? (back ? "Entre ton mot de passe pour reprendre là où tu t'étais arrêté." : "Reprends là où tu t'étais arrêté.") : "Un nom et un mot de passe suffisent.";
   $("notme").hidden = !back;
   $("legalOk").hidden = m !== "signup";
   $("err").hidden = true;
@@ -276,7 +302,7 @@ $("f").addEventListener("submit", async function (e) {
   try {
     var r = await fetch(mode === "login" ? "/api/login" : "/api/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, password: pw, code: $("code").value }) });
     var j = await r.json().catch(function () { return {}; });
-    if (!r.ok) return fail(j.error || "Une erreur est survenue. Réessaie.");
+    if (!r.ok) return fail(j.error || "Le serveur n'a pas répondu correctement. Réessaie dans un instant.");
     try { localStorage.setItem("gl-last-name", name); if (mode === "signup") localStorage.setItem("gl-from-trial", "1"); } catch (x) {}
     location.replace(/[?&]next=admin\b/.test(location.search) ? "/admin" : "/");
   } catch (x) { fail("Pas de connexion à Internet. Vérifie ton réseau et réessaie."); }
@@ -284,6 +310,22 @@ $("f").addEventListener("submit", async function (e) {
 if (last) setMode("login");
 if (location.hash === "#signup" || location.hash === "#login") openForm(location.hash.slice(1));
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+$("pf").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var er = $("pErr"), ok = $("pOk"), b = $("pGo"); er.hidden = true; ok.hidden = true;
+  var d = { name: $("pName").value.trim(), org: $("pOrg").value.trim(), email: $("pMail").value.trim(), message: $("pMsg").value.trim(), website: $("pWeb").value };
+  if (d.name.length < 2) { er.textContent = "Indiquez votre nom."; er.hidden = false; return $("pName").focus(); }
+  if (d.org.length < 2) { er.textContent = "Indiquez votre établissement."; er.hidden = false; return $("pOrg").focus(); }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) { er.textContent = "Indiquez une adresse e-mail valide pour qu'on puisse vous répondre."; er.hidden = false; return $("pMail").focus(); }
+  b.disabled = true; b.textContent = "Envoi…";
+  try {
+    var r = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok) { er.textContent = j.error || "La demande n'a pas pu être envoyée. Réessayez dans un instant."; er.hidden = false; }
+    else { ok.hidden = false; $("pf").reset(); }
+  } catch (x) { er.textContent = "Pas de connexion à Internet. Vérifiez votre réseau et réessayez."; er.hidden = false; }
+  b.disabled = false; b.textContent = "Envoyer la demande";
+});
 </script>
 <script>
 (function () { /* Œil pour afficher / masquer les mots de passe */

@@ -8,8 +8,8 @@
   "display": "standalone",
   "orientation": "portrait",
   "lang": "fr",
-  "background_color": "#12142a",
-  "theme_color": "#161a36",
+  "background_color": "#18202B",
+  "theme_color": "#18202B",
   "icons": [
     { "src": "/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }

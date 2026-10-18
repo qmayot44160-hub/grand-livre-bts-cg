@@ -39,9 +39,24 @@ for a, b in [
 ]:
     s = s.replace(a, b)
 
+# Sur le site, la correction automatique n'est pas présentée sous le nom de l'outil qui la fait
+for a, b in [
+    ("La correction par Claude n'est pas disponible dans cette vue.", "La correction automatique n'est pas disponible dans cette vue."),
+    ("Claude lit ta copie et la compare aux attendus", "Ta copie est comparée aux attendus"),
+    ("Correction par Claude indisponible ici.", "Correction automatique indisponible ici."),
+    ("Correction de Claude", "Correction automatique"),
+    ("Sans l'énoncé ni le corrigé, Claude ne voit pas les annexes : il juge surtout ta méthode.", "Sans l'énoncé ni le corrigé, la correction ne voit pas les annexes : elle juge surtout ta méthode."),
+    ("Claude n'a pas pu corriger ce contenu.", "Ce contenu n'a pas pu être corrigé."),
+    ("Ta session Claude a expiré", "Ta session a expiré"),
+    ("l'appli à utiliser Claude.", "l'appli à utiliser la correction automatique."),
+    ("Corriger ma copie avec Claude", "Faire corriger ma copie"),
+    ("ou ta limite d'usage Claude est atteinte", "ou la limite d'usage est atteinte"),
+]:
+    s = s.replace(a, b)
+
 # 2. Tête de page : manifeste et icônes pour l'installation
-head_add = ('<meta name="theme-color" content="#2c43c6"><link rel="manifest" href="/manifest.webmanifest">'
-            '<link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">'
+head_add = ('<meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest">'
+            '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
             '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre">')
 assert "</head>" in s
 s = s.replace("</head>", head_add + "</head>", 1)

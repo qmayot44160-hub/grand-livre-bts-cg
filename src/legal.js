@@ -5,21 +5,21 @@ const UPDATED = "17 octobre 2026";
 
 function page(title, body) {
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} · Grand Livre BTS CG</title><meta name="theme-color" content="#2c43c6"><link rel="icon" href="/icon-192.png">
+<title>${esc(title)} · Grand Livre BTS CG</title><meta name="theme-color" content="#1E3A5F"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
 <script>try{var t=localStorage.getItem("gl-theme")||"light";if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
-:root{--paper:#f4f6fb;--sheet:#fff;--ink:#1c2142;--muted:#565c82;--rule:#e0e4f0;--accent:#2c43c6;color-scheme:light}
-:root[data-theme="dark"]{--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#b0b5d6;--rule:#2a2e50;--accent:#9eacff;color-scheme:dark}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#12142a;--sheet:#1a1d37;--ink:#e8eaf8;--muted:#b0b5d6;--rule:#2a2e50;--accent:#9eacff;color-scheme:dark}}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Figtree","Segoe UI",system-ui,-apple-system,sans-serif}
+:root{--paper:#F5F7FA;--sheet:#FFFFFF;--ink:#18202B;--muted:#59657A;--rule:#D6DCE4;--accent:#1E3A5F;color-scheme:light}
+:root[data-theme="dark"]{--paper:#121821;--sheet:#1A2230;--ink:#E6EBF2;--muted:#9AA6B8;--rule:#2B3546;--accent:#9DB8DC;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121821;--sheet:#1A2230;--ink:#E6EBF2;--muted:#9AA6B8;--rule:#2B3546;--accent:#9DB8DC;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif}
 main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
-a{color:var(--accent)}h1{font-size:1.8rem;line-height:1.2;margin:8px 0 4px}h2{font-size:1.15rem;margin:28px 0 6px}
+a{color:var(--accent)}h1,h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;line-height:1.2}h1{font-size:1.9375rem;margin:8px 0 4px}h2{font-size:1.25rem;margin:32px 0 8px}
 .back{display:inline-flex;align-items:center;gap:6px;font-weight:600;text-decoration:none;padding:8px 0}
-.card{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:8px 20px 20px;margin-top:16px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:8px 24px 24px;margin-top:16px}
 .muted{color:var(--muted)}ul{padding-left:20px}li{margin:4px 0}
 nav.links{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px;font-size:.92rem}
 </style></head><body><main>
-<a class="back" href="/">← Retour au Grand Livre</a>
+<a class="back" href="/">Retour au Grand Livre</a>
 ${body}
 <nav class="links" aria-label="Pages légales"><a href="/mentions-legales">Mentions légales et conditions d'utilisation</a><a href="/confidentialite">Confidentialité</a></nav>
 </main></body></html>`;
@@ -68,6 +68,7 @@ exports.privacy = ({ contact, ai }) => page("Confidentialité", `
 <li><b>Ta progression</b> : réponses aux quiz, cartes, leçons lues, exercices, XP et réglages. But : te les rendre sur tous tes appareils. Base légale : l'exécution du service.</li>
 <li><b>Le classement de la classe</b>, si tu le rejoins : ton pseudo, le nombre de questions acquises et de jours de révision de la semaine, et ton score au défi sont visibles par les autres participants. Base légale : ton consentement, que tu retires en quittant le classement.</li>
 <li><b>Les amis</b>, si tu en ajoutes : chaque ami que tu acceptes voit ton pseudo, ton niveau, tes XP, ta série, tes questions acquises, tes jours de révision et tes matières fortes et faibles, jamais tes réponses ni tes erreurs. Base légale : ton consentement, que tu retires en retirant cet ami. Dans une salle « Réviser ensemble », les participants voient ton pseudo et la réponse que tu as choisie ; la salle n'est gardée qu'en mémoire et disparaît au plus tard 3 heures après la dernière activité.</li>
+<li><b>Les demandes d'enseignants</b>, si vous utilisez le formulaire de la page d'accueil : votre nom, votre établissement, votre adresse e-mail et votre message, uniquement pour vous répondre. Ils sont supprimés à votre demande ou au plus tard un an après le dernier échange. Base légale : votre demande.</li>
 <li><b>Ta classe</b>, si tu en rejoins une avec un code : le nom de la classe est associé à ton compte, pour que la progression soit suivie par groupe. Base légale : ton consentement, que tu retires en quittant la classe (« Mon profil » › « Compte » › « Ma classe »).</li>
 <li><b>Les duels</b>, si tu en joues : ton pseudo du classement (ou à défaut le premier mot de ton nom d'utilisateur), tes réponses justes ou fausses et ton temps sont visibles par ton adversaire. Les duels sont effacés au bout de 30 jours. Base légale : l'exécution du service que tu demandes.</li>
 <li><b>Les rappels</b>, si tu les actives : l'adresse technique d'abonnement fournie par ton navigateur et l'heure choisie. But : t'envoyer un rappel par jour. Base légale : ton consentement, que tu retires en désactivant les rappels.</li>
