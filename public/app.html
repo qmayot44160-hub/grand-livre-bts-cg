@@ -1778,6 +1778,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .fiche-train { margin-top: 18px; padding: 14px; border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius:var(--radius) var(--radius) var(--radius) var(--radius); background: var(--sheet); display: grid; gap: 10px; }
 .fiche-train .eyebrow { margin: 0; font-weight:600; color: var(--c, var(--accent));   font-size: .78rem; }
 .ft-main { display: flex; flex-wrap: wrap; gap: 8px; }
+.tw-k { margin: 14px 0 6px; font-weight: 600; font-size: .9rem; color: var(--ink); } .tw-k.muted { color: var(--muted); font-weight: 400; }
 .fx-in { margin: 12px 0 20px; padding: 12px; border: 1px dashed var(--rule-strong); border-left: 4px solid var(--c, var(--accent)); border-radius: var(--radius); background: var(--paper); display: grid; gap: 8px; }
 .fx-in .fx-k { margin: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .85rem; color: var(--c, var(--accent)); } .fx-in .fx-k .svg { width: 16px; height: 16px; }
 .ft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
@@ -4907,7 +4908,10 @@ function dwQ(id, c, q, k, why, decs, whyBy, e, amb) {
   shuffle((whyBy[k] || []).filter(okW)).some(w => add(k, w));
   const others = shuffle(decs.filter(d => d !== k));
   for (let r = 0; o.length < 4 && r < 6; r++) { const d = others[r % others.length]; shuffle((whyBy[d] || []).filter(okW)).some(w => add(d, w)); }
-  return o.length === 4 ? { id, c, q, o, e } : null;
+  if (o.length !== 4) return null;
+  const allW = [...new Set([].concat(...Object.values(whyBy)))], wrong = shuffle(allW.filter(okW)).slice(0, 3);
+  const two = wrong.length === 3 ? { d: decs.slice(), k, w: [why].concat(wrong) } : null;
+  return { id, c, q: two ? q.replace(/,? et pourquoi \?$/, " ?").replace(/ : quelle correction faire \?$/, " : quelle correction faire ?") : q, o, e, two };
 }
 /* Banques de situations « décision + raison » (contenu aligné sur les fiches) */
 const DW_TVA = { decs: ["Déductible", "Non déductible", "Déductible en partie"],
@@ -5490,6 +5494,31 @@ function timeLeft() {
   const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
   return m + ":" + String(s).padStart(2, "0");
 }
+/* Questions en deux temps : la décision, puis la raison. Juste seulement si les deux le sont. */
+function twoOpts(cur) {
+  const T = cur.it.two, L = ["A", "B", "C", "D"]; if (!cur.o2) cur.o2 = shuffle(T.w.map((_, i) => i));
+  const done = cur.pick !== null && R.mode === "quiz";
+  const d = T.d.map((x, i) => { let cls = "opt"; if (done) { if (x === T.k) cls += " right"; else if (i === cur.p1) cls += " wrong"; } else if (i === cur.p1) cls += " picked";
+    return `<button class="${cls}" data-act="tw1" data-i="${i}" ${done ? "disabled" : ""}><span class="k">${i + 1}</span><span>${h(x)}</span></button>`; }).join("");
+  const w = cur.p1 == null ? `<p class="tw-k muted">2. Pourquoi ? (choisis d'abord la décision)</p>` : `<p class="tw-k">2. Pourquoi ?</p><div class="options">${cur.o2.map((wi, pos) => { let cls = "opt"; if (done) { if (wi === 0) cls += " right"; else if (pos === cur.p2) cls += " wrong"; } else if (pos === cur.p2) cls += " picked";
+    return `<button class="${cls}" data-act="tw2" data-pos="${pos}" ${done ? "disabled" : ""}><span class="k">${L[pos]}</span><span>${h(T.w[wi])}</span></button>`; }).join("")}</div>`;
+  return `<p class="tw-k">1. Ta décision</p><div class="options tw-d">${d}</div>${w}`;
+}
+function tw1(i) {
+  const cur = R && R.list[R.i]; if (!cur || !cur.it.two || i < 0 || i >= cur.it.two.d.length) return;
+  if (R.mode === "quiz" && cur.pick !== null) return;
+  cur.p1 = i; cur.p2 = null; cur.pick = null; render();
+  const t = document.querySelector(".tw-k:not(.muted) + .options, .tw-d ~ .options"); if (t && t.scrollIntoView) try { t.scrollIntoView({ block: "nearest", behavior: fxOn() ? "smooth" : "auto" }); } catch (e) {}
+}
+function tw2(pos) {
+  const cur = R && R.list[R.i]; if (!cur || !cur.it.two || cur.p1 == null || pos < 0 || pos > 3) return;
+  if (R.mode === "quiz" && cur.pick !== null) return;
+  const T = cur.it.two, dOk = T.d[cur.p1] === T.k, wOk = cur.o2[pos] === 0, ok = dOk && wOk;
+  cur.p2 = pos; cur.dOk = dOk; cur.wOk = wOk;
+  if (!cur.base) cur.base = cur.it;
+  cur.it = Object.assign({}, cur.base, { o: [cur.base.o[0], ok ? cur.base.o[0] : `${T.d[cur.p1]} · ${T.w[cur.o2[pos]]}`, "", ""] }); cur.order = [0, 1, 2, 3];
+  if (R.mode === "quiz") pick(ok ? 0 : 1); else { cur.pick = ok ? 0 : 1; render(); }
+}
 function vRun() {
   if (!R) return vQuizSetup();
   const cur = R.list[R.i], it = cur.it, c = CAT[it.c];
@@ -5505,7 +5534,7 @@ function vRun() {
   const last = R.i === R.list.length - 1;
   const fb = answered ? `<div class="feedback">
       <span class="verdict ${ok ? "ok" : "ko"}">${ok ? "Juste" : "À revoir"}</span>
-      ${ok ? "" : `<p><b>Bonne réponse :</b> ${h(it.o[0])}</p>`}
+      ${ok ? "" : it.two ? `<p>${cur.dOk ? "La décision est juste, mais pas la raison." : cur.wOk ? "La raison est juste, mais pas la décision." : "La décision et la raison sont à revoir."}</p><p><b>Bonne réponse :</b> ${h(it.two.k)}, car ${h(lc1(it.two.w[0]))}.</p>` : `<p><b>Bonne réponse :</b> ${h(it.o[0])}</p>`}
       <p class="muted">${h(it.e)}</p>
       ${qxHTML(it)}
       ${!ok && it.ch && CHID[it.ch] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${h(it.ch)}" data-hint="${h(it.o[0] + "\u241E" + it.q + " " + it.e)}">${ICON.book}Revoir la fiche : ${h(CHID[it.ch].title)}</button>` : ""}
@@ -5527,7 +5556,7 @@ function vRun() {
     <div class="qcard">
       ${R.mode === "exam" ? `<span class="ep" style="align-self:flex-start">${h(c.code)} · ${h(c.name)}</span>` : ""}
       <p class="qtext">${h(it.q)}</p>
-      <div class="options">${opts}</div>
+      ${it.two ? twoOpts(cur) : `<div class="options">${opts}</div>`}
       ${fb}
     </div>
     ${nav}
@@ -6483,10 +6512,12 @@ function exSecIdx(k, c) {
   (c.sections || []).forEach((x, j) => { if (/^en clair/i.test(x.h)) return; const T = new Set(hintTokens(x.h + " " + x.h + " " + JSON.stringify(x.b || []))); let n = 0; tok.forEach(w => { if (T.has(w)) n++; }); if (n > bs) { bs = n; best = j; } });
   return best;
 }
+const DWFX = { p3c2: ["principales corrections", "Réintégrer ou déduire, et pourquoi"], p1c3: ["Exigibilité et déductibilité", "TVA déductible ou non, et pourquoi"], p3c1: ["Base d'imposition", "TVA exigible, déductible, et pourquoi"], p2c1: ["coût d'acquisition", "Charge ou immobilisation, et pourquoi"], p5c3: ["Le coût variable", "Charge fixe ou variable, et pourquoi"], p6c2: ["La structure", "Classer les postes du bilan fonctionnel"] };
+function dwBtn(c, big) { const d = DWFX[c.id]; return d && CTLX[c.id] ? `<button class="btn${big ? " primary" : ""}" data-act="dwRun" data-ch="${c.id}">${h(d[1])} (10)</button>` : ""; }
 function ficheInlineEx(c, si) {
   if (!c._exs) { c._exs = {}; const cnt = {}; ficheExKeys(c).forEach(k => { const j = exSecIdx(k, c); if (j < 0 || (cnt[j] || 0) >= 2) return; cnt[j] = (cnt[j] || 0) + 1; (c._exs[j] = c._exs[j] || []).push(k); }); }
-  const L = c._exs[si]; if (!L || !L.length) return "";
-  return `<div class="fx-in" style="${hueStyle(c.cat)}"><p class="fx-k">${ICON.pen}S'exercer sur cette partie</p><div class="ft-grid">${L.map(k => exBtnHTML(k, c.cat)).join("")}</div></div>`;
+  const L = c._exs[si] || [], dw = DWFX[c.id] && nk(c.sections[si].h).includes(nk(DWFX[c.id][0])) ? dwBtn(c, true) : ""; if (!L.length && !dw) return "";
+  return `<div class="fx-in" style="${hueStyle(c.cat)}"><p class="fx-k">${ICON.pen}S'exercer sur cette partie</p>${dw ? `<div class="row">${dw}</div>` : ""}${L.length ? `<div class="ft-grid">${L.map(k => exBtnHTML(k, c.cat)).join("")}</div>` : ""}</div>`;
 }
 function ficheTrain(c, compact) {
   const nq = (QCH[c.id] || []).length, nf = (FCH[c.id] || []).length;
@@ -6496,7 +6527,7 @@ function ficheTrain(c, compact) {
   const ic = FT_IC, kind = FT_KIND;
   const exBtn = k => exBtnHTML(k, c.cat);
   return `<section class="fiche-train${compact ? " compact" : ""}" style="${hueStyle(c.cat)}"><p class="eyebrow">S'entraîner sur cette fiche</p>
-    <div class="ft-main">${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes (${nf})</button>` : ""}${ctl ? `<button class="btn" data-act="ctlStart" data-k="${c.id}">Contrôle du chapitre</button>` : ""}</div>
+    <div class="ft-main">${dwBtn(c)}${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes (${nf})</button>` : ""}${ctl ? `<button class="btn" data-act="ctlStart" data-k="${c.id}">Contrôle du chapitre</button>` : ""}</div>
     ${all.length ? `<div class="ft-grid">${all.map(exBtn).join("")}</div>` : ""}
   </section>`;
 }
@@ -9048,6 +9079,9 @@ document.addEventListener("click", e => {
     case "startWrong": { const w = QS.filter(x => S.q[x.id] && S.q[x.id][2] === 0); startRun(shuffle(w).slice(0, 40), "quiz"); break; }
     case "redoErrors": { const w = R.list.filter(x => !(x.pick !== null && x.order[x.pick] === 0)).map(x => x.it); startRun(shuffle(w), "quiz"); break; }
     case "pick": pick(+b.dataset.pos); break;
+    case "tw1": tw1(+b.dataset.i); break;
+    case "tw2": tw2(+b.dataset.pos); break;
+    case "dwRun": { const L = (CTLX[b.dataset.ch] ? CTLX[b.dataset.ch](10) : []); peekClose(true); if (L.length) startRun(shuffle(L), "quiz"); break; }
     case "next": next(); break;
     case "prev": if (R.i > 0) { R.i--; render(); } break;
     case "finishExam": finishExam(); break;
@@ -9191,7 +9225,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); gsOpen(); return; }
   if (view === "run" && R) {
     const cur = R.list[R.i];
-    if (["1", "2", "3", "4"].includes(e.key) && (R.mode === "exam" || cur.pick === null)) { e.preventDefault(); pick(+e.key - 1); }
+    if (["1", "2", "3", "4"].includes(e.key) && (R.mode === "exam" || cur.pick === null)) { e.preventDefault(); if (cur.it.two) { if (cur.p1 == null) tw1(+e.key - 1); else tw2(+e.key - 1); } else pick(+e.key - 1); }
     else if (e.key === "Enter" && (R.mode === "exam" ? cur.pick !== null : cur.pick !== null)) { e.preventDefault(); if (R.mode === "exam" && R.i === R.list.length - 1) finishExam(); else next(); }
   } else if (view === "card" && C) {
     if (e.key === " " || e.key === "Enter") { e.preventDefault(); flipCard(); }
