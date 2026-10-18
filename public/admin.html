@@ -685,6 +685,17 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         watch.length ? T("p", { cls: "note", text: "À surveiller : " + watch.map(function (s) { return s.name + " (" + (!s.jours7 ? "inactif cette semaine" : "réussite " + s.reussite + " %") + ")"; }).join(", ") + "." }) : null]));
       if (u) parts.push(T("section", null, [T("h2", { text: "Usage des outils, semaine " + weekLbl(u.debut) }), table(["Outil", "Élèves cette semaine", "Volume", "Déjà essayé"], u.features.map(function (x) { return [x.nom, x.eleves + " / " + u.eleves, x.eleves ? (x.k === "plan" ? "avancé à " + Math.round(x.total / x.eleves) + " %" : funit(x.k, x.total)) : "–", x.deja]; }), [1, 3])]));
       if (j.ratees.length) parts.push(T("section", null, [T("h2", { text: "Questions les plus ratées (à revoir en classe)" }), table(["Matière", "Chapitre", "Question", "Élèves", "Réussite"], j.ratees.slice(0, 15).map(function (r) { return [LBL[catOf(r.c)] || r.c, r.ch || "", r.q || r.id, r.eleves, pctCell(r.reussite, rCls(r.reussite))]; }), [3])]));
+      try { var P = CACHE.ped || (CACHE.ped = await call("/api/admin/pedago")); if (P && P.eleves) {
+        var cols = MCOLS.filter(function (c) { return P.matrice.some(function (m) { return m.mat[c]; }); });
+        parts.push(T("section", null, [T("h2", { text: "Tableau de la classe" }), table(["Élève", "Réussite"].concat(cols.map(function (c) { return LBL[c] || c; })).concat(["Programme vu", "Contrôles validés", "Annales (/20)", "Jours / 7"]),
+          P.matrice.map(function (m) { return [m.name, m.reussite == null ? "–" : T("span", { cls: rCls(m.reussite), text: m.reussite + " %" })].concat(cols.map(function (c) { return m.mat[c] ? T("span", { cls: rCls(m.mat[c].r), text: String(m.mat[c].r) }) : "–"; })).concat([m.programme + " %", m.ctlValides + " / " + m.ctlTentes, m.annales ? m.annales + (m.noteMoy != null ? " · " + String(m.noteMoy).replace(".", ",") : "") : "–", m.jours7]); })),
+          T("p", { cls: "note", text: "Programme vu : part des " + P.chapitresTotal + " chapitres où l'élève a répondu à au moins une question. Contrôle validé : 80 % ou plus deux jours différents, à 3 jours d'écart au moins." })]));
+        if (P.erreurs.length) parts.push(T("section", null, [T("h2", { text: "Erreurs typiques et pièges (à reprendre en classe)" }), table(["Matière", "Question", "Bonne réponse", "Piège le plus choisi", "En erreur"], P.erreurs.slice(0, 12).map(function (e) { return [LBL[catOf(e.c)] || e.c, e.q, e.bonne, e.piege ? e.piege + " (" + e.piegeN + ")" : "–", e.enErreur + " / " + e.eleves]; }))]));
+        if (P.decisions && P.decisions.length) parts.push(T("section", null, [T("h2", { text: "Décider et justifier" }), table(["Matière", "Situation", "Bonne réponse", "Décision ratée", "Raison ratée", "En erreur"], P.decisions.slice(0, 12).map(function (x) { return [LBL[catOf(x.c)] || x.c, x.t, x.bonne, x.decisionRatee + " %", x.raisonRatee + " %", x.enErreur + " / " + x.eleves]; })),
+          T("p", { cls: "note", text: "Décision ratée / raison ratée : part des erreurs où l'élève s'est trompé de décision, ou de justification." })]));
+        if (P.controles.length) parts.push(T("section", null, [T("h2", { text: "Contrôles de chapitre" }), table(["Matière", "Chapitre", "Élèves", "Validés", "Score moyen (dernier essai)"], P.controles.slice(0, 15).map(function (c) { return [c.c, c.t, c.tentes, c.valides, pctCell(c.dernierMoy, rCls(c.dernierMoy))]; }))]));
+        if (P.annales.length) parts.push(T("section", null, [T("h2", { text: "Annales" }), table(["Épreuve", "Élèves", "Exercices faits", "Notés", "Moyenne /20"], P.annales.map(function (a) { return [a.ep, a.eleves, a.faits, a.notes, a.moyenne == null ? "–" : String(a.moyenne).replace(".", ",")]; }))]));
+      } } catch (e) {}
       var gl = GROUP ? (GROUP === "none" ? "Élèves sans classe" : gName(GROUP)) : "";
       printDoc("Bilan " + (gl ? slug(gl) : "classe") + " " + isoDay(), gl ? "Bilan · " + gl : "Bilan de la classe", "BTS CG · " + todayLong(), parts);
     } catch (e) { toast(e.message || "Export impossible"); }
@@ -842,6 +853,17 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       drawE();
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Erreurs typiques" }), el("span", { cls: "muted small", text: "à reprendre en cours" })]), eb,
         el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Questions où la plus grande part des élèves s'est trompée. Le piège est la mauvaise réponse choisie le plus souvent : il montre l'idée fausse à corriger." })]));
+    }
+    /* 2 bis. Décider et justifier */
+    if (P.decisions && P.decisions.length) {
+      var T0 = P.dwTot || { n: 0, ok: 0, de: 0, we: 0 }, err0 = T0.n - T0.ok, allD = false, db = el("div");
+      var drawD = function () { var L = allD ? P.decisions : P.decisions.slice(0, 5); db.replaceChildren.apply(db, L.map(function (x) {
+        return el("div", { cls: "err-it" }, [el("div", { cls: "err-h" }, [tabcode(x.c), el("span", { cls: "muted small", text: "décision ratée " + x.decisionRatee + " % · raison ratée " + x.raisonRatee + " %" }), el("span", { cls: "pill " + (x.reussite < 50 ? "bad" : "warn"), text: x.enErreur + " / " + x.eleves + " en erreur" })]),
+          el("p", { cls: "err-q", text: x.t }), el("p", { cls: "small" }, [el("b", { text: "Bonne réponse : " }), x.bonne]), x.piege ? el("p", { cls: "small err-p" }, [el("b", { text: "Réponse fausse la plus choisie : " }), x.piege + " (" + x.piegeN + " fois)"]) : null].filter(Boolean));
+      }).concat(P.decisions.length > 5 ? [el("button", { cls: "btn small", style: "margin-top:8px", text: allD ? "Réduire" : "Voir les " + P.decisions.length, onclick: function () { allD = !allD; drawD(); } })] : [])); };
+      drawD();
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Décider et justifier" }), el("span", { cls: "muted small", text: T0.n ? Math.round(T0.ok / T0.n * 100) + " % de réussite" : "" })]),
+        err0 ? el("p", { cls: "small", style: "margin:0 0 6px", text: "Sur " + pl(err0, "erreur") + " : la décision était fausse dans " + Math.round(T0.de / err0 * 100) + " % des cas, la raison dans " + Math.round(T0.we / err0 * 100) + " %. Une raison fausse avec une bonne décision montre une règle apprise sans être comprise." }) : null, db]));
     }
     /* 3. Contrôles de chapitre */
     if (P.controles.length) out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Contrôles de chapitre" }), el("span", { cls: "muted small", text: P.controles.length + " chapitres tentés" })])].concat(P.controles.slice(0, 15).map(function (c) {

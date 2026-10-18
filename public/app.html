@@ -4799,6 +4799,7 @@ function mergeS(a, b) {
   each("c", (p, q) => (q[0] || 0) > (p[0] || 0) || ((q[0] || 0) === (p[0] || 0) && (q[1] || 0) > (p[1] || 0)) ? q : p);
   each("qd", (p, q) => ({ w: Math.max(p.w || 0, q.w || 0), ok: [...new Set([].concat(p.ok || [], q.ok || []))].sort((m, n) => m - n).slice(-6) }));
   each("h", (p, q) => Math.max(+p || 0, +q || 0));
+  each("dwr", (p, q) => ((q && q.n) || 0) > ((p && p.n) || 0) ? q : p);
   ["l", "fr", "frx", "ew", "dlog"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
   each("gc", (p, q) => Object.keys(q.ok || {}).length > Object.keys(p.ok || {}).length ? q : p);
@@ -4899,6 +4900,7 @@ function validCount(cat) { const l = cat ? ctlChaps(cat) : CATS.flatMap(c => ctl
 function dayLabel(dn) { const t = new Date(Date.now() + (dn - dayNum()) * 86400000); return t.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); }
 /* ---------- Questions « que faire, et pourquoi » pour les contrôles et les quiz de fiche ---------- */
 const deM = m => (/^[aeiouéâ]/i.test(m) ? "d'" : "de ") + m;
+const hk36 = t => { let x = 5381; t = String(t); for (let i = 0; i < t.length; i++) x = (x * 33 + t.charCodeAt(i)) >>> 0; return x.toString(36); };
 const lc1 = t => t ? t[0].toLowerCase() + t.slice(1) : t;
 const FONC_WHY = { "Emplois stables": "Actif immobilisé en valeur brute : ressources durables utilisées plus d'un an.", "Ressources stables": "Capitaux propres, amortissements, dépréciations, provisions et dettes financières : financements durables.", "Actif circulant d'exploitation": "Stocks et créances clients : liés au cycle d'exploitation.", "Actif circulant hors exploitation": "Créances étrangères au cycle d'exploitation (cession d'immobilisation, par exemple).", "Passif circulant d'exploitation": "Dettes fournisseurs, fiscales et sociales nées de l'exploitation.", "Passif circulant hors exploitation": "Dettes étrangères à l'exploitation (fournisseurs d'immobilisations, par exemple).", "Trésorerie active": "Disponibilités et valeurs mobilières de placement.", "Trésorerie passive": "Concours bancaires courants et soldes créditeurs de banque." };
 function dwQ(id, c, q, k, why, decs, whyBy, e, amb) {
@@ -5028,11 +5030,11 @@ function dwBank(B, pre, c, qf, n) {
   const whyBy = {}; B.items.forEach(x => { (whyBy[x[0]] = whyBy[x[0]] || []); if (!whyBy[x[0]].includes(B.why[x[1]])) whyBy[x[0]].push(B.why[x[1]]); });
   if (B.extra) whyBy._ = B.extra.slice();
   Object.keys(B.why).forEach(k => { if (!B.items.some(x => x[1] === k)) { const d = /x$/.test(k) ? (k === "vx" ? "Charge variable" : "Charge fixe") : null; if (d) whyBy[d].push(B.why[k]); } });
-  return shuffle(B.items).map((x, i) => dwQ(pre + i, c, qf(x[2]), x[0], B.why[x[1]], B.decs, whyBy, x[3], (B.amb[x[1]] || []).map(w => B.why[w]))).filter(Boolean).slice(0, n);
+  return shuffle(B.items).map((x, i) => dwQ(pre + "-" + hk36(x[2]), c, qf(x[2]), x[0], B.why[x[1]], B.decs, whyBy, x[3], (B.amb[x[1]] || []).map(w => B.why[w]))).filter(Boolean).slice(0, n);
 }
 function natQs(ch, n) {
   return shuffle(REFS.filter(r => r[2] === ch && NAT_RE.test(r[3]))).slice(0, n).map((r, i) => { const nat = NAT[r[3].match(NAT_RE)[1].toLowerCase()], all = [...new Set(Object.values(NAT))];
-    return { id: "gx-na" + ch + i, c: r[1], q: `Le compte ${r[0]} est un compte :`, o: [nat].concat(all.filter(a => a !== nat)), e: `${r[0]} : ${r[3]}. ${r[4]}` }; });
+    return { id: "gx-na-" + hk36(r[0]), c: r[1], q: `Le compte ${r[0]} est un compte :`, o: [nat].concat(all.filter(a => a !== nat)), e: `${r[0]} : ${r[3]}. ${r[4]}` }; });
 }
 const CTLX = {
   p1c3: n => dwBank(DW_TVA, "gx-tv", "p1", t => `« ${t} » : la TVA est-elle déductible, et pourquoi ?`, n),
@@ -5047,18 +5049,18 @@ const CTLX = {
   p3c2(n) {
     const R = "Réintégrer", D = "Déduire", Z = "Aucune correction", P = RD_P(R, D, Z), by = {};
     P.forEach(x => { (by[x[0]] = by[x[0]] || new Set()).add(RD_W[x[1]]); }); const whyBy = {}; Object.keys(by).forEach(d => whyBy[d] = [...by[d]]);
-    return shuffle(P).map((x, i) => dwQ("gx-rd" + i, "p3", `Tableau 2058-A. « ${x[2]} » : quelle correction faire, et pourquoi ?`, x[0], RD_W[x[1]], [R, D, Z], whyBy, x[3], (RD_AMB[x[1]] || []).map(w => RD_W[w]))).filter(Boolean).slice(0, n);
+    return shuffle(P).map((x, i) => dwQ("gx-rd-" + hk36(x[2]), "p3", `Tableau 2058-A. « ${x[2]} » : quelle correction faire, et pourquoi ?`, x[0], RD_W[x[1]], [R, D, Z], whyBy, x[3], (RD_AMB[x[1]] || []).map(w => RD_W[w]))).filter(Boolean).slice(0, n);
   },
   p3c1(n) { const a = CTLX.p3c1ex(n), b = dwBank(DW_TVA, "gx-tw", "p3", t => `« ${t} » : la TVA est-elle déductible, et pourquoi ?`, n); return shuffle(a.slice(0, Math.ceil(n / 2)).concat(b.slice(0, n))).slice(0, n); },
   p3c1ex(n) {
     const g = GENS.find(z => z.id === "p3exig"); if (!g) return []; const ops = []; let M0 = null;
     for (let t = 0; t < 40 && ops.length < 7; t++) { const m = g.make(); if (M0 == null) M0 = m._M; if (m._M !== M0) continue; (m._ops || []).forEach(o => { if (!ops.some(p => p.why === o.why)) ops.push(Object.assign({ M: m._M }, o)); }); }
     const whyBy = { Oui: [...new Set(ops.filter(o => o.k === "Oui").map(o => o.why))], Non: [...new Set(ops.filter(o => o.k === "Non").map(o => o.why))] };
-    return shuffle(ops).map((o, i) => dwQ("gx-ex" + i, "p3", `Régime réel normal. La TVA de cette opération va-t-elle sur la déclaration ${deM(o.M)} ? ${o.t}`, o.k, o.why, ["Oui", "Non"], whyBy, o.why + " Règle : biens à la livraison, services à l'encaissement (acomptes compris), sauf option pour les débits.")).filter(Boolean).slice(0, n);
+    return shuffle(ops).map((o, i) => dwQ("gx-ex-" + hk36(o.why.replace(/\b(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\b/g, "M")), "p3", `Régime réel normal. La TVA de cette opération va-t-elle sur la déclaration ${deM(o.M)} ? ${o.t}`, o.k, o.why, ["Oui", "Non"], whyBy, o.why + " Règle : biens à la livraison, services à l'encaissement (acomptes compris), sauf option pour les débits.")).filter(Boolean).slice(0, n);
   },
   p6c2(n) {
     const g = GENS.find(z => z.id === "p6fonc"); if (!g) return []; const it = (g.make()._it || []).filter(x => x[2] !== 0 || true), cats = Object.keys(FONC_WHY);
-    return shuffle(it).slice(0, n).map((x, i) => ({ id: "gx-bf" + i, c: "p6", q: `Bilan fonctionnel : dans quelle masse classer « ${x[0]} » ?`, o: [x[1]].concat(shuffle(cats.filter(c => c !== x[1])).slice(0, 3)), e: FONC_WHY[x[1]] || "" }));
+    return shuffle(it).slice(0, n).map((x, i) => ({ id: "gx-bf-" + hk36(x[0]), c: "p6", q: `Bilan fonctionnel : dans quelle masse classer « ${x[0]} » ?`, o: [x[1]].concat(shuffle(cats.filter(c => c !== x[1])).slice(0, 3)), e: FONC_WHY[x[1]] || "" }));
   }
 };
 function ctlExtra(ch, n) { try { const a = CTLX[ch] ? CTLX[ch](n) : [], b = natQs(ch, n); return shuffle(a.concat(a.length ? b.slice(0, 1) : b)).slice(0, n); } catch (e) { return []; } }
@@ -5081,8 +5083,15 @@ function dueCards(cats, useChap) {
   const fresh = pool.filter(x => !S.c[x.id]);
   return { reviews, fresh };
 }
+/* Réponses « décider et justifier » : gardées pour le suivi du prof (situation, décision ratée, raison ratée, piège choisi) */
+function dwRecord(item, ok, pickTxt) {
+  S.dwr = S.dwr || {}; const o = S.dwr[item.id] || (S.dwr[item.id] = { n: 0, ok: 0, de: 0, we: 0, p: {} });
+  o.t = String(item.q).slice(0, 220); o.c = item.c; o.g = item.two ? `${item.two.k} · ${item.two.w[0]}` : String(item.o[0]);
+  o.n++; if (ok) o.ok++; else { if (item.two) { if (!item._dOk) o.de++; if (!item._wOk) o.we++; } if (pickTxt && pickTxt !== o.g) { o.p[pickTxt] = (o.p[pickTxt] || 0) + 1; const ks = Object.keys(o.p); if (ks.length > 6) delete o.p[ks.sort((a, b) => o.p[a] - o.p[b])[0]]; } }
+  o.d = dayNum();
+}
 function recordQ(item, ok, pickTxt) {
-  if (String(item.id)[0] === "g") { if (ok) S.xp += 6; bumpStreak(); return; }
+  if (String(item.id)[0] === "g") { if (ok) S.xp += 6; bumpStreak(); if (/^gx-/.test(item.id)) dwRecord(item, ok, pickTxt); return; }
   const r = S.q[item.id] || [0, 0, 0];
   wlog("q", item.c); if (S.ew && S.ew[item.id]) wlog("err", "all");
   S.q[item.id] = [r[0] + 1, r[1] + (ok ? 1 : 0), ok ? 1 : 0];
@@ -5591,7 +5600,7 @@ function tw2(pos) {
   const T = cur.it.two, dOk = T.d[cur.p1] === T.k, wOk = cur.o2[pos] === 0, ok = dOk && wOk;
   cur.p2 = pos; cur.dOk = dOk; cur.wOk = wOk;
   if (!cur.base) cur.base = cur.it;
-  cur.it = Object.assign({}, cur.base, { o: [cur.base.o[0], ok ? cur.base.o[0] : `${T.d[cur.p1]} · ${T.w[cur.o2[pos]]}`, "", ""] }); cur.order = [0, 1, 2, 3];
+  cur.it = Object.assign({}, cur.base, { _dOk: dOk, _wOk: wOk, o: [cur.base.o[0], ok ? cur.base.o[0] : `${T.d[cur.p1]} · ${T.w[cur.o2[pos]]}`, "", ""] }); cur.order = [0, 1, 2, 3];
   if (R.mode === "quiz") pick(ok ? 0 : 1); else { cur.pick = ok ? 0 : 1; render(); }
 }
 function vRun() {

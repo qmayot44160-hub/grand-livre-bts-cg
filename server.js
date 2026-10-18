@@ -1010,7 +1010,14 @@ app.post("/api/admin/pedago", async (req, res, next) => {
     const A = {};
     rows.forEach(r => { const an = (r.data || {}).an || {}; const seen = {}; Object.entries(an).forEach(([id, x]) => { const m = META.ann[id]; if (!m || !x) return; const o = A[m[0]] || (A[m[0]] = { eleves: 0, faits: 0, notes: 0, sum: 0 }); if (!seen[m[0]]) { seen[m[0]] = 1; o.eleves++; } if (x.d) o.faits++; const r2 = x.r; if (r2 && r2.note != null) { const sur = r2.sur || m[4] || 20; if (sur > 0) { o.notes++; o.sum += r2.note / sur * 20; } } }); });
     const annales = Object.entries(A).map(([ep, o]) => ({ ep, eleves: o.eleves, faits: o.faits, notes: o.notes, moyenne: o.notes ? Math.round(o.sum / o.notes * 10) / 10 : null })).sort((a, b) => a.ep.localeCompare(b.ep));
-    res.json({ eleves: rows.length, chapitresTotal: nCh, matrice, erreurs, controles, annales });
+    /* 5. Décider et justifier : décision ratée ou raison ratée, et le piège le plus choisi */
+    const DW = {};
+    rows.forEach(r => { const dw = (r.data || {}).dwr || {}; Object.entries(dw).forEach(([k, x]) => { if (!x || !x.n) return; const o = DW[k] || (DW[k] = { t: x.t, c: x.c, g: x.g, el: 0, n: 0, ok: 0, de: 0, we: 0, ko: 0, p: {} }); o.el++; o.n += x.n; o.ok += x.ok || 0; o.de += x.de || 0; o.we += x.we || 0; if ((x.n || 0) > (x.ok || 0)) o.ko++; Object.entries(x.p || {}).forEach(([t, v]) => { o.p[t] = (o.p[t] || 0) + v; }); }); });
+    const decisions = Object.entries(DW).map(([k, o]) => { const pk = Object.entries(o.p).sort((a, b) => b[1] - a[1])[0], err = o.n - o.ok;
+      return { id: k, c: o.c, t: String(o.t || "").replace(/^Tableau 2058-A\. /, ""), bonne: o.g, eleves: o.el, enErreur: o.ko, reponses: o.n, reussite: Math.round(o.ok / o.n * 100), decisionRatee: err ? Math.round(o.de / err * 100) : 0, raisonRatee: err ? Math.round(o.we / err * 100) : 0, piege: pk ? pk[0] : "", piegeN: pk ? pk[1] : 0 }; })
+      .filter(x => x.enErreur > 0).sort((a, b) => b.enErreur / b.eleves - a.enErreur / a.eleves || b.enErreur - a.enErreur).slice(0, 25);
+    const dwTot = Object.values(DW).reduce((t, o) => ({ n: t.n + o.n, ok: t.ok + o.ok, de: t.de + o.de, we: t.we + o.we }), { n: 0, ok: 0, de: 0, we: 0 });
+    res.json({ eleves: rows.length, chapitresTotal: nCh, matrice, erreurs, controles, annales, decisions, dwTot });
   } catch (e) { next(e); }
 });
 
