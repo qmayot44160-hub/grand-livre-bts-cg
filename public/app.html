@@ -4907,13 +4907,69 @@ function dwQ(id, c, q, k, why, decs, whyBy, e, amb) {
   for (let r = 0; o.length < 4 && r < 6; r++) { const d = others[r % others.length]; shuffle((whyBy[d] || []).filter(okW)).some(w => add(d, w)); }
   return o.length === 4 ? { id, c, q, o, e } : null;
 }
+/* Banques de situations « décision + raison » (contenu aligné sur les fiches) */
+const DW_TVA = { decs: ["Déductible", "Non déductible", "Déductible en partie"],
+  why: { ok: "Dépense engagée pour des opérations taxées, avec une facture conforme", imm: "Bien d'investissement utilisé pour l'activité taxée", vt: "Véhicule de tourisme : la TVA sur le véhicule et ses frais est exclue", log: "Logement des dirigeants et du personnel : TVA exclue", cad: "Cadeau au-delà de 73 € TTC par bénéficiaire et par an", fac: "Pas de facture conforme : aucun droit à déduction", carb: "Carburant d'un véhicule de tourisme : TVA récupérable à 80 %", cadok: "Cadeau d'au plus 73 € TTC par bénéficiaire et par an", vu: "Véhicule utilitaire : il ouvre droit à déduction" },
+  amb: { ok: ["imm", "cadok", "vu"], imm: ["ok", "vu"], vu: ["imm", "ok"], cadok: ["ok"], vt: ["carb"], carb: ["vt"] },
+  items: [
+    ["Déductible", "ok", "Achat de marchandises destinées à la revente, avec une facture conforme", "Les marchandises servent à réaliser des ventes taxées : TVA déductible."],
+    ["Déductible", "imm", "Achat d'un ordinateur pour le service comptable", "Immobilisation utilisée pour l'activité : TVA déductible (compte 44562)."],
+    ["Déductible", "vu", "Achat d'une camionnette de livraison", "Les véhicules utilitaires ouvrent droit à déduction, contrairement aux véhicules de tourisme."],
+    ["Non déductible", "vt", "Achat d'une voiture de tourisme pour un commercial", "La TVA sur les véhicules de tourisme et leurs frais n'est pas déductible."],
+    ["Non déductible", "vt", "Entretien et réparation de la voiture de tourisme du gérant", "Les services liés à un bien exclu (véhicule de tourisme) sont exclus eux aussi."],
+    ["Déductible en partie", "carb", "Gazole pour la voiture de tourisme d'un commercial", "Exception pour le carburant des véhicules de tourisme : TVA déductible à 80 %."],
+    ["Non déductible", "log", "Loyer d'un appartement mis gratuitement à disposition du directeur", "Le logement des dirigeants et du personnel est exclu du droit à déduction."],
+    ["Non déductible", "cad", "Coffret de vins de 150 € TTC offert à un client", "Au-delà de 73 € TTC par bénéficiaire et par an, la TVA sur les cadeaux n'est pas déductible."],
+    ["Déductible", "cadok", "Agenda personnalisé de 25 € TTC offert à chaque client", "Cadeau de faible valeur (au plus 73 € TTC par bénéficiaire et par an) : TVA déductible."],
+    ["Non déductible", "fac", "Achat de fournitures réglé sur un simple ticket de caisse, sans facture", "Sans facture conforme portant la TVA, pas de déduction possible."]
+  ] };
+const DW_IMMO = { decs: ["Immobilisation", "Charge"],
+  why: { dur: "Bien utilisé durablement, sur plus d'un exercice", acc: "Frais nécessaires pour mettre le bien en état de fonctionner : inclus dans le coût", inc: "Élément incorporel utilisé durablement (immobilisation incorporelle)", pro: "Dépense qui prolonge la durée d'utilisation du bien", tol: "Bien de faible valeur (moins de 500 € HT) : tolérance pour le passer en charge", ent: "Entretien courant : il maintient le bien en état sans augmenter sa durée", srv: "Service consommé pendant l'exercice", form: "Frais de formation : exclus du coût d'acquisition" },
+  amb: { dur: ["pro"], pro: ["dur"], srv: ["ent"], ent: ["srv"] },
+  items: [
+    ["Immobilisation", "dur", "Achat d'une machine de production utilisée 8 ans", "Bien identifiable, contrôlé et utilisé plus d'un exercice : compte 2154."],
+    ["Immobilisation", "acc", "Frais de transport et d'installation de cette machine", "Frais accessoires indispensables à la mise en service : ils s'ajoutent au coût d'acquisition."],
+    ["Immobilisation", "inc", "Achat d'une licence de logiciel de paie utilisée plusieurs années", "Logiciel acquis et utilisé durablement : immobilisation incorporelle (compte 205)."],
+    ["Immobilisation", "pro", "Remplacement du moteur d'un camion, qui prolonge sa durée d'utilisation de 3 ans", "La dépense prolonge la durée d'utilisation : elle s'immobilise, ce n'est pas de l'entretien."],
+    ["Charge", "tol", "Achat d'une agrafeuse électrique à 120 € HT", "Petit matériel de moins de 500 € HT : tolérance pour le passer directement en charge."],
+    ["Charge", "ent", "Vidange et changement des pneus du camion", "Entretien courant : charge de l'exercice (compte 615)."],
+    ["Charge", "srv", "Abonnement mensuel à un logiciel en ligne", "Service consommé chaque mois : charge (compte 6xx), pas un bien que l'entreprise contrôle."],
+    ["Charge", "form", "Formation du personnel à l'utilisation de la nouvelle machine", "Les frais de formation sont exclus du coût d'acquisition : charge de l'exercice."]
+  ] };
+const DW_CV = { decs: ["Charge variable", "Charge fixe"],
+  why: { v: "Elle suit les quantités produites ou vendues", f: "Elle ne dépend pas du volume d'activité à court terme", vx: "Elle dépend du temps écoulé, pas de l'activité", fx: "Elle augmente avec chaque produit vendu" },
+  amb: {},
+  items: [
+    ["Charge variable", "v", "Matières premières consommées par la production", "Plus on produit, plus on consomme de matières : charge variable."],
+    ["Charge variable", "v", "Commissions des commerciaux, calculées en % du chiffre d'affaires", "Elles évoluent avec les ventes : charge variable."],
+    ["Charge variable", "v", "Emballages des produits vendus", "Un emballage par produit vendu : charge variable."],
+    ["Charge variable", "v", "Transport des marchandises livrées aux clients", "Il suit le volume livré : charge variable."],
+    ["Charge fixe", "f", "Loyer de l'entrepôt", "Le loyer est le même quel que soit le volume vendu : charge fixe."],
+    ["Charge fixe", "f", "Dotation aux amortissements linéaires des machines", "Montant identique chaque année, indépendant de la production : charge fixe."],
+    ["Charge fixe", "f", "Salaire mensuel fixe de la comptable", "Il ne varie pas avec l'activité : charge fixe (charge de structure)."],
+    ["Charge fixe", "f", "Prime d'assurance annuelle des locaux", "Montant fixé au contrat, indépendant des ventes : charge fixe."]
+  ] };
+const NAT_RE = /Classe \d · (actif|passif|charge|produit|capitaux propres)/i, NAT = { actif: "Actif (bilan)", passif: "Passif (bilan)", "capitaux propres": "Passif (bilan)", charge: "Charge (compte de résultat)", produit: "Produit (compte de résultat)" };
+function dwBank(B, pre, c, qf, n) {
+  const whyBy = {}; B.items.forEach(x => { (whyBy[x[0]] = whyBy[x[0]] || []); if (!whyBy[x[0]].includes(B.why[x[1]])) whyBy[x[0]].push(B.why[x[1]]); });
+  Object.keys(B.why).forEach(k => { if (!B.items.some(x => x[1] === k)) { const d = /x$/.test(k) ? (k === "vx" ? "Charge variable" : "Charge fixe") : null; if (d) whyBy[d].push(B.why[k]); } });
+  return shuffle(B.items).map((x, i) => dwQ(pre + i, c, qf(x[2]), x[0], B.why[x[1]], B.decs, whyBy, x[3], (B.amb[x[1]] || []).map(w => B.why[w]))).filter(Boolean).slice(0, n);
+}
+function natQs(ch, n) {
+  return shuffle(REFS.filter(r => r[2] === ch && NAT_RE.test(r[3]))).slice(0, n).map((r, i) => { const nat = NAT[r[3].match(NAT_RE)[1].toLowerCase()], all = [...new Set(Object.values(NAT))];
+    return { id: "gx-na" + ch + i, c: r[1], q: `Le compte ${r[0]} est un compte :`, o: [nat].concat(all.filter(a => a !== nat)), e: `${r[0]} : ${r[3]}. ${r[4]}` }; });
+}
 const CTLX = {
+  p1c3: n => dwBank(DW_TVA, "gx-tv", "p1", t => `« ${t} » : la TVA est-elle déductible, et pourquoi ?`, n),
+  p2c1: n => dwBank(DW_IMMO, "gx-im", "p2", t => `« ${t} » : charge ou immobilisation, et pourquoi ?`, n),
+  p5c3: n => dwBank(DW_CV, "gx-cv", "p5", t => `« ${t} » : charge variable ou charge fixe, et pourquoi ?`, n),
   p3c2(n) {
     const R = "Réintégrer", D = "Déduire", Z = "Aucune correction", P = RD_P(R, D, Z), by = {};
     P.forEach(x => { (by[x[0]] = by[x[0]] || new Set()).add(RD_W[x[1]]); }); const whyBy = {}; Object.keys(by).forEach(d => whyBy[d] = [...by[d]]);
     return shuffle(P).map((x, i) => dwQ("gx-rd" + i, "p3", `Tableau 2058-A. « ${x[2]} » : quelle correction faire, et pourquoi ?`, x[0], RD_W[x[1]], [R, D, Z], whyBy, x[3], (RD_AMB[x[1]] || []).map(w => RD_W[w]))).filter(Boolean).slice(0, n);
   },
-  p3c1(n) {
+  p3c1(n) { const a = CTLX.p3c1ex(n), b = dwBank(DW_TVA, "gx-tw", "p3", t => `« ${t} » : la TVA est-elle déductible, et pourquoi ?`, n); return shuffle(a.slice(0, Math.ceil(n / 2)).concat(b.slice(0, n))).slice(0, n); },
+  p3c1ex(n) {
     const g = GENS.find(z => z.id === "p3exig"); if (!g) return []; const ops = []; let M0 = null;
     for (let t = 0; t < 40 && ops.length < 7; t++) { const m = g.make(); if (M0 == null) M0 = m._M; if (m._M !== M0) continue; (m._ops || []).forEach(o => { if (!ops.some(p => p.why === o.why)) ops.push(Object.assign({ M: m._M }, o)); }); }
     const whyBy = { Oui: [...new Set(ops.filter(o => o.k === "Oui").map(o => o.why))], Non: [...new Set(ops.filter(o => o.k === "Non").map(o => o.why))] };
@@ -4924,7 +4980,7 @@ const CTLX = {
     return shuffle(it).slice(0, n).map((x, i) => ({ id: "gx-bf" + i, c: "p6", q: `Bilan fonctionnel : dans quelle masse classer « ${x[0]} » ?`, o: [x[1]].concat(shuffle(cats.filter(c => c !== x[1])).slice(0, 3)), e: FONC_WHY[x[1]] || "" }));
   }
 };
-function ctlExtra(ch, n) { try { return CTLX[ch] ? CTLX[ch](n) : []; } catch (e) { return []; } }
+function ctlExtra(ch, n) { try { const a = CTLX[ch] ? CTLX[ch](n) : [], b = natQs(ch, n); return shuffle(a.concat(a.length ? b.slice(0, 1) : b)).slice(0, n); } catch (e) { return []; } }
 function startCtl(k) {
   const pool = QCH[k] || []; if (pool.length < 4 || chapStatus(k).today) return;
   const ex = ctlExtra(k, 3), items = shuffle(shuffle(pool).slice(0, 10 - ex.length).concat(ex)); startRun(items, "exam"); if (!R) return;
