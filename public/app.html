@@ -6061,6 +6061,7 @@ function startExam() {
   let items = [];
   if (isGuest()) items = shuffle(QS).slice(0, 20);
   else Object.entries(EXAM_PLAN).forEach(([k, n]) => { items = items.concat(shuffle(QBY[k]).slice(0, n)); });
+  const dw = dwFor(null, null, 4); items = shuffle(items).slice(0, items.length - dw.length).concat(dw);
   startRun(shuffle(items), "exam");
 }
 
@@ -6513,6 +6514,13 @@ function exSecIdx(k, c) {
   return best;
 }
 const DWFX = { p3c2: ["principales corrections", "Réintégrer ou déduire, et pourquoi"], p1c3: ["Exigibilité et déductibilité", "TVA déductible ou non, et pourquoi"], p3c1: ["Base d'imposition", "TVA exigible, déductible, et pourquoi"], p2c1: ["coût d'acquisition", "Charge ou immobilisation, et pourquoi"], p5c3: ["Le coût variable", "Charge fixe ou variable, et pourquoi"], p6c2: ["La structure", "Classer les postes du bilan fonctionnel"] };
+/* Questions « décision puis pourquoi » pour une matière (et éventuellement des chapitres précis) */
+function dwFor(cat, chs, n, kw) {
+  const keys = Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat) && (!cat || CHID[k].cat === cat) && (!chs || !chs.length || chs.includes(k)) && (!kw || !kwList(kw).length || kwHit(kw, DWFX[k][1], CHID[k].title)));
+  if (!keys.length || n <= 0) return [];
+  const per = Math.max(1, Math.ceil(n / keys.length));
+  return shuffle([].concat(...keys.map(k => { try { return CTLX[k](per); } catch (e) { return []; } }))).slice(0, n);
+}
 function dwHome() {
   const L = Object.keys(DWFX).filter(k => CTLX[k] && CHID[k] && !lockedCat(CHID[k].cat));
   return `<div class="sec-head"><h2>Décider et justifier</h2><p>Pour chaque situation, choisis d'abord la décision, puis la bonne raison. C'est juste seulement si les deux le sont.</p></div>
@@ -9116,10 +9124,10 @@ document.addEventListener("click", e => {
     case "pkBack": FROMPACK = null; PK = null; setExTab("ctl"); go("ex"); break;
     case "pkEdit": { const p = S.packs[PK]; PB = { cat: p.cat, chs: (p.chs || []).slice(), secs: (p.secs || []).slice(), ex: (p.ex || []).slice(), kw: p.kw || "", name: p.name || "", date: p.date || "", i: PK }; setExTab("ctl"); go("ex"); setTimeout(() => { const e = document.getElementById("pkBuild"); if (e) e.scrollIntoView({ block: "start" }); }, 30); break; }
     case "pkDel": { S.packs.splice(PK, 1); PK = null; touch(); setExTab("ctl"); go("ex"); break; }
-    case "pkQuiz": { const d = packData(S.packs[PK]), n = +b.dataset.n, wr = shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), rest = shuffle(d.qs.filter(x => !wr.includes(x))); startRun(wr.concat(rest).slice(0, n), "quiz"); break; }
+    case "pkQuiz": { const p = S.packs[PK], d = packData(p), n = +b.dataset.n, wr = shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), rest = shuffle(d.qs.filter(x => !wr.includes(x))), dw = dwFor(p.cat, p.chs, Math.round(n / 4), p.kw); startRun(shuffle(wr.concat(rest).slice(0, n - dw.length).concat(dw)), "quiz"); break; }
     case "pkWrong": { const d = packData(S.packs[PK]); startRun(shuffle(d.qs.filter(x => S.q[x.id] && S.q[x.id][2] === 0)), "quiz"); break; }
     case "pkCards": { const d = packData(S.packs[PK]); startCards(shuffle(d.fs).slice(0, Math.max(10, (P().clen || 30)))); break; }
-    case "pkExam": { const d = packData(S.packs[PK]), n = Math.min(15, d.qs.length); startRun(shuffle(d.qs).slice(0, n), "exam"); if (R) { R.pack = PK; R.end = Date.now() + n * 60 * 1000; render(); } break; }
+    case "pkExam": { const p = S.packs[PK], d = packData(p), dw = dwFor(p.cat, p.chs, 4, p.kw), n = Math.min(15, d.qs.length + dw.length); startRun(shuffle(shuffle(d.qs).slice(0, n - dw.length).concat(dw)), "exam"); if (R) { R.pack = PK; R.end = Date.now() + n * 60 * 1000; render(); } break; }
     case "pkOral": { const d = packData(S.packs[PK]); OR = { list: shuffle(d.oral).slice(0, 5).map(q => ({ q, ck: {}, done: false })), i: 0, end: Date.now() + OF.t * 1000, t: OF.t, e: "Contrôle" }; go("oral"); break; }
     case "goClasse": AMT = "classement"; go("amis"); break;
     case "clJoin": { const v = (document.getElementById("clPseudo").value || "").replace(/[<>]/g, "").trim().slice(0, 24); if (v.length < 2) { toast("Choisis un pseudo d'au moins 2 caractères"); break; } S.cl = { on: true, p: v }; CL.at = 0; touch(); render(); loadClass(true); break; }
