@@ -1776,6 +1776,8 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .fiche-train { margin-top: 18px; padding: 14px; border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius:var(--radius) var(--radius) var(--radius) var(--radius); background: var(--sheet); display: grid; gap: 10px; }
 .fiche-train .eyebrow { margin: 0; font-weight:600; color: var(--c, var(--accent));   font-size: .78rem; }
 .ft-main { display: flex; flex-wrap: wrap; gap: 8px; }
+.fx-in { margin: 12px 0 20px; padding: 12px; border: 1px dashed var(--rule-strong); border-left: 4px solid var(--c, var(--accent)); border-radius: var(--radius); background: var(--paper); display: grid; gap: 8px; }
+.fx-in .fx-k { margin: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .85rem; color: var(--c, var(--accent)); } .fx-in .fx-k .svg { width: 16px; height: 16px; }
 .ft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .ft-it { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--rule); border-radius:var(--radius); background: var(--paper); transition: border-color .15s, transform .12s; }
 .ft-it:hover { border-color: var(--c, var(--accent)); transform: translateY(-1px); } .ft-it:focus-visible { outline: 2px solid var(--accent); }
@@ -3498,6 +3500,36 @@ const ANN = [
 ];
 
 
+/* Réintégration ou déduction : situations partagées entre l'exercice et les contrôles de chapitre */
+const RD_W = { nd: "Charge non déductible par nature (la loi l'exclut)", so: "Dépense somptuaire", ex: "Seule la part au-delà d'une limite fiscale", av: "Elle donne déjà un avantage fiscal à part (réduction d'impôt)", is: "L'impôt sur les bénéfices n'est pas déductible de lui-même", dbl: "Éviter une double imposition", ex2: "Produit exonéré ou non imposable", ok: "Charge déductible : engagée dans l'intérêt de l'entreprise", okp: "Produit imposable normalement" };
+const RD_P = (R, D, Z) => [
+  [R, "nd", "Amende pour excès de vitesse d'un salarié avec un véhicule de l'entreprise", "Les amendes et pénalités sanctionnant une infraction ne sont jamais déductibles."],
+  [R, "nd", "Majoration pour retard de paiement de la TVA infligée par l'administration fiscale", "Pénalité fiscale : sanction, donc non déductible."],
+  [R, "nd", "Taxes annuelles sur les véhicules de tourisme utilisés par l'entreprise", "Le CGI interdit leur déduction : on les réintègre en totalité."],
+  [R, "is", "Impôt sur les sociétés comptabilisé en charge (compte 695)", "Le résultat fiscal se calcule avant IS : l'IS ne peut pas réduire sa propre base."],
+  [R, "so", "Location d'un yacht pour inviter des clients", "Dépense somptuaire (yacht, chasse, pêche, résidence de plaisance) : non déductible même si elle a un but commercial."],
+  [R, "so", "Frais d'une partie de chasse offerte à des clients", "Dépense somptuaire : non déductible."],
+  [R, "ex", "Amortissement d'une voiture de tourisme dont le prix dépasse le plafond fiscal", "Seule la fraction d'amortissement calculée au-delà du plafond fiscal est réintégrée."],
+  [R, "ex", "Intérêts versés sur le compte courant d'un associé au-delà du taux maximal fiscal", "Seule la part des intérêts au-delà du taux fiscal est réintégrée."],
+  [R, "av", "Don à une association reconnue d'intérêt général", "Le don ouvre droit à une réduction d'impôt mécénat : on le réintègre pour ne pas cumuler deux avantages."],
+  [R, "nd", "Dotation à une provision pour une amende probable", "Une provision pour une charge non déductible (amende) n'est pas déductible non plus."],
+  [R, "ex", "Quote-part de frais et charges de 5 % sur des dividendes reçus d'une filiale (régime mère-fille)", "Les dividendes sont déduits, mais 5 % sont réintégrés au titre des frais : c'est la quote-part de frais et charges."],
+  [D, "dbl", "Reprise d'une provision qui avait été réintégrée l'année de sa dotation", "La dotation a déjà été taxée : on déduit la reprise pour ne pas imposer deux fois la même somme."],
+  [D, "ex2", "Dividendes reçus d'une filiale détenue à 40 % (régime mère-fille)", "Régime mère-fille : les dividendes sont exonérés, on les déduit (en réintégrant ensuite 5 % de quote-part de frais)."],
+  [D, "dbl", "Dégrèvement obtenu sur des taxes annuelles sur les véhicules qui avaient été réintégrées", "La taxe avait été réintégrée l'année de son paiement : son remboursement n'est pas imposable, on le déduit."],
+  [D, "ex2", "Remboursement par l'administration d'une partie de l'impôt sur les sociétés comptabilisé en produit", "L'IS n'est pas déductible, donc son remboursement n'est pas imposable : on le déduit."],
+  [Z, "ok", "Cotisation foncière des entreprises (CFE)", "Impôt déductible : charge normale de l'exercice."],
+  [Z, "ok", "Intérêts d'un emprunt bancaire pour financer une machine", "Charge financière engagée dans l'intérêt de l'entreprise : déductible."],
+  [Z, "ok", "Dotation aux amortissements d'un camion de livraison", "Véhicule utilitaire : pas de plafond, amortissement entièrement déductible."],
+  [Z, "ok", "Pénalité de retard versée à un client prévue au contrat de vente", "Pénalité contractuelle (entre entreprises) et non sanction légale : déductible."],
+  [Z, "ok", "Cadeaux de fin d'année offerts aux clients, d'une valeur modérée", "Dépense commerciale dans l'intérêt de l'entreprise : déductible."],
+  [Z, "ok", "Dotation à une provision pour créance douteuse justifiée", "Provision précise, justifiée et pour une perte probable : déductible."],
+  [Z, "ok", "Cotisations patronales de sécurité sociale", "Charge sociale déductible."],
+  [Z, "ok", "Taxe d'apprentissage", "Taxe déductible."],
+  [Z, "okp", "Escomptes obtenus des fournisseurs", "Produit financier imposable normalement : aucune correction."]
+];
+/* Raisons trop proches pour servir de mauvaise réponse à côté de la bonne */
+const RD_AMB = { ex2: ["dbl"], dbl: ["ex2"], ok: ["okp"], okp: ["ok"], nd: ["so", "is"], so: ["nd"], is: ["nd"] };
 const GENS = [
  { id: "p1fact", cat: "p1", title: "Calcul et écriture d'une facture de vente", make() {
     const brut = ri(20, 150) * 100, ra = pk([0, 2, 5, 10]), rb = ra ? pk([0, 0, 2, 3]) : 0, esc = pk([0, 1, 2, 2]), port = pk([0, 0, 50, 80, 120, 150]);
@@ -3629,8 +3661,9 @@ const GENS = [
     const tva = r2(ops.filter(o => o.k === Y).reduce((s, o) => s + o.amt * 0.2, 0));
     const fields = ops.map((o, i) => ({ label: `${i + 1}. ${o.t}`, ans: o.k, opts: [Y, N] }));
     fields.push({ label: `TVA collectée exigible en ${M}`, ans: tva });
-    return { enonce: `<p>Opérations d'une entreprise au régime réel normal (TVA 20 %). Pour chacune, la TVA figure-t-elle sur la déclaration de <b>${M}</b> ? Calcule ensuite la TVA collectée de ${M} pour ces opérations.</p>`, fields,
-      corr: tb(["Opération", `Déclaration de ${M} ?`, "TVA"], ops.map((o, i) => [`${i + 1}. ${h(o.t)}<br><small>${h(o.why)}</small>`, o.k, o.k === Y ? fmt(r2(o.amt * 0.2)) : ""])) + `<p>TVA collectée exigible en ${M} : <b>${fmt(tva)} €</b>.</p><p>Règle : biens à la livraison ; services à l'encaissement (acomptes compris), sauf option pour les débits.</p>` };
+    return { enonce: `<p>Opérations d'une entreprise au régime réel normal (TVA 20 %). Pour chacune, la TVA figure-t-elle sur la déclaration ${/^[aeiouéâ]/i.test(M) ? "d'" : "de "}<b>${M}</b> ? Calcule ensuite la TVA collectée de ${M} pour ces opérations.</p>`, fields,
+      _ops: ops, _M: M,
+      corr: tb(["Opération", `Déclaration ${/^[aeiouéâ]/i.test(M) ? "d'" : "de "}${M} ?`, "TVA"], ops.map((o, i) => [`${i + 1}. ${h(o.t)}<br><small>${h(o.why)}</small>`, o.k, o.k === Y ? fmt(r2(o.amt * 0.2)) : ""])) + `<p>TVA collectée exigible en ${M} : <b>${fmt(tva)} €</b>.</p><p>Règle : biens à la livraison ; services à l'encaissement (acomptes compris), sauf option pour les débits.</p>` };
  } },
  { id: "p3ir", cat: "p3", title: "Impôt sur le revenu d'un foyer (quotient familial)", make() {
     const sit = pk([["une personne seule sans enfant", 1, 1], ["un couple marié sans enfant", 2, 2], ["un couple pacsé avec un enfant", 2, 2.5], ["un couple marié avec deux enfants", 2, 3], ["un couple marié avec trois enfants", 2, 4]]);
@@ -3695,7 +3728,7 @@ const GENS = [
     const OPTS = [ES, RS, ACE, ACH, PCE, PCH, TA, TP];
     const fields = list.map((x, i) => ({ label: `${i + 1}. ${x[0]} : ${fmt(x[2])} €`, ans: x[1], opts: OPTS }));
     fields.push({ label: "FRNG", ans: frng }, { label: "BFR (exploitation + hors exploitation)", ans: bfr }, { label: "Trésorerie nette", ans: tn });
-    return { enonce: `<p>Voici les postes du bilan d'une entreprise (montants bruts pour l'actif). Classe chacun dans le bilan fonctionnel, puis calcule le FRNG, le BFR et la trésorerie nette.</p>`, fields,
+    return { _it: list, enonce: `<p>Voici les postes du bilan d'une entreprise (montants bruts pour l'actif). Classe chacun dans le bilan fonctionnel, puis calcule le FRNG, le BFR et la trésorerie nette.</p>`, fields,
       corr: tb(["Poste", "Classement", "Montant"], list.map((x, i) => [`${i + 1}. ${h(x[0])}`, x[1], fmt(x[2])])) + `<p>FRNG = ressources stables ${fmt(sum(RS))} − emplois stables ${fmt(sum(ES))} = <b>${fmt(frng)} €</b>.</p><p>BFR = (${fmt(sum(ACE))} + ${fmt(sum(ACH))}) − (${fmt(sum(PCE))} + ${fmt(sum(PCH))}) = <b>${fmt(bfr)} €</b>.</p><p>Trésorerie nette = ${fmt(dispo)} − ${fmt(sum(TP))} = <b>${fmt(tn)} €</b> ; vérification : FRNG − BFR = ${fmt(r2(frng - bfr))} €.</p><p>Pièges : amortissements, dépréciations et provisions vont en ressources stables ; les immobilisations sont prises en brut ; les concours bancaires courants sont de la trésorerie passive.</p>` };
  } },
  { id: "p6ratios", cat: "p6", title: "Délais clients, fournisseurs et rotation des stocks", make() {
@@ -3751,39 +3784,14 @@ const GENS = [
  } },
  { id: "p3rd", cat: "p3", title: "Réintégration ou déduction ? Dis pourquoi", make() {
     const R = "Réintégration", D = "Déduction", Z = "Ni l'un ni l'autre", K = [R, D, Z];
-    const W = { nd: "Charge non déductible par nature (la loi l'exclut)", so: "Dépense somptuaire", ex: "Seule la part au-delà d'une limite fiscale", av: "Elle donne déjà un avantage fiscal à part (réduction d'impôt)", is: "L'impôt sur les bénéfices n'est pas déductible de lui-même", dbl: "Éviter une double imposition", ex2: "Produit exonéré ou non imposable", ok: "Charge déductible : engagée dans l'intérêt de l'entreprise", okp: "Produit imposable normalement" };
-    const P = [
-      [R, "nd", "Amende pour excès de vitesse d'un salarié avec un véhicule de l'entreprise", "Les amendes et pénalités sanctionnant une infraction ne sont jamais déductibles."],
-      [R, "nd", "Majoration pour retard de paiement de la TVA infligée par l'administration fiscale", "Pénalité fiscale : sanction, donc non déductible."],
-      [R, "nd", "Taxes annuelles sur les véhicules de tourisme utilisés par l'entreprise", "Le CGI interdit leur déduction : on les réintègre en totalité."],
-      [R, "is", "Impôt sur les sociétés comptabilisé en charge (compte 695)", "Le résultat fiscal se calcule avant IS : l'IS ne peut pas réduire sa propre base."],
-      [R, "so", "Location d'un yacht pour inviter des clients", "Dépense somptuaire (yacht, chasse, pêche, résidence de plaisance) : non déductible même si elle a un but commercial."],
-      [R, "so", "Frais d'une partie de chasse offerte à des clients", "Dépense somptuaire : non déductible."],
-      [R, "ex", "Amortissement d'une voiture de tourisme dont le prix dépasse le plafond fiscal", "Seule la fraction d'amortissement calculée au-delà du plafond fiscal est réintégrée."],
-      [R, "ex", "Intérêts versés sur le compte courant d'un associé au-delà du taux maximal fiscal", "Seule la part des intérêts au-delà du taux fiscal est réintégrée."],
-      [R, "av", "Don à une association reconnue d'intérêt général", "Le don ouvre droit à une réduction d'impôt mécénat : on le réintègre pour ne pas cumuler deux avantages."],
-      [R, "nd", "Dotation à une provision pour une amende probable", "Une provision pour une charge non déductible (amende) n'est pas déductible non plus."],
-      [R, "ex", "Quote-part de frais et charges de 5 % sur des dividendes reçus d'une filiale (régime mère-fille)", "Les dividendes sont déduits, mais 5 % sont réintégrés au titre des frais : c'est la quote-part de frais et charges."],
-      [D, "dbl", "Reprise d'une provision qui avait été réintégrée l'année de sa dotation", "La dotation a déjà été taxée : on déduit la reprise pour ne pas imposer deux fois la même somme."],
-      [D, "ex2", "Dividendes reçus d'une filiale détenue à 40 % (régime mère-fille)", "Régime mère-fille : les dividendes sont exonérés, on les déduit (en réintégrant ensuite 5 % de quote-part de frais)."],
-      [D, "dbl", "Dégrèvement obtenu sur des taxes annuelles sur les véhicules qui avaient été réintégrées", "La taxe avait été réintégrée l'année de son paiement : son remboursement n'est pas imposable, on le déduit."],
-      [D, "ex2", "Remboursement par l'administration d'une partie de l'impôt sur les sociétés comptabilisé en produit", "L'IS n'est pas déductible, donc son remboursement n'est pas imposable : on le déduit."],
-      [Z, "ok", "Cotisation foncière des entreprises (CFE)", "Impôt déductible : charge normale de l'exercice."],
-      [Z, "ok", "Intérêts d'un emprunt bancaire pour financer une machine", "Charge financière engagée dans l'intérêt de l'entreprise : déductible."],
-      [Z, "ok", "Dotation aux amortissements d'un camion de livraison", "Véhicule utilitaire : pas de plafond, amortissement entièrement déductible."],
-      [Z, "ok", "Pénalité de retard versée à un client prévue au contrat de vente", "Pénalité contractuelle (entre entreprises) et non sanction légale : déductible."],
-      [Z, "ok", "Cadeaux de fin d'année offerts aux clients, d'une valeur modérée", "Dépense commerciale dans l'intérêt de l'entreprise : déductible."],
-      [Z, "ok", "Dotation à une provision pour créance douteuse justifiée", "Provision précise, justifiée et pour une perte probable : déductible."],
-      [Z, "ok", "Cotisations patronales de sécurité sociale", "Charge sociale déductible."],
-      [Z, "ok", "Taxe d'apprentissage", "Taxe déductible."],
-      [Z, "okp", "Escomptes obtenus des fournisseurs", "Produit financier imposable normalement : aucune correction."]
-    ];
+    const W = RD_W;
+    const P = RD_P(R, D, Z);
     const pick = [...shuffle(P.filter(x => x[0] === R)).slice(0, 3), ...shuffle(P.filter(x => x[0] === D)).slice(0, 1), ...shuffle(P.filter(x => x[0] === Z)).slice(0, 2)];
-    const list = shuffle(pick), whyAll = Object.values(W);
+    const list = shuffle(pick);
     const fields = [];
     list.forEach((x, i) => {
       fields.push({ label: `${i + 1}. ${x[2]}`, ans: x[0], opts: K });
-      const wrong = shuffle(whyAll.filter(w => w !== W[x[1]])).slice(0, 3);
+      const wrong = shuffle(Object.keys(W).filter(w => w !== x[1] && !(RD_AMB[x[1]] || []).includes(w)).map(w => W[w])).slice(0, 3);
       fields.push({ label: `Pourquoi ? (${i + 1})`, ans: W[x[1]], opts: shuffle([W[x[1]], ...wrong]) });
     });
     return { enonce: `<p>Pour passer du résultat comptable au résultat fiscal (tableau 2058-A), indique pour chaque élément s'il faut le <b>réintégrer</b>, le <b>déduire</b> ou ne rien faire, puis choisis la bonne justification.</p><p class="muted">Rappel : on réintègre une charge comptabilisée que le fisc refuse, on déduit un produit comptabilisé que le fisc n'impose pas (ou déjà imposé).</p>`, fields,
@@ -4886,9 +4894,40 @@ function chapStatus(k) {
 function ctlChaps(cat) { return (CHBY[cat] || []).filter(c => (QCH[c.id] || []).length >= 4); }
 function validCount(cat) { const l = cat ? ctlChaps(cat) : CATS.flatMap(c => ctlChaps(c.id)); return { v: l.filter(c => chapStatus(c.id).ok).length, n: l.length }; }
 function dayLabel(dn) { const t = new Date(Date.now() + (dn - dayNum()) * 86400000); return t.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); }
+/* ---------- Questions « que faire, et pourquoi » pour les contrôles et les quiz de fiche ---------- */
+const deM = m => (/^[aeiouéâ]/i.test(m) ? "d'" : "de ") + m;
+const lc1 = t => t ? t[0].toLowerCase() + t.slice(1) : t;
+const FONC_WHY = { "Emplois stables": "Actif immobilisé en valeur brute : ressources durables utilisées plus d'un an.", "Ressources stables": "Capitaux propres, amortissements, dépréciations, provisions et dettes financières : financements durables.", "Actif circulant d'exploitation": "Stocks et créances clients : liés au cycle d'exploitation.", "Actif circulant hors exploitation": "Créances étrangères au cycle d'exploitation (cession d'immobilisation, par exemple).", "Passif circulant d'exploitation": "Dettes fournisseurs, fiscales et sociales nées de l'exploitation.", "Passif circulant hors exploitation": "Dettes étrangères à l'exploitation (fournisseurs d'immobilisations, par exemple).", "Trésorerie active": "Disponibilités et valeurs mobilières de placement.", "Trésorerie passive": "Concours bancaires courants et soldes créditeurs de banque." };
+function dwQ(id, c, q, k, why, decs, whyBy, e, amb) {
+  const fmtO = (d, w) => `${d} · ${w}`, good = fmtO(k, why), used = new Set([good]), o = [good];
+  const add = (d, w) => { const t = fmtO(d, w); if (w && !used.has(t)) { used.add(t); o.push(t); return true; } return false; };
+  const okW = w => w !== why && !(amb || []).includes(w);
+  shuffle((whyBy[k] || []).filter(okW)).some(w => add(k, w));
+  const others = shuffle(decs.filter(d => d !== k));
+  for (let r = 0; o.length < 4 && r < 6; r++) { const d = others[r % others.length]; shuffle((whyBy[d] || []).filter(okW)).some(w => add(d, w)); }
+  return o.length === 4 ? { id, c, q, o, e } : null;
+}
+const CTLX = {
+  p3c2(n) {
+    const R = "Réintégrer", D = "Déduire", Z = "Aucune correction", P = RD_P(R, D, Z), by = {};
+    P.forEach(x => { (by[x[0]] = by[x[0]] || new Set()).add(RD_W[x[1]]); }); const whyBy = {}; Object.keys(by).forEach(d => whyBy[d] = [...by[d]]);
+    return shuffle(P).map((x, i) => dwQ("gx-rd" + i, "p3", `Tableau 2058-A. « ${x[2]} » : quelle correction faire, et pourquoi ?`, x[0], RD_W[x[1]], [R, D, Z], whyBy, x[3], (RD_AMB[x[1]] || []).map(w => RD_W[w]))).filter(Boolean).slice(0, n);
+  },
+  p3c1(n) {
+    const g = GENS.find(z => z.id === "p3exig"); if (!g) return []; const ops = []; let M0 = null;
+    for (let t = 0; t < 40 && ops.length < 7; t++) { const m = g.make(); if (M0 == null) M0 = m._M; if (m._M !== M0) continue; (m._ops || []).forEach(o => { if (!ops.some(p => p.why === o.why)) ops.push(Object.assign({ M: m._M }, o)); }); }
+    const whyBy = { Oui: [...new Set(ops.filter(o => o.k === "Oui").map(o => o.why))], Non: [...new Set(ops.filter(o => o.k === "Non").map(o => o.why))] };
+    return shuffle(ops).map((o, i) => dwQ("gx-ex" + i, "p3", `Régime réel normal. La TVA de cette opération va-t-elle sur la déclaration ${deM(o.M)} ? ${o.t}`, o.k, o.why, ["Oui", "Non"], whyBy, o.why + " Règle : biens à la livraison, services à l'encaissement (acomptes compris), sauf option pour les débits.")).filter(Boolean).slice(0, n);
+  },
+  p6c2(n) {
+    const g = GENS.find(z => z.id === "p6fonc"); if (!g) return []; const it = (g.make()._it || []).filter(x => x[2] !== 0 || true), cats = Object.keys(FONC_WHY);
+    return shuffle(it).slice(0, n).map((x, i) => ({ id: "gx-bf" + i, c: "p6", q: `Bilan fonctionnel : dans quelle masse classer « ${x[0]} » ?`, o: [x[1]].concat(shuffle(cats.filter(c => c !== x[1])).slice(0, 3)), e: FONC_WHY[x[1]] || "" }));
+  }
+};
+function ctlExtra(ch, n) { try { return CTLX[ch] ? CTLX[ch](n) : []; } catch (e) { return []; } }
 function startCtl(k) {
   const pool = QCH[k] || []; if (pool.length < 4 || chapStatus(k).today) return;
-  const items = shuffle(pool).slice(0, 10); startRun(items, "exam"); if (!R) return;
+  const ex = ctlExtra(k, 3), items = shuffle(shuffle(pool).slice(0, 10 - ex.length).concat(ex)); startRun(items, "exam"); if (!R) return;
   R.ctrl = k; R.end = Date.now() + items.length * 75 * 1000; render();
 }
 function mastery(cat) {
@@ -6371,14 +6410,33 @@ function peekClose(now) {
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("peek")) peekClose(); });
 /* Tous les entraînements liés à une fiche (chapitre) */
+const FT_IC = { x: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>', s: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h4a2 2 0 0 1 2 2v7"/></svg>', g: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>', k: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2.1 6.4-6.3 2 2-6.3z"/></svg>' }, FT_KIND = { x: "Calculs express", s: "Schéma", g: "Exercice chiffré", k: "Exercice guidé" };
+function exBtnHTML(k, cat) {
+  const e = exInfo(k), act = e.pre === "x" ? `data-act="cxOne" data-g="${e.id}" data-cat="${cat}"` : e.pre === "s" ? `data-act="scOpen" data-sid="${e.id}" data-cat="${cat}"` : e.pre === "g" ? `data-act="exStart" data-gid="${e.id}"` : `data-act="gcase" data-id="${e.id}"`;
+  return `<button class="ft-it" ${act}><span class="ft-ic" aria-hidden="true">${FT_IC[e.pre]}</span><span><b>${h(e.label)}</b><small>${FT_KIND[e.pre]}${exDone(k) ? " · ✓ réussi" : ""}</small></span></button>`;
+}
+/* Exercices de la fiche : liste complète, puis rangement de chacun sous la partie de la fiche qui en parle */
+function ficheExKeys(c) {
+  return [].concat(GENS.filter(g => g.cat === c.cat).map(g => "g:" + g.id), (GCBY[c.cat] || []).map(k => "k:" + k.id), CXG.filter(g => g.cat === c.cat).map(g => "x:" + g.id), SCH.filter(x => x.cat === c.cat).map(x => "s:" + x.id)).filter(k => exInfo(k).ch === c.id);
+}
+function exSecIdx(k, c) {
+  if (EXSEC[k] != null) { const j = (c.sections || []).findIndex(x => nk(x.h).includes(nk(EXSEC[k]))); if (j >= 0) return j; }
+  const tok = exInfo(k).tok; let best = -1, bs = 1;
+  (c.sections || []).forEach((x, j) => { if (/^en clair/i.test(x.h)) return; const T = new Set(hintTokens(x.h + " " + x.h + " " + JSON.stringify(x.b || []))); let n = 0; tok.forEach(w => { if (T.has(w)) n++; }); if (n > bs) { bs = n; best = j; } });
+  return best;
+}
+function ficheInlineEx(c, si) {
+  if (!c._exs) { c._exs = {}; const cnt = {}; ficheExKeys(c).forEach(k => { const j = exSecIdx(k, c); if (j < 0 || (cnt[j] || 0) >= 2) return; cnt[j] = (cnt[j] || 0) + 1; (c._exs[j] = c._exs[j] || []).push(k); }); }
+  const L = c._exs[si]; if (!L || !L.length) return "";
+  return `<div class="fx-in" style="${hueStyle(c.cat)}"><p class="fx-k">${ICON.pen}S'exercer sur cette partie</p><div class="ft-grid">${L.map(k => exBtnHTML(k, c.cat)).join("")}</div></div>`;
+}
 function ficheTrain(c, compact) {
   const nq = (QCH[c.id] || []).length, nf = (FCH[c.id] || []).length;
-  const all = [].concat(CXG.filter(g => g.cat === c.cat).map(g => "x:" + g.id), SCH.filter(x => x.cat === c.cat).map(x => "s:" + x.id), GENS.filter(g => g.cat === c.cat).map(g => "g:" + g.id), (GCBY[c.cat] || []).map(k => "k:" + k.id)).filter(k => exInfo(k).ch === c.id);
+  const all = ficheExKeys(c);
   const ctl = typeof ctlChaps === "function" && ctlChaps(c.cat).some(x => x.id === c.id);
   if (!nq && !nf && !all.length) return "";
-  const ic = { x: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>', s: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h4a2 2 0 0 1 2 2v7"/></svg>', g: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>', k: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2.1 6.4-6.3 2 2-6.3z"/></svg>' }, kind = { x: "Calculs express", s: "Schéma", g: "Exercice chiffré", k: "Exercice guidé" };
-  const exBtn = k => { const e = exInfo(k), act = e.pre === "x" ? `data-act="cxOne" data-g="${e.id}" data-cat="${c.cat}"` : e.pre === "s" ? `data-act="scOpen" data-sid="${e.id}" data-cat="${c.cat}"` : e.pre === "g" ? `data-act="exStart" data-gid="${e.id}"` : `data-act="gcase" data-id="${e.id}"`;
-    return `<button class="ft-it" ${act}><span class="ft-ic" aria-hidden="true">${ic[e.pre]}</span><span><b>${h(e.label)}</b><small>${kind[e.pre]}${exDone(k) ? " · ✓ réussi" : ""}</small></span></button>`; };
+  const ic = FT_IC, kind = FT_KIND;
+  const exBtn = k => exBtnHTML(k, c.cat);
   return `<section class="fiche-train${compact ? " compact" : ""}" style="${hueStyle(c.cat)}"><p class="eyebrow">S'entraîner sur cette fiche</p>
     <div class="ft-main">${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes (${nf})</button>` : ""}${ctl ? `<button class="btn" data-act="ctlStart" data-k="${c.id}">Contrôle du chapitre</button>` : ""}</div>
     ${all.length ? `<div class="ft-grid">${all.map(exBtn).join("")}</div>` : ""}
@@ -6402,7 +6460,7 @@ function vFiche() {
       ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
       <div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
-        ${(c.sections || []).map(s => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}`).join("")}
+        ${(c.sections || []).map((s, si) => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}${ficheInlineEx(c, si)}`).join("")}
         ${c.points && c.points.length ? `<blockquote class="callout retain"><p class="md-label"><strong>L'essentiel</strong></p><ul>${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul></blockquote>` : ""}
       </div>
       ${ficheTrain(c)}
@@ -7646,6 +7704,11 @@ function inSecs(p, chid, ...txt) {
 }
 /* Exercices d'un contrôle : mots-clés de chaque exercice, chapitre le plus proche, réussite */
 const EXTOK = {};
+/* Rattachement explicite des exercices aux fiches (le calcul automatique se trompait sur ceux-ci) */
+const EXCH = { "g:p3rd": "p3c2", "g:p3rf": "p3c2", "g:p3exig": "p3c1", "g:p3tva": "p3c1", "g:p2rl": "p2c5", "g:p2dout": "p2c3", "g:p2prov": "p2c3", "g:p6ratios": "p6c3", "g:p6levier": "p6c3", "g:p7sql": "p7c2", "g:p5mod": "p5c4", "g:p4lic": "p4c1",
+  "x:tvadec": "p1c3", "x:htttc": "p1c3", "x:coef": "p1c2", "x:agios": "p1c5", "x:cession": "p2c2", "x:depcli": "p2c3", "x:ca12": "p3c1", "x:amvp": "p3c2", "x:dcli": "p6c3", "s:sc-tva-reg": "p3c1", "s:sc-dsn": "p4c5" };
+/* Partie de la fiche sous laquelle placer l'exercice, quand le calcul automatique ne suffit pas */
+const EXSEC = { "g:p3rd": "principales corrections", "g:p3rf": "principales corrections", "g:p3is": "Les déficits", "x:rfisc": "principales corrections", "x:amvp": "principales corrections", "s:sc-is": "Le principe", "g:p3exig": "Base d'imposition", "s:sc-tva-exig": "Base d'imposition", "g:p3tva": "Régimes et obligations", "s:sc-tva-reg": "Régimes et obligations", "x:ca12": "Régimes et obligations", "x:htttc": "Le mécanisme", "g:p2rl": "affectation", "g:p6fonc": "La structure" };
 function exInfo(key) {
   if (EXTOK[key]) return EXTOK[key];
   const [pre, id] = [key.slice(0, 1), key.slice(2)]; let t = "", cat = "", label = "", ch = "";
@@ -7653,7 +7716,7 @@ function exInfo(key) {
   else if (pre === "s") { const x = SCHBY[id]; if (x) { t = x.title + " " + x.idee + " " + x.rows.map(r => r.n.map(n => n[0]).join(" ")).join(" "); cat = x.cat; label = x.title; } }
   else if (pre === "g") { const g = GENS.find(z => z.id === id); if (g) { t = g.title; cat = g.cat; label = g.title; } }
   else if (pre === "k") { const k = GCASES.find(z => z.id === id); if (k) { t = k.title + " " + (k.enonce || "") + " " + (k.question || ""); cat = k.cat; label = k.title; ch = k.ch; } }
-  const tok = new Set(hintTokens(t));
+  const tok = new Set(hintTokens(t)); if (EXCH[key]) ch = EXCH[key];
   if (!ch && cat) { let best = 0; (CHBY[cat] || []).forEach(c => { const T = new Set(hintTokens(c.title + " " + c.idee + " " + (c.sections || []).map(x => x.h).join(" "))); let n = 0; tok.forEach(w => { if (T.has(w)) n++; }); if (n > best) { best = n; ch = c.id; } }); }
   return EXTOK[key] = { tok, cat, label, ch, pre, id };
 }
@@ -8900,7 +8963,7 @@ document.addEventListener("click", e => {
     case "gsSugg": { GS.q = b.dataset.q; GS.act = -1; const gi = document.getElementById("gsInput"); if (gi) { gi.value = GS.q; gi.focus(); } gsRender(); break; }
     case "gsGo": gsGo(+b.dataset.i); break;
     case "sub": matSub = b.dataset.sub; render(); break;
-    case "chQuiz": { const l = QCH[b.dataset.ch] || []; if (l.length) startRun(shuffle(l).slice(0, 15), "quiz"); else toast("Pas encore de quiz pour cette fiche"); break; }
+    case "chQuiz": { const l = QCH[b.dataset.ch] || [], ex = ctlExtra(b.dataset.ch, 4); if (l.length) startRun(shuffle(shuffle(l).slice(0, 15 - ex.length).concat(ex)), "quiz"); else toast("Pas encore de quiz pour cette fiche"); break; }
     case "chCards": { const l = FCH[b.dataset.ch] || []; if (l.length) startCards(shuffle(l)); else toast("Pas encore de cartes pour cette fiche"); break; }
     case "gcase": openCase(b.dataset.id); break;
     case "gSelf": { const st = caseState(GC.id); st.ok[+b.dataset.i] = b.dataset.v === "1"; { const k = GCASES.find(x => x.id === GC.id), wa = waRoll(); wa.gx = wa.gx || []; if (k && Object.keys(st.ok).length >= k.steps.length && !wa.gx.includes(k.id)) { wa.gx.push(k.id); wlog("x", k.cat); } } touch(); render(); break; }
