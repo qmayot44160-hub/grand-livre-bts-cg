@@ -235,11 +235,12 @@ nav.tabs .badge{position:absolute;top:3px;left:calc(50% + 5px);background:var(--
 .sheet-handle{display:block;width:44px;height:5px;border-radius:var(--radius);background:var(--rule-strong);margin:0 auto 8px}
 .sheet-bar{display:flex;align-items:center;gap:10px}.sheet-bar h2{flex:1;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .x-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--rule);background:var(--paper);cursor:pointer;font-size:1.2rem;display:grid;place-items:center}
-.sheet-body{overflow-y:auto;overscroll-behavior:contain;padding:16px 16px calc(28px + env(safe-area-inset-bottom));display:grid;gap:14px}
+.sheet-body{overflow-y:auto;overscroll-behavior:contain;padding:16px 16px calc(28px + env(safe-area-inset-bottom));display:grid;gap:14px;grid-auto-rows:max-content;align-content:start}
 @media (min-width:821px){.sheet{align-items:center}.sheet-box{border-radius:var(--radius);max-height:90vh}.sheet-grab{border-radius:var(--radius) var(--radius) 0 0}}
 .s-hero{border-radius:var(--radius);padding:18px;color:#fff;display:grid;gap:14px;background:var(--top);position:relative;overflow:hidden}
 .s-hero .who{display:flex;gap:14px;align-items:center}
-.s-hero h3{font-size:1.35rem;color:#fff}
+.s-hero h3{font-size:1.35rem;color:#fff;overflow-wrap:anywhere}
+.s-hero .who > div{min-width:0}
 .s-hero p{opacity:.8;font-size:.86rem}
 .lvl{display:grid;gap:6px}
 .lvl-top{display:flex;justify-content:space-between;font-size:.82rem;font-weight:600}
@@ -934,7 +935,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       ]);
       later(function () { lvBar.style.width = pct + "%"; });
       out.push(hero);
-      var rr = el("div", { cls: "card", style: "grid-template-columns:auto 1fr;align-items:center" }, [ring(s.reussite || 0, "réussite aux quiz", pl(s.reponses, "réponse")), el("div", { cls: "kpis", style: "grid-template-columns:repeat(2,1fr)" }, [kpi(s.acquises, "questions acquises", "check"), kpi(s.aRevoir, "dans le cahier d'erreurs", "alert", "", s.aRevoir > 15 ? "alert" : ""), kpi(s.jours7, "jours actifs / 7", "bolt"), kpi(s.fiches, "fiches lues", "book")])]);
+      var rr = el("div", { cls: "card", style: "grid-template-columns:auto 1fr;align-items:center" }, [ring(s.reussite || 0, "réussite aux quiz", pl(s.reponses, "réponse")), el("div", { cls: "kpis", style: "grid-template-columns:repeat(2,1fr)" }, [kpi(s.acquises, "questions acquises", "check"), kpi(s.aRevoir, "dans le cahier d'erreurs", "alert", "", s.aRevoir > 15 ? "alert" : ""), kpi(s.jours7, "jours actifs sur 7", "bolt"), kpi(s.fiches, "fiches lues", "book")])]);
       out.push(rr);
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Jours de révision" }), el("span", { cls: "muted small", text: pl(s.jours30, "jour") + " sur 30" })]), heat(s.activite)]));
       var mat = el("div", { cls: "card" }, [el("h3", { text: "Par matière" })]);
