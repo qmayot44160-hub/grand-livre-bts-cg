@@ -1741,6 +1741,10 @@ select[data-fi] { width: 100%; max-width: 100%; }
 .gt-x { border: 0; background: none; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--muted); padding: 2px 6px; }
 .gt-f { background: var(--accent-soft); border-radius:var(--radius); padding: 8px 10px; display: grid; gap: 3px; } .gt-f span { font-size: .72rem; font-weight:600;   color: var(--accent); } .gt-f p { font-weight:600; } .gt-f small { color: var(--muted); }
 .gt-pop .btn { justify-self: start; }
+.sel-bub { position: fixed; z-index: 91; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: var(--sheet); color: var(--ink); font: 600 .9rem/1 inherit; box-shadow: 0 8px 24px rgba(10,14,30,.18); cursor: pointer; opacity: 0; transition: opacity .15s; }
+.sel-bub.in { opacity: 1; } .sel-bub:hover { background: var(--accent-soft); } .sel-bub .svg { width: 18px; height: 18px; }
+.gt-q { font-style: italic; color: var(--muted); } .gt-ai { display: grid; gap: 6px; } .gt-ai p { white-space: pre-line; } .gt-sep { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 6px; }
+.gt-ai .muted { font-size: .78rem; }
 /* Détail des calculs */
 .qx { border: 1px solid var(--rule); border-left: 4px solid var(--accent); background: var(--paper); border-radius:var(--radius) var(--radius) var(--radius) var(--radius); padding: 10px 12px; display: grid; gap: 6px; }
 .qx-t { font-size: .74rem; font-weight:600;   color: var(--accent); }
@@ -5799,7 +5803,7 @@ function vProfil() {
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
         <div class="pf-row"><div><b>Vibrations</b><span>Une petite vibration à chaque réponse, tampon et niveau (téléphones Android).</span></div>${seg("vib", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Visite guidée</b><span>Revoir la présentation de l'appli en 4 étapes.</span></div><button class="btn small" data-act="tourAgain">Relancer</button></div>
-        <div class="pf-row"><div><b>Bulles d'explication</b><span>Touche un mot souligné en pointillés (vocabulaire ou calcul) pour voir sa définition et comment le calculer.</span></div>${seg("gt", [["on", "Activées"], ["off", "Coupées"]])}</div>
+        <div class="pf-row"><div><b>Bulles d'explication</b><span>Touche un mot souligné en pointillés pour voir sa définition. Tu peux aussi sélectionner n'importe quel passage (appui long sur mobile) puis toucher « Expliquer ».</span></div>${seg("gt", [["on", "Activées"], ["off", "Coupées"]])}</div>
         <div class="pf-row"><div><b>Sons</b><span>De petits sons discrets : touches, cartes retournées, bonnes et mauvaises réponses, notifications, chronos, niveaux.</span></div>${seg("snd", [["on", "Activés"], ["off", "Coupés"]])}</div>
         <div class="pf-row"><div><b>Questions par quiz</b><span>Pour les boutons « Quiz » de chaque matière.</span></div>${seg("qlen", [[10, "10"], [20, "20"], [40, "40"]])}</div>
         <div class="pf-row"><div><b>Cartes par session</b><span>Pour les cartes du jour et les flashcards d'une matière.</span></div>${seg("clen", [[15, "15"], [30, "30"], [50, "50"]])}</div>
@@ -8691,6 +8695,87 @@ function gtShow(b) {
 document.addEventListener("pointerdown", e => { if (!e.target.closest("#gtPop, .gt")) gtClose(); }, true);
 window.addEventListener("scroll", () => gtClose(), { passive: true });
 
+/* Sélection libre : un appui long (ou une sélection à la souris) fait apparaître « Expliquer » */
+const SEL_ZONES = ".lesson, .peek-body, .feedback, .qx, .cx-corr, .face-back, .more-box, .ex-corr, .sc-key, .review-item, .gc-corr, .pl-phase, .q-card, .quiz, .card";
+let SEL = null, selT = null;
+function selBubClose() { const b = document.getElementById("selBub"); if (b) b.remove(); }
+function selRead() {
+  const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const txt = sel.toString().replace(/\s+/g, " ").trim(); if (txt.length < 2 || txt.length > 400) return null;
+  const r = sel.getRangeAt(0), node = r.commonAncestorContainer, el = node.nodeType === 1 ? node : node.parentElement;
+  if (!el || el.closest("input, textarea, [contenteditable], .gt-pop, .sel-bub, nav, header")) return null;
+  const zone = el.closest(SEL_ZONES); if (!zone) return null;
+  const rects = r.getClientRects(), last = rects.length ? rects[rects.length - 1] : r.getBoundingClientRect();
+  const box = r.getBoundingClientRect(); if (!box.width && !box.height) return null;
+  const ctx = (el.closest("p, li, td, .feedback, .qx, .more-box") || zone).textContent.replace(/\s+/g, " ").trim().slice(0, 700);
+  const qEl = document.querySelector(".q-text, .qtext, .quiz h2, .q-card h2, main h2"), q = qEl && !qEl.contains(el) ? qEl.textContent.replace(/\s+/g, " ").trim().slice(0, 300) : "";
+  return { txt, box, last, ctx, q };
+}
+function selUpdate() {
+  if (S.pref && S.pref.gt === "off") return selBubClose();
+  const d = selRead(); if (!d) { selBubClose(); return; }
+  SEL = d; let b = document.getElementById("selBub");
+  if (!b) { b = document.createElement("button"); b.id = "selBub"; b.type = "button"; b.className = "sel-bub"; b.dataset.act = "selX"; b.innerHTML = `${ICON.search}Expliquer`;
+    b.addEventListener("pointerdown", e => e.preventDefault()); document.body.appendChild(b); requestAnimationFrame(() => b.classList.add("in")); }
+  const W = b.offsetWidth || 120, H = b.offsetHeight || 36, coarse = matchMedia("(pointer: coarse)").matches;
+  let top = coarse ? d.box.bottom + 14 : d.box.top - H - 8;
+  if (top + H > window.innerHeight - 76) top = d.box.top - H - 52; if (top < 8) top = Math.min(window.innerHeight - H - 76, d.box.bottom + 14);
+  const left = Math.min(Math.max(8, (coarse ? d.box.left + d.box.width / 2 : d.last.right) - W / 2), window.innerWidth - W - 8);
+  b.style.left = left + "px"; b.style.top = Math.max(8, top) + "px";
+}
+document.addEventListener("selectionchange", () => { clearTimeout(selT); selT = setTimeout(selUpdate, 250); });
+window.addEventListener("scroll", () => { if (document.getElementById("selBub")) selUpdate(); }, { passive: true });
+function selFind(txt) {
+  glBuild(); const out = [], k = nk(txt);
+  if (GLX[k]) out.push(GLX[k]);
+  if (GLRE) { GLRE.lastIndex = 0; let m; while ((m = GLRE.exec(txt)) && out.length < 3) { const e = GLX[nk(m[1])]; if (e && !out.includes(e)) out.push(e); } }
+  if (!out.length && k.length >= 4) { const e = Object.values(GLX).find(e => e.t.length >= 4 && nk(e.t).includes(k)); if (e) out.push(e); }
+  return out;
+}
+function selChap(txt, ctx) {
+  const words = nk(txt + " " + (txt.split(/\s+/).length < 3 ? ctx : "")).split(/[^a-z0-9%€]+/).filter(w => w.length >= 4 && !/^(dans|pour|avec|sans|plus|moins|cette|sont|elle|leur|tout|entre|apres|avant|selon|limite)$/.test(w));
+  if (!words.length) return null; const main = nk(txt).split(/[^a-z0-9%€]+/).filter(w => w.length >= 4);
+  let best = null, bs = 0;
+  CHAP.forEach(c => { if (!c._nk) c._nk = nk(c.title + " " + JSON.stringify(c.sections || []));
+    let sc = 0; words.forEach(w => { if (c._nk.includes(w)) sc += main.includes(w) ? 3 : 1; }); if (c._nk.includes(nk(txt))) sc += 8;
+    if (sc > bs) { bs = sc; best = c; } });
+  return bs >= 3 && best && !lockedCat(best.cat) ? best : null;
+}
+function selExplain() {
+  const d = SEL; selBubClose(); if (!d) return; gtClose();
+  const found = selFind(d.txt), ch = selChap(d.txt, d.ctx), ai = SAMPLE_STATE === "ok" && SAMPLE;
+  const p = document.createElement("div"); p.id = "gtPop"; p.className = "gt-pop"; p.setAttribute("role", "dialog");
+  const c0 = found[0] && found[0].c && CAT[found[0].c] ? found[0].c : ch ? ch.cat : null; if (c0) p.setAttribute("style", hueStyle(c0));
+  const short = d.txt.length > 90 ? d.txt.slice(0, 87) + "…" : d.txt;
+  p.innerHTML = `<div class="gt-h"><b class="gt-q">« ${h(short)} »</b><button class="gt-x" data-act="gtClose" aria-label="Fermer">×</button></div>
+    ${found.map((e, i) => `<div${i ? ' class="gt-sep"' : ""}>${found.length > 1 || nk(e.t) !== nk(d.txt) ? `<p><b>${h(e.t)}</b></p>` : ""}${e.d ? `<p>${h(e.d)}</p>` : ""}${e.f ? `<div class="gt-f"><span>Comment le calculer</span><p>${h(e.f)}</p>${e.x ? `<small>Exemple : ${h(e.x)}</small>` : ""}</div>` : ""}</div>`).join("")}
+    ${!found.length && !ai ? `<p class="muted">Pas de définition toute prête pour ce passage. Sélectionne un mot ou une expression plus courte${ch ? ", ou ouvre la fiche qui en parle" : ""}.</p>` : ""}
+    <div class="gt-ai" id="gtAi">${ai ? `<button class="btn small${found.length ? "" : " primary"}" data-act="selAI">${ICON.talk}Expliquer avec Claude</button>` : ""}</div>
+    ${ch ? `<button class="btn small" data-act="fichePeek" data-id="${h(ch.id)}" data-hint="${h(d.txt)}">${ICON.book}Voir dans la fiche : ${h(ch.title.length > 40 ? ch.title.slice(0, 38) + "…" : ch.title)}</button>` : ""}`;
+  document.body.appendChild(p);
+  const W = Math.min(360, window.innerWidth - 24); p.style.width = W + "px";
+  const H = p.offsetHeight; let left = Math.min(Math.max(12, d.box.left + d.box.width / 2 - W / 2), window.innerWidth - W - 12), top = d.box.bottom + 10;
+  if (top + H > window.innerHeight - 76) top = Math.max(12, d.box.top - H - 10);
+  p.style.left = left + "px"; p.style.top = top + "px";
+  requestAnimationFrame(() => p.classList.add("in")); tone("soft"); document.addEventListener("keydown", gtKey);
+  if (!found.length && ai) selAI();
+}
+async function selAI() {
+  const d = SEL, box = document.getElementById("gtAi"); if (!d || !box || !SAMPLE) return;
+  box.innerHTML = `<p class="muted">Claude rédige une explication…</p>`;
+  const prompt = `Tu es professeur en BTS Comptabilité et Gestion. Un élève a sélectionné ce passage et ne le comprend pas : « ${d.txt} ».
+${d.q ? `Question en cours : « ${d.q} ».\n` : ""}Contexte autour : « ${d.ctx} ».
+Explique-lui ce passage simplement, en tutoyant, en 4 à 6 phrases courtes. Définis les mots techniques. Si c'est un calcul ou une règle chiffrée, donne un petit exemple chiffré. Réponds en texte brut, sans titre, sans markdown, sans liste à puces et sans tiret long.`;
+  try {
+    const r = await SAMPLE(prompt); let t = String(typeof r === "string" ? r : r && (r.text || r.content) || "").trim().replace(/\*\*/g, "").replace(/ — /g, ", ");
+    if (!t) throw 0; if (!document.getElementById("gtAi")) return;
+    document.getElementById("gtAi").innerHTML = `<p>${h(t)}</p><span class="muted">Explication générée par Claude. Vérifie avec ta fiche en cas de doute.</span>`;
+  } catch (e) {
+    const code = e && e.code; const b2 = document.getElementById("gtAi"); if (!b2) return;
+    b2.innerHTML = `<p class="muted">${code === "rate_limited" ? "Limite du jour atteinte. Réessaie demain." : "L'explication n'est pas disponible pour le moment."}</p>`;
+  }
+}
+
 /* Revoir la fiche : on ouvre directement sur le passage qui contient la réponse */
 const STOPW = new Set("dans pour avec sans sont elle elles leur leurs mais plus moins comme entre cette celui celle ceux quel quelle quels quelles dont donc tout tous toute toutes faut peut doit être avoir fait sont suis lors chez vers aussi ainsi alors très bien même autre autres selon après avant depuis pendant encore quand".split(" "));
 function hintTokens(s) { return nk(s).replace(/[^a-z0-9%,.' -]/g, " ").split(/[\s']+/).map(w => w.replace(/^[.,]+|[.,]+$/g, "")).filter(w => (w.length >= 4 && !STOPW.has(w)) || /^\d{3,}$/.test(w)); }
@@ -8913,6 +8998,8 @@ document.addEventListener("click", e => {
     case "wkFiche": closeSheet(); fichePeek(b.dataset.id); break;
     case "fichePeek": gtClose(); fichePeek(b.dataset.id, b.dataset.hint); break;
     case "gt": gtShow(b); break;
+    case "selX": selExplain(); break;
+    case "selAI": selAI(); break;
     case "gtClose": gtClose(); break;
     case "peekClose": peekClose(); break;
     case "amGo": AMT = b.dataset.t; if (view !== "amis") go("amis"); else render(); if (AMT === "amis") loadFriends(true); if (AMT === "duels") loadDuels(true); break;
