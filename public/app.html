@@ -680,6 +680,8 @@ mark { background: var(--hl); color: inherit; border-radius:0; padding: 0 1px; }
   background-image: linear-gradient(to bottom, transparent 0 56px, var(--card-head) 56px 58px, transparent 58px), repeating-linear-gradient(to bottom, transparent 0 29px, var(--card-line) 29px 30px);
   background-position: 0 0, 0 58px; }
 .bristol-head { height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-inline: 20px; }
+.bristol-head .ep { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; } .bristol-head .boxes { flex: none; }
+.card3d, .card3d .face, .bristol-body { min-width: 0; max-width: 100%; } .bristol-body { overflow-wrap: anywhere; }
 .bristol-body { padding: 18px 22px 22px; flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
 .bristol .front { font-family: var(--f-display); font-weight:600; font-size: 1.7rem; line-height: 1.18; text-wrap: balance; }
 .bristol .back { font-size: 1.08rem; line-height: 1.6; }
@@ -5975,7 +5977,7 @@ function vCard() {
   const cur = C.q[C.i], it = cur.it, c = CAT[it.c], ch = it.ch && CHID[it.ch];
   const box = (S.c[it.id] || [0])[0];
   const boxes = [1, 2, 3, 4, 5].map(b => `<i class="${b <= box ? "on" : ""}"></i>`).join("");
-  const head = `<div class="bristol-head"><span class="ep">${h(c.code)} ${h(ch ? ch.title : c.name)}</span><span class="boxes" title="Niveau de la carte">${boxes}</span></div>`;
+  const head = `<div class="bristol-head"><span class="ep" title="${h(c.code)} ${h(ch ? ch.title : c.name)}">${h(c.code)} ${h(ch ? ch.title : c.name)}</span><span class="boxes" title="Niveau de la carte">${boxes}</span></div>`;
   return `<section class="runner card-runner${C.flip ? " flipped" : ""}" style="${hueStyle(it.c)}">
     <div class="runner-top"><span class="progress-text">Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
