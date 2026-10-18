@@ -812,7 +812,7 @@ mark { background: var(--hl); color: inherit; border-radius:0; padding: 0 1px; }
 .countdown { display: inline-flex; align-items: baseline; gap: 10px; background: var(--ink); color: var(--paper); border: 0; border-radius:var(--radius); padding: 10px 16px; cursor: pointer; box-shadow: var(--lift); }
 .countdown b { font-family: var(--f-display); font-size: 2rem; font-weight:600; line-height: 1; white-space: nowrap; }
 .countdown span { font-weight: 600; font-size: .92rem; opacity: .85; }
-.shelf { position: relative; height: 340px; border-radius:var(--radius); background: var(--paper); overflow: hidden; }
+.shelf { position: relative; height: 340px; border-radius:var(--radius); background: var(--sheet); border: 1px solid var(--rule); overflow: hidden; }
 .shelf-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; touch-action: pan-y; }
 .shelf-label { position: absolute; left: 14px; bottom: 10px; margin: 0; font-size: .82rem; font-weight:600; color: var(--muted); background: var(--sheet); border: 1px solid var(--rule); border-radius:var(--radius); padding: 3px 10px; pointer-events: none; }
 .shelf.no3d { display: none; }
@@ -1831,6 +1831,7 @@ select[data-fi] { width: 100%; max-width: 100%; }
 <main class="wrap" id="view"></main>
 
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="gl-content" data-formation="bts-cg">
 /* =====================================================================
    CONTENU DE LA FORMATION : BTS Comptabilité et Gestion
@@ -6670,25 +6671,23 @@ function shelfHint() { try { return matchMedia("(pointer: coarse)").matches ? "G
 function noiseFill(g, w, hh, a, n) { for (let k = 0; k < n; k++) { g.fillStyle = `rgba(${Math.random() < .5 ? "0,0,0" : "255,255,255"},${Math.random() * a})`; g.fillRect(Math.random() * w, Math.random() * hh, 1 + Math.random() * 2, 1 + Math.random() * 2); } }
 function spineTexture(cat, dark) {
   const T = window.THREE, cv = document.createElement("canvas"); cv.width = 512; cv.height = 2048;
-  const g = cv.getContext("2d"), hs = HUE[cat] || [228, 40], col = `hsl(${hs[0]}, ${hs[1]}%, ${dark ? 50 : 44}%)`; g.scale(2, 2);
+  const g = cv.getContext("2d"), hs = HUE[cat] || [214, 30], col = `hsl(${hs[0]}, ${Math.round(hs[1] * .5)}%, ${dark ? 40 : 34}%)`; g.scale(2, 2);
   g.fillStyle = col; g.fillRect(0, 0, 256, 1024);
-  noiseFill(g, 256, 1024, .06, 5000);
+  noiseFill(g, 256, 1024, .025, 2500);
   /* tranche arrondie : ombre sur les bords, reflet vers la gauche */
   const grad = g.createLinearGradient(0, 0, 256, 0);
-  grad.addColorStop(0, "rgba(0,0,0,.42)"); grad.addColorStop(.07, "rgba(0,0,0,.08)"); grad.addColorStop(.2, "rgba(255,255,255,.22)"); grad.addColorStop(.32, "rgba(255,255,255,.06)"); grad.addColorStop(.75, "rgba(0,0,0,0)"); grad.addColorStop(.93, "rgba(0,0,0,.16)"); grad.addColorStop(1, "rgba(0,0,0,.45)");
+  grad.addColorStop(0, "rgba(0,0,0,.28)"); grad.addColorStop(.08, "rgba(0,0,0,.04)"); grad.addColorStop(.9, "rgba(0,0,0,.04)"); grad.addColorStop(1, "rgba(0,0,0,.3)");
   g.fillStyle = grad; g.fillRect(0, 0, 256, 1024);
   /* liserés haut et bas */
-  g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(0, 0, 256, 10); g.fillRect(0, 1014, 256, 10);
+  g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(0, 0, 256, 8); g.fillRect(0, 1016, 256, 8);
   /* porte-étiquette en plastique */
-  g.fillStyle = "rgba(0,0,0,.28)"; roundRect(g, 26, 60, 204, 172, 18); g.fill();
-  g.fillStyle = "#fbfbf7"; roundRect(g, 34, 68, 188, 156, 14); g.fill();
-  g.fillStyle = "#1c2142"; g.font = "800 84px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(CAT[cat].code, 128, 148);
-  const gl = g.createLinearGradient(34, 68, 222, 224); gl.addColorStop(0, "rgba(255,255,255,.55)"); gl.addColorStop(.35, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(0,0,0,.06)");
-  g.fillStyle = gl; roundRect(g, 34, 68, 188, 156, 14); g.fill();
+  g.fillStyle = "#F5F7FA"; roundRect(g, 34, 68, 188, 156, 8); g.fill();
+  g.fillStyle = "#18202B"; g.font = "600 84px 'Source Serif 4', Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(CAT[cat].code, 128, 148);
+  
   /* titre vertical : gros caractères, sur deux lignes si besoin */
   {
     const name = CAT[cat].name, words = name.split(" "), LEN = 530, THICK = 196;
-    const fontAt = f => `800 ${f}px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif`;
+    const fontAt = f => `600 ${f}px 'Source Sans 3', 'Segoe UI', sans-serif`;
     let best = null;
     for (let f = 104; f >= 44 && !best; f -= 2) {
       g.font = fontAt(f);
@@ -6702,25 +6701,23 @@ function spineTexture(cat, dark) {
     if (!best) best = { f: 44, lines: [name] };
     g.save(); g.translate(128, 540); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.textBaseline = "middle"; g.font = fontAt(best.f);
     const lh = best.f * 1.02, y0 = -(best.lines.length - 1) * lh / 2;
-    best.lines.forEach((t, i) => { g.lineWidth = best.f * .14; g.strokeStyle = "rgba(0,0,0,.35)"; g.lineJoin = "round"; g.strokeText(t, 0, y0 + i * lh); g.fillStyle = "#ffffff"; g.fillText(t, 0, y0 + i * lh); });
+    best.lines.forEach((t, i) => { g.fillStyle = "#ffffff"; g.fillText(t, 0, y0 + i * lh); });
     g.restore();
   }
   /* trou de préhension avec anneau métallique */
-  const rg = g.createRadialGradient(118, 895, 6, 128, 905, 48); rg.addColorStop(0, "#f4f6fa"); rg.addColorStop(.55, "#a9b0bd"); rg.addColorStop(.8, "#e8ebf1"); rg.addColorStop(1, "#6d7480");
-  g.beginPath(); g.arc(128, 905, 46, 0, Math.PI * 2); g.fillStyle = rg; g.fill();
-  const hg = g.createRadialGradient(128, 896, 4, 128, 905, 32); hg.addColorStop(0, dark ? "#0a0b18" : "#2a2d3a"); hg.addColorStop(1, dark ? "#1b1d33" : "#4a4f60");
-  g.beginPath(); g.arc(128, 905, 31, 0, Math.PI * 2); g.fillStyle = hg; g.fill();
+  g.beginPath(); g.arc(128, 905, 42, 0, Math.PI * 2); g.fillStyle = "#C3CBD6"; g.fill();
+  g.beginPath(); g.arc(128, 905, 30, 0, Math.PI * 2); g.fillStyle = dark ? "#121821" : "#2B3546"; g.fill();
   /* progression */
   const ls = lessonStats(cat), pr = ls.n ? ls.r / ls.n : 0;
-  g.fillStyle = "rgba(0,0,0,.3)"; roundRect(g, 40, 972, 176, 14, 7); g.fill();
-  if (pr > 0) { g.fillStyle = "#ffd66b"; roundRect(g, 40, 972, Math.max(14, 176 * pr), 14, 7); g.fill(); }
+  g.fillStyle = "rgba(0,0,0,.28)"; g.fillRect(40, 972, 176, 12);
+  if (pr > 0) { g.fillStyle = "#E0A84A"; g.fillRect(40, 972, Math.max(8, 176 * pr), 12); }
   const tex = new T.CanvasTexture(cv); tex.anisotropy = 16; if (T.sRGBEncoding) tex.encoding = T.sRGBEncoding; return { tex, col };
 }
 function pagesTexture(col) {
   const T = window.THREE, cv = document.createElement("canvas"); cv.width = 128; cv.height = 256; const g = cv.getContext("2d");
   g.fillStyle = col; g.fillRect(0, 0, 128, 256);
-  g.fillStyle = "#f3efe4"; g.fillRect(14, 12, 104, 232);
-  for (let y = 14; y < 244; y += 3) { g.fillStyle = `rgba(120,110,90,${.12 + Math.random() * .18})`; g.fillRect(14, y, 104, 1); }
+  g.fillStyle = "#F5F7FA"; g.fillRect(14, 12, 104, 232);
+  for (let y = 14; y < 244; y += 3) { g.fillStyle = "rgba(89,101,122,.14)"; g.fillRect(14, y, 104, 1); }
   g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(14, 12, 104, 3);
   const t = new T.CanvasTexture(cv); if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; return t;
 }
@@ -6742,18 +6739,18 @@ function initShelf() {
   r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
   if (T.sRGBEncoding) r.outputEncoding = T.sRGBEncoding; if (T.ACESFilmicToneMapping) { r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 1.15; }
   const scene = new T.Scene(), cam = new T.PerspectiveCamera(30, 1.6, 0.1, 100);
-  scene.add(new T.HemisphereLight(0xfff7ea, 0x7a6550, 0.55));
+  scene.add(new T.HemisphereLight(0xffffff, 0x9aa6b8, 0.6));
   scene.add(new T.AmbientLight(0xffffff, 0.18));
-  const dl = new T.DirectionalLight(0xfff0db, 1.05); dl.position.set(-3.5, 6.5, 6); dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); dl.shadow.radius = 5; dl.shadow.bias = -0.0006; Object.assign(dl.shadow.camera, { left: -6, right: 6, top: 5, bottom: -2, near: 1, far: 22 }); scene.add(dl);
-  const dl2 = new T.DirectionalLight(0xbac6ff, 0.35); dl2.position.set(5, 2.5, 4); scene.add(dl2);
-  const rim = new T.PointLight(0xffe2b8, 0.35, 12); rim.position.set(0, 4.2, 2.2); scene.add(rim);
+  const dl = new T.DirectionalLight(0xffffff, 0.95); dl.position.set(-3.5, 6.5, 6); dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); dl.shadow.radius = 5; dl.shadow.bias = -0.0006; Object.assign(dl.shadow.camera, { left: -6, right: 6, top: 5, bottom: -2, near: 1, far: 22 }); scene.add(dl);
+  const dl2 = new T.DirectionalLight(0xffffff, 0.3); dl2.position.set(5, 2.5, 4); scene.add(dl2);
+  const rim = new T.PointLight(0xffffff, 0.2, 12); rim.position.set(0, 4.2, 2.2); scene.add(rim);
   const group = new T.Group(); scene.add(group);
   const binders = [], n = CATS.length, width = n * 0.68;
   const Mat = T.MeshPhysicalMaterial || T.MeshStandardMaterial;
   CATS.forEach((c, i) => {
     const hgt = 2.35 + ((i * 37) % 5) * 0.08, depth = 1.9 + ((i * 53) % 3) * 0.05, geo = new T.BoxGeometry(0.6, hgt, depth);
-    const side = new Mat({ color: 0xffffff, roughness: .42, metalness: .0, clearcoat: .55, clearcoatRoughness: .35 });
-    const spine = new Mat({ roughness: .4, metalness: .0, clearcoat: .6, clearcoatRoughness: .3 });
+    const side = new Mat({ color: 0xffffff, roughness: .75, metalness: 0 });
+    const spine = new Mat({ roughness: .7, metalness: 0 });
     const top = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .9 });
     const m = new T.Mesh(geo, [side, side, top, top, spine, side]);
     const x = (i - (n - 1) / 2) * 0.68;
@@ -6762,16 +6759,14 @@ function initShelf() {
     m.castShadow = true; m.receiveShadow = true; group.add(m); binders.push(m);
   });
   /* meuble en bois : planche, montants, fond */
-  const wood = woodTexture("#b98a57", 1024, 128, 70), woodDark = woodTexture("#8b6a48", 512, 512, 120);
-  wood.repeat.set(1, 1); woodDark.repeat.set(2, 1);
-  const woodMat = new T.MeshStandardMaterial({ map: wood, roughness: .62, metalness: 0 });
+  const woodMat = new T.MeshStandardMaterial({ color: 0xdde3ea, roughness: .8, metalness: 0 });
   const plank = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.2, 2.5), woodMat);
   plank.position.set(0, -0.1, -0.15); plank.receiveShadow = true; plank.castShadow = true; group.add(plank); SHELF.plank = plank;
-  const lip = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0x7a5636, roughness: .55 }));
+  const lip = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.06, 0.05), new T.MeshStandardMaterial({ color: 0xc3cbd6, roughness: .8 }));
   lip.position.set(0, -0.12, 1.11); group.add(lip);
-  const sideMat = new T.MeshStandardMaterial({ map: woodDark, roughness: .65 });
+  const sideMat = new T.MeshStandardMaterial({ color: 0xdde3ea, roughness: .8 });
   [-1, 1].forEach(sg => { const up = new T.Mesh(new T.BoxGeometry(0.16, 3.3, 2.5), sideMat); up.position.set(sg * (width / 2 + 0.23), 1.45, -0.15); up.castShadow = true; up.receiveShadow = true; group.add(up); });
-  const back = new T.Mesh(new T.PlaneGeometry(width + 0.5, 3.2), new T.MeshStandardMaterial({ map: woodDark, roughness: .85, color: 0xd9cbb8 }));
+  const back = new T.Mesh(new T.PlaneGeometry(width + 0.5, 3.2), new T.MeshStandardMaterial({ roughness: .95, color: 0xeef1f5 }));
   back.position.set(0, 1.45, -1.38); back.receiveShadow = true; group.add(back); SHELF.back = back; SHELF.sideMat = sideMat;
   const stand = new T.Mesh(new T.BoxGeometry(width + 0.62, 0.2, 2.5), woodMat); stand.position.set(0, 3.0, -0.15); group.add(stand);
   Object.assign(SHELF, { r, scene, cam, group, binders, ray: new T.Raycaster(), mouse: new T.Vector2(-9, -9), px: 0, py: 0, hover: null, t0: performance.now(), dark: null, running: false });
@@ -6801,9 +6796,9 @@ function paintShelf(force) {
     const c = new T.Color(col); if (T.sRGBEncoding && c.convertSRGBToLinear) c.convertSRGBToLinear(); m.userData.side.color = c.multiplyScalar(dark ? .8 : 1);
     if (m.userData.top.map) m.userData.top.map.dispose(); m.userData.top.map = pagesTexture(col); m.userData.top.needsUpdate = true;
   });
-  SHELF.plank.material.color = new T.Color(dark ? 0x8a7766 : 0xffffff);
-  if (SHELF.sideMat) SHELF.sideMat.color = new T.Color(dark ? 0x7d6c5c : 0xffffff);
-  if (SHELF.back) SHELF.back.material.color = new T.Color(dark ? 0x544a40 : 0xd9cbb8);
+  SHELF.plank.material.color = new T.Color(dark ? 0x2b3546 : 0xdde3ea);
+  if (SHELF.sideMat) SHELF.sideMat.color = new T.Color(dark ? 0x2b3546 : 0xdde3ea);
+  if (SHELF.back) SHELF.back.material.color = new T.Color(dark ? 0x1a2230 : 0xeef1f5);
 }
 function sizeShelf() {
   const host = document.getElementById("shelf3d"); if (!host || !SHELF.r) return;
@@ -6815,22 +6810,23 @@ function sizeShelf() {
 }
 function shelfFrame(now) {
   if (!SHELF.r || !SHELF.r.domElement.isConnected) { SHELF.running = false; return; }
-  const t = (now - SHELF.t0) / 1000, sway = RM ? 0 : Math.sin(t * 0.25) * 0.5;
-  const cam = SHELF.cam; cam.position.set(sway * .35 + SHELF.px * .5, 1.75 + SHELF.py * .35, SHELF.dist); cam.lookAt(0, 1.45, 0);
+  const sway = 0;
+  const cam = SHELF.cam; cam.position.set(SHELF.px * .25, 1.75 + SHELF.py * .15, SHELF.dist); cam.lookAt(0, 1.45, 0);
   SHELF.ray.setFromCamera(SHELF.mouse, cam);
   const hit = SHELF.ray.intersectObjects(SHELF.binders)[0], hov = hit ? hit.object : null;
   if (hov !== SHELF.hover) { SHELF.hover = hov; SHELF.r.domElement.style.cursor = hov ? "pointer" : "default"; const lab = document.getElementById("shelfLabel"); if (lab) lab.textContent = hov ? `${CAT[hov.userData.cat].code} ${CAT[hov.userData.cat].name} : ${matchMedia("(pointer: coarse)").matches ? "lâche pour ouvrir" : "ouvrir"}` : shelfHint(); }
-  SHELF.binders.forEach((m, i) => { const target = m === hov ? 0.7 : 0; m.userData.out += (target - m.userData.out) * 0.15; m.position.z = m.userData.baseZ + m.userData.out; m.position.y = m.geometry.parameters.height / 2 + (RM ? 0 : Math.sin(t * 1.2 + i) * 0.012) + m.userData.out * 0.12; });
+  SHELF.binders.forEach((m, i) => { const target = m === hov ? 0.55 : 0; m.userData.out += (target - m.userData.out) * (RM ? 1 : 0.2); m.position.z = m.userData.baseZ + m.userData.out; m.position.y = m.geometry.parameters.height / 2 + m.userData.out * 0.12; });
   SHELF.r.render(SHELF.scene, cam);
   requestAnimationFrame(shelfFrame);
 }
 function mountShelf() {
   const host = document.getElementById("shelf3d"); if (!host) return;
-  if (SHELF.ok === null) SHELF.ok = false; // étagère 3D retirée (DESIGN.md : pas de 3D)
+  if (SHELF.ok === null) SHELF.ok = !!window.THREE && webglOK();
   if (!SHELF.ok) { host.classList.add("no3d"); return; }
   try {
     if (!SHELF.r) initShelf();
     host.prepend(SHELF.r.domElement); sizeShelf(); paintShelf();
+    if (!SHELF.fontsHooked && document.fonts && document.fonts.ready) { SHELF.fontsHooked = true; document.fonts.ready.then(() => paintShelf(true)); }
     if (!SHELF.ro && window.ResizeObserver) { SHELF.ro = new ResizeObserver(() => sizeShelf()); }
     if (SHELF.ro) { SHELF.ro.disconnect(); SHELF.ro.observe(host); }
     if (!SHELF.running) { SHELF.running = true; requestAnimationFrame(shelfFrame); }
