@@ -113,6 +113,11 @@ input.in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px colo
 .regbar{display:flex;height:14px;border-radius:var(--radius);overflow:hidden;background:var(--rule)}.regbar i{display:block;height:100%}
 .reglg{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;font-size:.84rem;margin-top:8px}.reglg span{display:flex;align-items:center;gap:6px}.reglg b{font-variant-numeric:tabular-nums;margin-left:auto}
 .reglg em{width:10px;height:10px;border-radius:0;display:inline-block}
+.mtx-wrap{overflow-x:auto;margin:0 -4px}.mtx{border-collapse:separate;border-spacing:2px;font-size:.82rem;font-variant-numeric:tabular-nums;min-width:100%}
+.mtx th{font-size:.72rem;font-weight:600;color:var(--muted);padding:4px 6px;text-align:center;white-space:nowrap;cursor:pointer}.mtx th:hover{color:var(--ink)}
+.mtx td{text-align:center;padding:6px;border-radius:6px;white-space:nowrap}.mtx td.nm,.mtx th:first-child{text-align:left;position:sticky;left:0;background:var(--sheet);z-index:1;max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.mtx tbody tr:hover td.nm{color:var(--accent)}
+.err-it{display:grid;gap:4px;padding:10px 0;border-bottom:1px solid var(--rule)}.err-it:last-of-type{border-bottom:0}.err-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.err-h .pill{margin-left:auto}.err-q{font-weight:600}.err-p{color:var(--bad)}
 .coh{width:100%;border-collapse:separate;border-spacing:3px;font-size:.84rem}.coh th{font-weight:600;color:var(--muted);text-align:center;font-size:.76rem}.coh th:first-child{text-align:left}
 .coh td{text-align:center;border-radius:var(--radius);padding:6px 2px;font-variant-numeric:tabular-nums;font-weight:600}.coh td:first-child{text-align:left;font-weight:600;padding-left:0}
 .trend{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.trend div{border:1px solid var(--rule);border-radius:var(--radius);padding:8px 10px}.trend b{display:block;font:600 1.15rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}.trend span{font-size:.76rem;color:var(--muted);font-weight:600}.trend small{font-size:.74rem;font-weight:600}
@@ -794,8 +799,59 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       drawCh();
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Maîtrise par chapitre" }), el("span", { cls: "muted small", text: chs.length + " / " + j.chapitres.length + " travaillés" })]), el("div", { style: "overflow-x:auto" }, [segc]),
         el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz, part des questions acquises par les élèves qui ont travaillé le chapitre, et combien de la classe l'a abordé." }), box]));
+      try { if (force || !CACHE.ped) CACHE.ped = await call("/api/admin/pedago"); pedagoCards(out, CACHE.ped); } catch (e) {}
       if (TAB === "classe" && CVIEW === "analyse") setView(out);
     } catch (e) { errView(e); }
+  }
+
+
+  /* ---------- Suivi pédagogique (pour les profs et les organismes de formation) ---------- */
+  var MCOLS = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "cg", "an"];
+  function rCol(v) { return v == null ? "" : "background:color-mix(in srgb," + (v >= 70 ? "var(--ok)" : v >= 50 ? "var(--gold)" : "var(--bad)") + " " + Math.round(18 + Math.abs(v - 50) * .5) + "%,transparent)"; }
+  function lastTxt(d) { return d == null ? "jamais" : d === 0 ? "aujourd'hui" : d === 1 ? "hier" : "il y a " + d + " j"; }
+  function pedagoCards(out, P) {
+    if (!P || !P.eleves) return;
+    var cols = MCOLS.filter(function (c) { return P.matrice.some(function (m) { return m.mat[c]; }); });
+    /* 1. Tableau de la classe */
+    var sortK = "name", tb = el("tbody");
+    function drawM() {
+      var L = P.matrice.slice().sort(function (a, b) { if (sortK === "name") return a.name.localeCompare(b.name, "fr"); var va = sortK === "dernier" ? -(a.dernier == null ? 9999 : a.dernier) : a[sortK] == null ? -1 : a[sortK], vb = sortK === "dernier" ? -(b.dernier == null ? 9999 : b.dernier) : b[sortK] == null ? -1 : b[sortK]; return sortK.indexOf("mat:") === 0 ? ((b.mat[sortK.slice(4)] || { r: -1 }).r - (a.mat[sortK.slice(4)] || { r: -1 }).r) : vb - va; });
+      tb.replaceChildren.apply(tb, L.map(function (m) {
+        return el("tr", { onclick: function () { openStudent(m.id, m.name); }, style: "cursor:pointer" }, [el("td", { cls: "nm", text: m.name }), el("td", { style: rCol(m.reussite), text: m.reussite == null ? "·" : m.reussite + " %" })]
+          .concat(cols.map(function (c) { var x = m.mat[c]; return el("td", { style: rCol(x ? x.r : null), title: x ? x.n + " réponses" : "pas encore travaillé", text: x ? x.r : "·" }); }))
+          .concat([el("td", { text: m.programme + " %" }), el("td", { text: m.ctlValides + " / " + m.ctlTentes }), el("td", { text: m.annales ? m.annales + (m.noteMoy != null ? " · " + String(m.noteMoy).replace(".", ",") : "") : "·" }), el("td", { text: m.jours7 + " j" }), el("td", { cls: "muted", text: lastTxt(m.dernier) })]));
+      }));
+    }
+    var heads = [["name", "Élève"], ["reussite", "Réussite"]].concat(cols.map(function (c) { return ["mat:" + c, LBL[c] || c.toUpperCase()]; })).concat([["programme", "Programme vu"], ["ctlValides", "Contrôles validés"], ["annales", "Annales · /20"], ["jours7", "Jours / 7"], ["dernier", "Dernière visite"]]);
+    var thead = el("thead", null, [el("tr", null, heads.map(function (hd) { return el("th", { cls: "srt", title: "Trier", onclick: function () { sortK = hd[0]; drawM(); }, text: hd[1] }); }))]);
+    drawM();
+    out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Tableau de la classe" }), el("button", { cls: "btn small", html: I.dl + "Excel", onclick: function () {
+      csvDownload("grand-livre-tableau-classe.csv", ["Élève", "Réussite (%)", "Réponses"].concat(cols.map(function (c) { return (LBL[c] || c) + " (%)"; })).concat(["Programme vu (%)", "Chapitres travaillés", "Contrôles tentés", "Contrôles validés", "Annales faites", "Note moyenne annales (/20)", "Fiches lues", "Jours actifs (7 j)", "Jours actifs (30 j)", "Dernière visite (jours)", "XP"]),
+        P.matrice.map(function (m) { return [m.name, m.reussite, m.reponses].concat(cols.map(function (c) { return m.mat[c] ? m.mat[c].r : ""; })).concat([m.programme, m.chapitres, m.ctlTentes, m.ctlValides, m.annales, m.noteMoy == null ? "" : String(m.noteMoy).replace(".", ","), m.fiches, m.jours7, m.jours30, m.dernier == null ? "" : m.dernier, m.xp]); }));
+    } })]),
+      el("div", { cls: "mtx-wrap" }, [el("table", { cls: "mtx" }, [thead, tb])]),
+      el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz par matière (en %). Programme vu : part des " + P.chapitresTotal + " chapitres où l'élève a répondu à au moins une question. Contrôle validé : réussi à 80 % deux jours différents, à 3 jours d'écart au moins. Touche un en-tête pour trier, un élève pour ouvrir sa fiche." })]));
+    /* 2. Erreurs typiques */
+    if (P.erreurs.length) {
+      var allE = false, eb = el("div");
+      var drawE = function () { var L = allE ? P.erreurs : P.erreurs.slice(0, 6); eb.replaceChildren.apply(eb, L.map(function (e) {
+        return el("div", { cls: "err-it" }, [el("div", { cls: "err-h" }, [tabcode(e.c), el("span", { cls: "muted small", text: e.ch }), el("span", { cls: "pill " + (e.reussite < 50 ? "bad" : "warn"), text: e.enErreur + " / " + e.eleves + " en erreur" })]),
+          el("p", { cls: "err-q", text: e.q }), el("p", { cls: "small" }, [el("b", { text: "Bonne réponse : " }), e.bonne || "?"]),
+          e.piege ? el("p", { cls: "small err-p" }, [el("b", { text: "Piège le plus choisi : " }), e.piege + " (" + pl(e.piegeN, "élève") + ")"]) : null].filter(Boolean));
+      }).concat(P.erreurs.length > 6 ? [el("button", { cls: "btn small", style: "margin-top:8px", text: allE ? "Réduire" : "Voir les " + P.erreurs.length, onclick: function () { allE = !allE; drawE(); } })] : [])); };
+      drawE();
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Erreurs typiques" }), el("span", { cls: "muted small", text: "à reprendre en cours" })]), eb,
+        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Questions où la plus grande part des élèves s'est trompée. Le piège est la mauvaise réponse choisie le plus souvent : il montre l'idée fausse à corriger." })]));
+    }
+    /* 3. Contrôles de chapitre */
+    if (P.controles.length) out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Contrôles de chapitre" }), el("span", { cls: "muted small", text: P.controles.length + " chapitres tentés" })])].concat(P.controles.slice(0, 15).map(function (c) {
+      return el("div", { cls: "chrow" }, [tabcode(c.c), el("span", { cls: "t", text: c.t }), el("span", { cls: "pill " + (c.dernierMoy >= 80 ? "ok" : c.dernierMoy >= 60 ? "warn" : "bad"), text: c.dernierMoy + " %" }), el("div", { cls: "mt" }, [meter(Math.round(c.valides / c.tentes * 100), c.c), el("small", { text: c.valides + " validé" + (c.valides > 1 ? "s" : "") + " sur " + pl(c.tentes, "élève") + " · " + c.essais + " essai" + (c.essais > 1 ? "s" : "") })])]);
+    })).concat([el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Pourcentage : score moyen au dernier essai. Validé : 80 % ou plus deux jours différents, à 3 jours d'écart au moins." })])));
+    /* 4. Annales */
+    if (P.annales.length) out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Annales" }), el("span", { cls: "muted small", text: "sujets d'examen" })]),
+      el("div", { style: "overflow-x:auto" }, [el("table", { cls: "coh" }, [el("thead", null, [el("tr", null, ["Épreuve", "Élèves", "Exercices faits", "Notés", "Moyenne /20"].map(function (x) { return el("th", { text: x }); }))]),
+        el("tbody", null, P.annales.map(function (a) { return el("tr", null, [el("td", { text: a.ep }), el("td", { text: a.eleves }), el("td", { text: a.faits }), el("td", { text: a.notes }), el("td", { style: a.moyenne == null ? "" : rCol(a.moyenne * 5), text: a.moyenne == null ? "·" : String(a.moyenne).replace(".", ",") })]); }))])]),
+      el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Notes ramenées sur 20, issues de la correction ou de l'auto-évaluation de l'élève avec le corrigé." })]));
   }
 
   /* ---------- Classe ---------- */

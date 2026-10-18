@@ -77,4 +77,6 @@ import subprocess
 qm = os.path.join(HERE, "..", "src", "qmap.json")
 subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "qmap.js"), src, qm], env=dict(os.environ, NODE_PATH=subprocess.run(["npm", "root", "-g"], capture_output=True, text=True).stdout.strip()))
 if os.path.exists(qm): assert "MAMI" not in open(qm, encoding="utf-8").read(), "contenu personnel dans qmap.json"
+mt = os.path.join(HERE, "..", "src", "meta.json")
+if os.path.exists(mt): assert "MAMI" not in open(mt, encoding="utf-8").read(), "contenu personnel dans meta.json"
 print("app.html :", len(s), "octets ; mentions personnelles restantes hors partie retirée :", leftover)

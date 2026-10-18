@@ -967,6 +967,53 @@ app.post("/api/admin/insights", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* Suivi pédagogique : tableau de classe, erreurs typiques, contrôles de chapitre, annales.
+   Tout est calculé à partir de la progression enregistrée ; rien n'est estimé. */
+let META = { ch: {}, ann: {} }; try { META = JSON.parse(fs.readFileSync(path.join(__dirname, "src", "meta.json"), "utf8")); } catch (e) {}
+const MAINC = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "cg", "an"];
+function ctlOk(L) { const pass = [...new Set((L || []).filter(x => x && x.pc >= 80).map(x => x.d))].sort((a, b) => a - b); return pass.length >= 2 && pass[pass.length - 1] - pass[0] >= 3; }
+app.post("/api/admin/pedago", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const dn = parisNow().dayNum, rows = (await scoped(req, await store.fullProgress())).filter(r => !r.blocked);
+    const totCh = {}; Object.values(QMAP).forEach(m => { if (m && m[2]) { const c = m[0].split(" ")[0]; (totCh[c] = totCh[c] || new Set()).add(m[2]); } });
+    const nCh = Object.values(totCh).reduce((t, x) => t + x.size, 0);
+    /* 1. Tableau de classe */
+    const matrice = rows.map(r => {
+      const d = r.data || {}, q = d.q || {}, h = d.h || {}, cat = {}, chs = new Set(); let rep = 0, ok = 0;
+      Object.entries(q).forEach(([id, a]) => { if (!Array.isArray(a)) return; const c = id.replace(/q\d+$/, ""), o = cat[c] || (cat[c] = { n: 0, ok: 0 }); o.n += a[0] || 0; o.ok += a[1] || 0; rep += a[0] || 0; ok += a[1] || 0; const m = QMAP[id]; if (m && m[2]) chs.add(m[0].split(" ")[0] + "|" + m[2]); });
+      const jd = Object.keys(h).filter(k => h[k] > 0).map(Number), last = jd.length ? Math.max.apply(null, jd) : null;
+      const ctl = d.ctl || {}, an = d.an || {}; let nb = 0, sum = 0, faits = 0;
+      Object.entries(an).forEach(([id, x]) => { if (!x) return; if (x.d) faits++; const r2 = x.r; if (r2 && r2.note != null) { const sur = r2.sur || (META.ann[id] && META.ann[id][4]) || 20; if (sur > 0) { nb++; sum += r2.note / sur * 20; } } });
+      return { id: r.id, name: r.name, xp: d.xp || 0, jours7: jd.filter(k => k > dn - 7).length, jours30: jd.filter(k => k > dn - 30).length, dernier: last == null ? null : dn - last,
+        reponses: rep, reussite: rep ? Math.round(ok / rep * 100) : null,
+        mat: Object.fromEntries(MAINC.filter(c => cat[c] && cat[c].n).map(c => [c, { n: cat[c].n, r: Math.round(cat[c].ok / cat[c].n * 100) }])),
+        programme: nCh ? Math.round(chs.size / nCh * 100) : 0, chapitres: chs.size,
+        ctlTentes: Object.keys(ctl).filter(k => (ctl[k] || []).length).length, ctlValides: Object.keys(ctl).filter(k => ctlOk(ctl[k])).length,
+        annales: faits, noteMoy: nb ? Math.round(sum / nb * 10) / 10 : null, fiches: Object.keys(d.fr || {}).length };
+    }).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+    /* 2. Erreurs typiques : questions ratées par au moins deux élèves, avec la mauvaise réponse la plus choisie */
+    const E = {};
+    rows.forEach(r => { const d = r.data || {}, q = d.q || {}, ew = d.ew || {};
+      Object.entries(q).forEach(([id, a]) => { if (!Array.isArray(a)) return; const o = E[id] || (E[id] = { n: 0, ok: 0, el: 0, ko: 0, pick: {} }); o.n += a[0] || 0; o.ok += a[1] || 0; o.el++; if ((a[0] || 0) > (a[1] || 0)) { o.ko++; const t = ew[id] && ew[id].t; if (t) o.pick[t] = (o.pick[t] || 0) + 1; } }); });
+    const erreurs = Object.entries(E).filter(([id, o]) => QMAP[id] && o.ko >= (rows.length < 5 ? 1 : 2) && o.n >= 2)
+      .map(([id, o]) => { const m = QMAP[id], pk = Object.entries(o.pick).sort((a, b) => b[1] - a[1])[0];
+        return { id, c: m[0].split(" ")[0], q: m[1], ch: m[2], bonne: m[3] || "", eleves: o.el, enErreur: o.ko, reussite: Math.round(o.ok / o.n * 100), piege: pk ? pk[0] : "", piegeN: pk ? pk[1] : 0 }; })
+      .sort((a, b) => b.enErreur / b.eleves - a.enErreur / a.eleves || b.enErreur - a.enErreur).slice(0, 30);
+    /* 3. Contrôles de chapitre */
+    const C = {};
+    rows.forEach(r => { const ctl = (r.data || {}).ctl || {}; Object.entries(ctl).forEach(([k, L]) => { if (!Array.isArray(L) || !L.length) return; const o = C[k] || (C[k] = { tentes: 0, valides: 0, sum: 0, essais: 0 }); o.tentes++; o.essais += L.length; o.sum += L[L.length - 1].pc || 0; if (ctlOk(L)) o.valides++; }); });
+    const controles = Object.entries(C).map(([k, o]) => ({ id: k, c: META.ch[k] ? META.ch[k][0] : k.slice(0, 2).toUpperCase(), t: META.ch[k] ? META.ch[k][1] : k, tentes: o.tentes, valides: o.valides, dernierMoy: Math.round(o.sum / o.tentes), essais: o.essais }))
+      .filter(x => META.ch[x.id]).sort((a, b) => b.tentes - a.tentes || a.t.localeCompare(b.t));
+    /* 4. Annales, par épreuve */
+    const A = {};
+    rows.forEach(r => { const an = (r.data || {}).an || {}; const seen = {}; Object.entries(an).forEach(([id, x]) => { const m = META.ann[id]; if (!m || !x) return; const o = A[m[0]] || (A[m[0]] = { eleves: 0, faits: 0, notes: 0, sum: 0 }); if (!seen[m[0]]) { seen[m[0]] = 1; o.eleves++; } if (x.d) o.faits++; const r2 = x.r; if (r2 && r2.note != null) { const sur = r2.sur || m[4] || 20; if (sur > 0) { o.notes++; o.sum += r2.note / sur * 20; } } }); });
+    const annales = Object.entries(A).map(([ep, o]) => ({ ep, eleves: o.eleves, faits: o.faits, notes: o.notes, moyenne: o.notes ? Math.round(o.sum / o.notes * 10) / 10 : null })).sort((a, b) => a.ep.localeCompare(b.ep));
+    res.json({ eleves: rows.length, chapitresTotal: nCh, matrice, erreurs, controles, annales });
+  } catch (e) { next(e); }
+});
+
 /* Fiche de chaque élève : résumé calculé à partir de sa progression */
 const LV = [[0, "Stagiaire"], [300, "Assistant comptable"], [1000, "Comptable"], [2500, "Collaborateur"], [5000, "Chef de mission"], [9000, "Expert-comptable"]];
 const CATN = { p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", ma: "Maths", ce: "CEJM", cg: "Culture G.", an: "Anglais", me: "Méthodes" };
