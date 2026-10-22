@@ -31,3 +31,7 @@ Pense aussi à activer les sauvegardes de la base PostgreSQL : service Postgres 
 
 ## Mettre à jour le contenu
 `python3 build/build_public.py "Grand Livre BTS CG.html"` (fichier source gardé hors du dépôt : il contient des éléments personnels) régénère `public/app.html` à partir de la version Claude du Grand Livre (retire les contenus personnels, ajoute la connexion).
+
+## Tests
+
+`npm test` lance les tests automatiques (dossier `test/`). Chaque fichier démarre un vrai serveur avec un stockage fichier temporaire : pas besoin de PostgreSQL ni de variables d'environnement. Ils vérifient les comptes (inscription, connexion, mot de passe, suppression), la progression (refus d'une copie plus pauvre, restauration), les duels et les amis, GL Admin et la tâche planifiée. GitHub lance aussi ces tests à chaque envoi.
