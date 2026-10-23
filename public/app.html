@@ -4761,23 +4761,703 @@ const RX = {
   title: "BTS blancs",
   from: "2026-10-26",
   to: "2026-10-29",
-  intro: "Les sujets annoncés pour les BTS blancs, en version courte : l'essentiel à relire en quelques minutes, un quiz ciblé, puis un exercice chiffré.",
+  intro: "Toutes les épreuves des BTS blancs, dans l'ordre du planning. Les sujets annoncés (P2) sont signalés ; pour les autres matières, ce sont les incontournables. Pour chacun, l'essentiel à relire en quelques minutes, un quiz ciblé et un exercice.",
+  eps: [
+    { ep: "E1", t: "Culture générale et expression", when: "Lundi 26 octobre, 8 h 30 à 11 h 30 (tiers-temps : 12 h 30)" },
+    { ep: "E8", t: "Parcours de professionnalisation (oral)", when: "Lundi 26 octobre, à partir de 14 h, par rotation" },
+    { ep: "E4", t: "Culture économique, juridique et managériale", when: "Mardi 27 octobre, 8 h 30 à 12 h 30" },
+    { ep: "E3", t: "Mathématiques appliquées", when: "Mardi 27 octobre, 13 h 30 à 15 h 30" },
+    { ep: "E6", t: "Pratiques comptables, fiscales et sociales (oral sur poste)", when: "Mercredi 28 octobre, à partir de 8 h 30 ou de 13 h 30, par rotation" },
+    { ep: "E2", t: "Anglais (oral)", when: "Mercredi 28 octobre, à partir de 13 h 30, 20 min de préparation et 20 min d'oral" },
+    { ep: "E5", t: "Étude de cas", when: "Jeudi 29 octobre, 8 h 30 à 13 h" }
+  ],
   items: [
-    { id: "p2-douteux", ep: "E5", cat: "p2", ch: "p2c3", t: "Les clients douteux et irrécouvrables", min: 4, gen: "p2dout", cx: "depcli",
+    { id: "p2-douteux", ep: "E5", annonce: true, cat: "p2", ch: "p2c3", t: "Les clients douteux et irrécouvrables", min: 4, gen: "p2dout", cx: "depcli",
       q: ["@Le client Martin doit 3 600 € TTC (TVA 20 %). La perte probable est estimée à 40 %. Montant de la dépréciation :", "@Quand une créance devient douteuse, on la reclasse :", "@Dépréciation existante sur un client douteux : 1 000 €. Dépréciation nécessaire au 31/12 : 600 €. Écriture :", "@Une créance de 2 400 € TTC (2 000 € HT), jamais dépréciée, devient irrécouvrable dans l'année. Écriture :", "@Une créance dépréciée de 800 € l'an dernier devient irrécouvrable cette année. Que devient la dépréciation ?", "p2q9", "p2q28", "p2q100", "p2q145"],
       f: ["@Clients douteux en 4 temps", "p2k7", "p2k34"],
       md: "Un client ne paie plus. Tant qu'il reste un espoir, la créance est **douteuse** : on la met à part et on constate la perte probable. Quand il n'y a plus d'espoir, elle devient **irrécouvrable** : on constate la perte définitive.\n\n### La méthode en 4 temps\n\n| Étape | Quand | Écriture |\n| --- | --- | --- |\n| 1. Reclasser | Dès le doute | 416 Clients douteux / 411, pour le **TTC** |\n| 2. Déprécier | À la clôture | 6817 / 491, sur le **HT** × pourcentage de perte probable |\n| 3. Ajuster | À chaque clôture suivante | Hausse : dotation 6817 / 491. Baisse : reprise 491 / 7817 |\n| 4. Solder | Quand la créance est perdue | 654 (HT) + 44571 (TVA) / 416, puis reprise de toute la dépréciation 491 / 7817 |\n\n```f\nDépréciation = créance TTC / 1,2 × % de perte probable\nAjustement = dépréciation nécessaire − dépréciation existante\n```\n\n> **Exemple**\n>\n> Le client Durand doit 3 600 € TTC. Au 31/12/N, la perte probable est de 40 %.\n>\n> - 416 / 411 : 3 600 €.\n> - Dépréciation : 3 600 / 1,2 = 3 000 € HT × 40 % = 1 200 €, écriture 6817 / 491.\n>\n> En N+1, Durand est en liquidation : la créance est perdue.\n>\n> - 654 : 3 000 ; 44571 : 600 ; au crédit 416 : 3 600.\n> - Reprise : 491 / 7817 : 1 200 €.\n>\n> Perte nette sur les deux ans : 1 200 + (3 000 − 1 200) = 3 000 €, soit le HT.\n\n### Les pièges\n\n- Déprécier le **TTC** : on déprécie le HT, parce que la TVA sera récupérée.\n- Oublier la **reprise** de la dépréciation quand la créance devient irrécouvrable.\n- Recalculer la dépréciation sans tenir compte de **celle qui existe déjà** : on n'écrit que la différence.\n- Un **règlement partiel** du client diminue la créance avant le calcul : déprécie seulement ce qui reste dû.\n- Une créance perdue **dans l'année même** (jamais déclarée douteuse) : 654 + 44571 / 411 directement, sans dépréciation.\n\n> **À retenir**\n>\n> - 416 / 411 au TTC ; dépréciation 6817 / 491 sur le HT.\n> - Ajuster par la différence ; irrécouvrable : 654 + 44571, puis reprise 491 / 7817." },
-    { id: "p2-change", ep: "E5", cat: "p2", ch: "p2c4", t: "Les pertes et gains de change", min: 4, gen: "p2dev",
+    { id: "p2-change", ep: "E5", annonce: true, cat: "p2", ch: "p2c4", t: "Les pertes et gains de change", min: 4, gen: "p2dev",
       q: ["@Créance de 5 000 USD comptabilisée au cours de 0,92 €. Au 31/12, 1 USD = 0,88 €. Montant de la perte latente :", "@Dette fournisseur de 8 000 USD comptabilisée à 0,90 €. Au 31/12, 1 USD = 0,93 €. Écriture de réévaluation :", "@Au 1er janvier N+1, les comptes 476 et 477 :", "@Créance de 10 000 USD comptabilisée à 0,90 € (9 000 €), écarts déjà contre-passés. Le client paie quand 1 USD = 0,93 €. Écriture :", "p2q101", "p2q102", "p2q152", "p2q156"],
       f: ["@Écart de change : sens", "p2k18", "p2k57"],
       md: "Une facture en dollars est enregistrée en euros au cours du jour. Si elle n'est pas réglée au 31/12, on la **réévalue au cours de clôture**. L'écart n'est pas encore réalisé : il est **latent**, et la prudence traite différemment pertes et gains.\n\n### Trouver le sens de l'écart\n\n| Tu détiens | La devise baisse | La devise monte |\n| --- | --- | --- |\n| Une créance (client) | Perte | Gain |\n| Une dette (fournisseur, emprunt) | Gain | Perte |\n\nCalcule toujours les deux valeurs en euros : montant en devise × ancien cours, puis × cours de clôture.\n\n### Les écritures\n\n| Moment | Perte latente | Gain latent |\n| --- | --- | --- |\n| 31/12, réévaluation | 476 Différence de conversion actif / 411 (ou 476 / 401) | 411 / 477 Différence de conversion passif (ou 401 / 477) |\n| 31/12, prudence | Provision 6865 / 1515 | Rien : aucun produit |\n| 1er janvier | Contre-passation de 476 ou 477 | Contre-passation |\n| Règlement | Écart réalisé : 656 (perte) ou 756 (gain) si commercial ; 666 ou 766 si financier | Idem |\n| Clôture suivante | Reprise de la provision 1515 / 7865 | |\n\n> **Exemple**\n>\n> Vente de 10 000 USD le 15/11/N à 0,90 € : 411 / 707 pour 9 000 €. Au 31/12, 1 USD = 0,85 € : la créance vaut 8 500 €.\n>\n> - 476 / 411 : 500 € ; provision 6865 / 1515 : 500 €.\n> - 01/01/N+1 : 411 / 476 : 500 €.\n> - 20/01/N+1, le client paie à 0,87 € : 512 : 8 700 ; 656 : 300 ; au crédit 411 : 9 000.\n> - 31/12/N+1 : reprise 1515 / 7865 : 500 €.\n\n### Les pièges\n\n- Inverser le sens pour une **dette** : un dollar qui monte rend la dette plus chère, c'est une perte.\n- Enregistrer un **gain latent** en produit : interdit, il reste en 477.\n- Toucher à la **vente** d'origine (707) : on réévalue seulement la créance ou la dette.\n- Utiliser 666 et 766 pour un client ou un fournisseur : depuis 2017, les écarts commerciaux vont en **656 et 756**.\n\n> **À retenir**\n>\n> - Perte latente : 476 + provision 6865 / 1515. Gain latent : 477, sans produit.\n> - Contre-passation au 1er janvier ; écart réalisé en 656 ou 756 au règlement." },
-    { id: "p2-cca", ep: "E5", cat: "p2", ch: "p2c4", t: "Les charges constatées d'avance", min: 3, gen: "p2cca", cx: "cca",
+    { id: "p2-cca", ep: "E5", annonce: true, cat: "p2", ch: "p2c4", t: "Les charges constatées d'avance", min: 3, gen: "p2cca", cx: "cca",
       q: ["@Un loyer de 3 000 € HT payé le 1er décembre N couvre décembre, janvier et février. Charge constatée d'avance au 31/12/N :", "@Prime d'assurance annuelle de 1 800 € payée le 1er avril N. Charge constatée d'avance au 31/12/N :", "@La charge constatée d'avance se calcule sur le montant :", "@Le bailleur encaisse en décembre N le loyer de janvier N+1 (1 500 €). Écriture au 31/12/N chez le bailleur :", "p2q7", "p2q60", "p2q61", "p2q79", "p2q153"],
       f: ["@Charge constatée d'avance : calcul", "p2k37", "p2k38"],
       md: "Une facture payée en N couvre une période qui déborde sur N+1 : une partie de la charge ne concerne pas N. Le principe d'**indépendance des exercices** impose de la retirer des charges de N : c'est la **charge constatée d'avance** (CCA).\n\n### La méthode\n\n1. Repérer la période couverte et le nombre de mois qui tombent en N+1.\n2. Calculer sur le **HT** : la TVA a déjà été déduite.\n3. Passer l'écriture au 31/12 : **486 Charges constatées d'avance / compte de charge**.\n4. La **contre-passer le 1er janvier** : la charge revient dans N+1, l'exercice qu'elle concerne.\n\n```f\nCCA = montant HT × mois de N+1 / nombre de mois couverts\n```\n\n> **Exemple**\n>\n> Prime d'assurance de 2 400 € payée le 1er octobre N, pour la période du 1er octobre N au 30 septembre N+1. Mois de N+1 : janvier à septembre, soit 9 mois.\n>\n> - CCA = 2 400 × 9/12 = 1 800 €.\n> - 31/12/N : 486 / 616 : 1 800 €.\n> - 01/01/N+1 : 616 / 486 : 1 800 €.\n>\n> La charge de N est bien de 600 € (octobre à décembre).\n\n### Ne pas confondre\n\n| Situation à la clôture | Écriture |\n| --- | --- |\n| Charge payée, mais qui concerne N+1 | 486 / charge (CCA) |\n| Produit encaissé, mais qui concerne N+1 | produit / 487 (PCA) |\n| Charge de N, facture pas encore reçue | charge + 44586 / 408 |\n| Produit de N, facture pas encore émise | 418 / produit + 44587 |\n\n### Les pièges\n\n- Calculer sur le **TTC**.\n- Compter les mois de **N** au lieu de ceux de **N+1**.\n- Oublier la **contre-passation** au 1er janvier, ou la passer en fin d'année N+1.\n- Mettre la CCA au **passif** : c'est un actif (une avance que l'entreprise a faite), en compte de régularisation.\n\n> **À retenir**\n>\n> - CCA = HT × mois de N+1 / mois couverts ; 486 / charge ; contre-passée le 1er janvier.\n> - Symétrique côté produits : produit / 487 (PCA)." }
   ]
 };
 
+const RX_MORE = [
+  /* ---------- E1 · lundi 26 ---------- */
+  { id: "cg-corpus", ep: "E1", cat: "cg", t: "Répondre aux questions sur le corpus", min: 3, qch: ["g1", "g2"], gc: ["cg-x3"], les: [["me", 3, "Méthode de l'épreuve"]],
+    md: `La première partie (10 points) pose des questions sur un corpus de trois ou quatre documents : textes, image, parfois des données. On attend des réponses **rédigées, précises et appuyées sur les documents**, pas un résumé.
+
+### La méthode
+
+1. Lis les questions **avant** les documents : tu sauras quoi chercher.
+2. Pour chaque document, note l'auteur, la date, la nature et l'idée principale en une ligne.
+3. Réponds par une phrase qui reprend la question, puis justifie avec des **références précises** (citation courte entre guillemets, ligne, détail de l'image).
+4. Pour une question de **comparaison**, organise ta réponse par points communs puis différences, jamais document par document.
+
+> **Exemple de réponse construite**
+>
+> « Les deux documents s'accordent sur le danger des images truquées : X parle de "..." (l. 12), tandis que la photographie de Y montre... En revanche, ils divergent sur... »
+
+### Les pièges
+
+- Paraphraser le document sans répondre à la question.
+- Oublier un document dans une question qui porte sur tout le corpus.
+- Donner ton avis : il est réservé à l'essai.
+- Dépasser le temps : vise **1 h 15** pour cette partie, relecture comprise.
+
+> **À retenir**
+>
+> - Questions d'abord, documents ensuite.
+> - Une idée, une référence précise, une phrase de conclusion par réponse.` },
+  { id: "cg-essai", ep: "E1", cat: "cg", t: "Rédiger l'essai", min: 4, qch: ["g3", "o1"], gc: ["cg-x1", "cg-x2", "cg-x4"], rd: ["rcg1"], les: [["cg", 7, "Sujets et plans possibles"], ["cg", 8, "Un essai rédigé"]],
+    md: `La seconde partie (10 points) est un **essai** : tu réponds à une question liée au thème, de façon argumentée et personnelle, en t'appuyant sur le corpus, les œuvres étudiées et ta culture.
+
+### Le plan de travail (environ 1 h 45)
+
+1. **Analyser le sujet** (10 min) : définis chaque mot clé, repère le présupposé, reformule le problème en question.
+2. **Chercher les idées** (20 min) : arguments pour, contre, nuances ; un exemple précis pour chaque argument.
+3. **Bâtir le plan** : deux ou trois parties, du plus évident au plus nuancé (souvent : oui, mais / dépassement).
+4. **Rédiger** (60 min) : introduction et conclusion entièrement, puis des paragraphes AEI.
+5. **Relire** (10 min) : accords, ponctuation, connecteurs.
+
+### Le paragraphe AEI
+
+| Étape | Contenu |
+| --- | --- |
+| Argument | Une idée, en une phrase claire |
+| Exemple | Précis et développé : une œuvre, un fait daté, un document du corpus |
+| Interprétation | Ce que l'exemple prouve, relié à la question |
+
+### L'introduction en 4 temps
+
+Une amorce (un fait, une citation liée au thème « Le vrai du faux »), l'analyse des termes, la problématique (une vraie question), l'annonce du plan.
+
+### Les pièges
+
+- Réciter le cours sans répondre au sujet précis.
+- Des exemples cités en une ligne, sans analyse.
+- Une conclusion qui ajoute un nouvel argument.
+
+> **À retenir**
+>
+> - Analyse, idées, plan, rédaction, relecture.
+> - Chaque paragraphe : argument, exemple, interprétation.` },
+  { id: "cg-theme", ep: "E1", cat: "cg", t: "Le thème « Le vrai du faux »", min: 3, qch: ["v1", "v2", "v3", "v4"], les: [["cg", 1, "Ce que le thème te demande"], ["cg", 6, "Les œuvres du programme"]],
+    md: `Le thème de la session 2027 est **« Le vrai du faux »**. Le titre a deux sens, et ta réflexion doit jouer sur les deux :
+
+- **distinguer le vrai du faux** : mensonge, désinformation, propagande, images truquées par l'intelligence artificielle ;
+- **il y a du vrai dans le faux** : la fiction, le théâtre, l'art « mentent » pour mieux révéler une vérité.
+
+### Trois axes à avoir en tête
+
+| Axe | Idée | Pistes d'exemples |
+| --- | --- | --- |
+| Le faux, ennemi du vrai | Le mensonge et l'infox détruisent la confiance | Désinformation en ligne, hypertrucages, faux avis |
+| Le faux au service du vrai | La fiction et l'art disent vrai autrement : le « mentir-vrai » | Romans, théâtre, trompe-l'œil, satire |
+| Démêler le vrai du faux | Esprit critique, vérification, institutions de la vérité | Vérification des faits, justice, science, droit de la preuve |
+
+### Les questions qui reviennent
+
+- Peut-on toujours distinguer le vrai du faux ?
+- Une fiction peut-elle dire vrai ?
+- A-t-on parfois le droit de mentir ?
+- Le numérique rend-il la vérité plus fragile ?
+
+> **Astuce**
+>
+> Pense à ton BTS : une contrefaçon (propriété industrielle, CEJM), un faux avis en ligne, une fraude au faux RIB (P7) sont des exemples concrets et originaux du faux dans la vie des entreprises.
+
+> **À retenir**
+>
+> - Deux sens : distinguer le vrai du faux, et le vrai que révèle le faux.
+> - Prépare trois ou quatre exemples précis par axe, dont les œuvres du programme.` },
+
+  /* ---------- E8 · lundi 26 après-midi ---------- */
+  { id: "e8-oral", ep: "E8", cat: "me", t: "Présenter ton parcours de professionnalisation", min: 4, les: [["or", 4, "L'oral E8 en détail"], ["or", 1, "Ce que les oraux ont en commun"]],
+    md: `L'oral dure environ **30 minutes**. Le jury attend que tu parles de ce que tu as **réellement fait**, avec des exemples précis et chiffrés.
+
+### Ta présentation (environ 10 minutes)
+
+1. **Toi et ton parcours** : en deux phrases, ta formation et ton alternance.
+2. **La structure** : activité, effectif, clientèle, logiciels, ta place.
+3. **Un processus analysé** : déclencheur, acteurs, étapes, outils ; les dysfonctionnements constatés ; ta proposition d'amélioration, avec son coût, son gain et ses conditions.
+4. **Ta veille** : sources fiables, outils, organisation, et **un exemple suivi de bout en bout** (la facture électronique, par exemple).
+5. **Ton bilan** : compétences acquises, une difficulté surmontée, ton projet.
+
+### Les questions probables
+
+| Question | Ce qu'il faut montrer |
+| --- | --- |
+| Pourquoi ce processus ? | Il est réel, tu y participes, il a un enjeu (temps, erreurs, conformité) |
+| Votre proposition est-elle réaliste ? | Coût, gain mesuré, contraintes, qui doit la valider |
+| Comment organisez-vous votre veille ? | Sources nommées, fréquence, diffusion à l'équipe |
+| Qu'avez-vous appris ? | Une compétence précise, avec un exemple |
+| Que feriez-vous autrement ? | Une vraie remise en question, sans te dévaloriser |
+
+### Les pièges
+
+- Lire tes notes : garde seulement un plan sur une carte.
+- Rester vague (« j'ai fait de la saisie ») : dis combien, avec quel logiciel, quels contrôles.
+- Inventer : le jury connaît le métier.
+- Parler des données de clients ou de personnes nommément : reste anonyme.
+
+> **À retenir**
+>
+> - Présentation de 10 minutes, en 5 temps, chronométrée à voix haute ce week-end.
+> - Du concret et des chiffres : ce que tu as fait, comment, avec quel résultat.` },
+
+  /* ---------- E4 · mardi 27 matin ---------- */
+  { id: "ce-methode", ep: "E4", cat: "ce", t: "La méthode du cas pratique (syllogisme)", min: 3, rd: ["rce1"], gc: ["cejm1-c1"], les: [["me", 2, "Méthode de l'épreuve de CEJM"]],
+    md: `La CEJM dure **4 heures** et mêle questions d'économie, de droit et de management à partir d'un dossier documentaire. Les questions juridiques se traitent **toujours** par un raisonnement en quatre temps.
+
+### Le syllogisme
+
+| Étape | Ce que tu écris |
+| --- | --- |
+| Faits qualifiés | Les faits utiles, traduits en termes juridiques (« M. X, salarié, ... ») |
+| Problème de droit | Une question générale, sans les noms : « Un employeur peut-il... ? » |
+| Règle (majeure) | L'article ou la jurisprudence, cité précisément, et ses conditions |
+| Application (mineure) et solution | Chaque condition confrontée aux faits, puis une réponse nette |
+
+### Pour l'économie et le management
+
+- Définis les notions, mobilise un **mécanisme** (si... alors...) et un **auteur** ou une donnée chiffrée **datée**.
+- Appuie-toi sur les **documents** du dossier en les citant.
+- En management, utilise un **outil** nommé (SWOT, cinq forces, Mintzberg, Maslow...) appliqué à l'entreprise du sujet.
+
+### Gestion du temps
+
+Lis tout le dossier (20 min), répartis le temps selon les points, garde 10 minutes de relecture.
+
+> **À retenir**
+>
+> - Droit : faits qualifiés, problème de droit, règle, application, solution.
+> - Économie et management : notion, mécanisme, auteur ou chiffre, document du dossier.` },
+  { id: "ce-contrat", ep: "E4", cat: "ce", t: "Le contrat : formation, validité, exécution", min: 4, qch: ["t1c3", "t1c4"], gc: ["cejm1-c2", "cejm1-c3", "cejm1-c4"], les: [["ce1", 3, "Des pourparlers au contrat"], ["ce1", 4, "Le contenu et les effets du contrat"]],
+    md: `Le contrat est le sujet de droit le plus fréquent. Retiens les conditions de validité et les sanctions.
+
+### Les étapes de la formation
+
+- **Pourparlers** : libres, mais leur rupture **fautive** (brutale, de mauvaise foi) engage la responsabilité extracontractuelle (art. 1112 C. civ.) ; on n'indemnise pas les gains espérés du contrat.
+- **Offre et acceptation** : le contrat est conclu quand l'acceptation parvient à l'offrant (art. 1121).
+- **Devoir d'information** (art. 1112-1) : celui qui connaît une information déterminante doit la donner.
+
+### Les conditions de validité (art. 1128)
+
+| Condition | Vice ou défaut | Sanction |
+| --- | --- | --- |
+| Consentement | **Erreur** sur les qualités essentielles, **dol** (manœuvres, mensonge, silence intentionnel), **violence** (y compris l'abus de dépendance) | Nullité relative (5 ans) |
+| Capacité | Mineur, majeur protégé | Nullité relative |
+| Contenu licite et certain | Contenu illicite, prix dérisoire, clause créant un déséquilibre significatif dans un contrat d'adhésion (réputée non écrite) | Nullité absolue ou clause réputée non écrite |
+
+### L'inexécution (art. 1217)
+
+Le créancier peut : refuser d'exécuter sa propre obligation (exception d'inexécution), poursuivre l'exécution forcée, obtenir une réduction du prix, provoquer la résolution, demander des dommages et intérêts. La **force majeure** (événement imprévisible, irrésistible, échappant au contrôle du débiteur) l'exonère.
+
+> **À retenir**
+>
+> - Validité : consentement, capacité, contenu licite et certain.
+> - Erreur, dol, violence : nullité relative. Cinq sanctions de l'inexécution (art. 1217).` },
+  { id: "ce-resp", ep: "E4", cat: "ce", t: "La responsabilité de l'entreprise", min: 3, qch: ["t3c3"], rd: ["rce3"], gc: ["cejm1-c5"], les: [["ce3", 3, "La responsabilité de l'entreprise"]],
+    md: `L'entreprise peut engager sa responsabilité civile (réparer un dommage) et pénale (être sanctionnée).
+
+### La responsabilité civile
+
+| Type | Conditions |
+| --- | --- |
+| Contractuelle | Un contrat, une inexécution, un dommage, un lien de causalité |
+| Extracontractuelle pour faute (art. 1240 et 1241) | Une faute (même d'imprudence), un dommage, un lien de causalité |
+| Du fait des choses (art. 1242 al. 1) | Une chose sous la garde de l'entreprise a joué un rôle actif dans le dommage |
+| Du fait d'autrui : commettant pour son préposé (art. 1242 al. 5) | Lien de subordination, faute du salarié dans le cadre de ses fonctions ; l'employeur paie, sauf si le salarié a agi hors de ses fonctions, sans autorisation et à des fins étrangères à ses attributions |
+| Des produits défectueux (art. 1245) | Produit qui n'offre pas la sécurité attendue, dommage, lien de causalité ; le producteur répond même sans faute |
+
+### Le dommage réparable
+
+Il doit être **certain**, **direct** et **personnel** ; il peut être matériel, corporel ou moral. La victime qui a contribué à son dommage voit sa réparation réduite.
+
+### La responsabilité pénale
+
+Une personne morale est pénalement responsable des infractions commises **pour son compte** par ses **organes ou représentants** (art. 121-2 C. pén.) ; l'amende est jusqu'à cinq fois celle prévue pour une personne physique.
+
+> **À retenir**
+>
+> - Faute, dommage, lien de causalité.
+> - L'employeur répond des fautes de ses salariés dans leurs fonctions ; le producteur, de ses produits défectueux, même sans faute.` },
+  { id: "ce-concu", ep: "E4", cat: "ce", t: "Concurrence et propriété industrielle", min: 3, qch: ["t2c3", "t2c4"], rd: ["rce2"], gc: ["cejm1-c7", "cejm1-c8"], les: [["ce2", 3, "Le droit de la concurrence"], ["ce2", 4, "La propriété industrielle"]],
+    md: `### Les pratiques anticoncurrentielles (sanctionnées par l'Autorité de la concurrence)
+
+| Pratique | Définition | Sanction |
+| --- | --- | --- |
+| Entente (art. L420-1 C. com., art. 101 TFUE) | Accord ou action concertée qui fausse la concurrence : prix, partage de marchés | Amende jusqu'à 10 % du CA mondial ; nullité de l'accord |
+| Abus de position dominante (L420-2, art. 102 TFUE) | Une entreprise dominante abuse de sa puissance : prix prédateurs, refus de vente, ventes liées | Même plafond |
+| Abus de dépendance économique (L420-2 al. 2) | Exploitation d'un partenaire qui n'a pas d'alternative | Même plafond |
+
+Les **pratiques déloyales** entre concurrents (dénigrement, imitation créant la confusion, parasitisme) relèvent de la **concurrence déloyale** : action en responsabilité civile (art. 1240), devant le juge.
+
+### La propriété industrielle (INPI)
+
+| Droit | Conditions | Durée |
+| --- | --- | --- |
+| Brevet | Invention nouvelle, inventive, susceptible d'application industrielle | 20 ans, sans renouvellement |
+| Marque | Signe distinctif, disponible, licite | 10 ans, renouvelable indéfiniment |
+| Dessin et modèle | Apparence nouvelle, caractère propre | 5 ans, renouvelable jusqu'à 25 ans |
+
+L'atteinte à ces droits est une **contrefaçon** : action civile (dommages et intérêts, interdiction, saisie) et sanctions pénales.
+
+> **À retenir**
+>
+> - Entente, abus de position dominante, abus de dépendance : Autorité de la concurrence, jusqu'à 10 % du CA mondial.
+> - Concurrence déloyale : responsabilité civile. Brevet 20 ans, marque 10 ans renouvelable.` },
+  { id: "ce-eco", ep: "E4", cat: "ce", t: "Marchés et politiques économiques", min: 3, qch: ["t1c2", "t2c1", "t2c2"], rd: ["rce4", "rce6"], les: [["ce2", 1, "Les politiques économiques et leurs outils"]],
+    md: `### Le marché
+
+Le prix se fixe à la rencontre de l'offre et de la demande. La concurrence pure et parfaite suppose atomicité, homogénéité des produits, libre entrée, transparence et mobilité des facteurs : elle n'existe presque jamais. En réalité : monopole, oligopole, concurrence monopolistique, asymétries d'information, externalités. Ces **défaillances du marché** justifient l'intervention de l'État.
+
+### Les politiques économiques
+
+| Politique | Qui | Outils | Effet recherché |
+| --- | --- | --- | --- |
+| Monétaire | Banque centrale européenne (zone euro) | Taux directeurs, rachats de titres | Stabilité des prix (objectif d'inflation de 2 %) |
+| Budgétaire | État | Dépenses publiques, impôts, déficit | Relance (keynésienne) ou rigueur |
+| Structurelle | État, Union européenne | Réformes du marché du travail, de la formation, de la concurrence | Croissance potentielle à long terme |
+
+### Le mécanisme à savoir rédiger
+
+Hausse des taux directeurs → crédit plus cher → baisse de l'investissement et de la consommation → demande moins forte → ralentissement de l'inflation, mais aussi de la croissance.
+
+### Les limites
+
+Effet d'éviction (l'emprunt public renchérit le crédit pour les entreprises), contrainte de la dette publique et des règles européennes, délais d'action, fuite de la relance vers les importations en économie ouverte.
+
+> **À retenir**
+>
+> - Défaillances du marché → intervention publique.
+> - BCE : taux et inflation ; État : budget ; réformes structurelles : long terme.
+> - Toujours écrire un mécanisme en chaîne et citer une donnée datée.` },
+  { id: "ce-org", ep: "E4", cat: "ce", t: "Structure juridique, management et financement", min: 3, qch: ["t3c2", "t3c4", "t3c6"], rd: ["rce5"], les: [["ce3", 2, "Le choix de la structure juridique"], ["ce3", 6, "Le financement de l'entreprise"]],
+    md: `### Choisir une structure juridique
+
+| Forme | Associés | Responsabilité | Point clé |
+| --- | --- | --- | --- |
+| Entreprise individuelle | 1 | Patrimoine professionnel séparé du personnel depuis 2022 | Simplicité ; micro-entreprise jusqu'à 203 100 € (vente) ou 83 600 € (services) en 2026 |
+| SARL / EURL | 1 à 100 | Limitée aux apports | Cadre légal encadré, gérant |
+| SAS / SASU | 1 ou plus | Limitée aux apports | Grande liberté statutaire, président |
+| SA | 2 au moins (non cotée) | Limitée aux apports | Grandes entreprises, capital de 37 000 € minimum |
+
+Critères de choix : nombre d'associés, besoin de capitaux, protection du patrimoine, régime social du dirigeant, fiscalité (IR ou IS), souplesse.
+
+### Les styles de management
+
+Directif, persuasif, participatif, délégatif (Likert, Blake et Mouton, Hersey et Blanchard : le bon style dépend de la maturité des collaborateurs). Contre-pouvoirs : CSE, syndicats, actionnaires, parties prenantes.
+
+### Le financement
+
+| Source | Exemples | Limite |
+| --- | --- | --- |
+| Interne | Autofinancement (CAF), cession d'actifs | Limité par la rentabilité |
+| Externe en capitaux propres | Apports, augmentation de capital, capital-risque, financement participatif | Dilution du pouvoir |
+| Externe par endettement | Emprunt bancaire, crédit-bail, obligations | Coût, garanties, dépendance |
+
+> **À retenir**
+>
+> - Choix de la structure : associés, patrimoine, capitaux, fiscalité, statut social.
+> - Financement interne, par capitaux propres ou par dettes : arbitrer coût, risque et contrôle.` },
+  { id: "ce-num", ep: "E4", cat: "ce", t: "Le numérique et les relations d'échange (thème 4, ch. 1)", min: 3, qch: ["t4c1"], les: [["ce4", 1, "La leçon complète du chapitre"]],
+    md: `Le chapitre vu en classe sur le numérique, en version courte.
+
+| Notion | Définition | Exemple du cours |
+| --- | --- | --- |
+| Internet des objets | Objets connectés qui collectent et échangent des données | Capteurs de chambres froides chez Carrefour |
+| Cloud computing | Services informatiques fournis par Internet sur des serveurs distants | Stockage et logiciels en ligne |
+| Désintermédiation | Relation directe entre l'entreprise et ses clients | Sézane, digital native |
+| Réintermédiation (place de marché) | Plateforme qui met en relation vendeurs et acheteurs contre commission | Amazon, Airbnb, BlaBlaCar |
+| Dématérialisation | Passage du papier au numérique | Chorus Pro, banque en ligne |
+| Pure player | Entreprise présente uniquement en ligne | Boursorama Banque |
+| Effet de réseau | La valeur augmente avec le nombre d'utilisateurs | Cercle vertueux d'Amazon |
+| E-réputation | Image de l'entreprise sur Internet | Avis Tripadvisor |
+
+### Avantages et limites à savoir citer
+
+- Place de marché : visibilité et services pour le vendeur, mais commission, dépendance, perte de la relation client.
+- Dématérialisation : rapidité, accès à distance, mais **déshumanisation** et besoin de **sécurité**.
+- Pure player : coûts de structure faibles, donc prix bas.
+
+> **À retenir**
+>
+> - Désintermédiation (Sézane) ≠ réintermédiation (marketplaces B2C, B2B, C2C).
+> - Effet de réseau et e-réputation : la valeur et l'image dépendent des utilisateurs.` },
+
+  /* ---------- E3 · mardi 27 après-midi ---------- */
+  { id: "ma-pct", ep: "E3", cat: "ma", t: "Pourcentages, évolutions et indices", min: 3, qch: ["m1", "m2"], gen: "mataux", gc: ["ma-x1"], les: [["ma", 1, "La leçon"]],
+    md: `\`\`\`f
+Taux d'évolution t = (V2 − V1) / V1        Coefficient multiplicateur CM = 1 + t
+Évolutions successives : CM global = CM1 × CM2 × ...
+Taux moyen sur n périodes : (CM global)^(1/n) − 1
+Évolution réciproque : CM' = 1 / CM
+Indice base 100 : I = V / V0 × 100
+\`\`\`
+
+> **Exemple**
+>
+> Le CA passe de 50 000 € à 56 000 € : t = 6 000 / 50 000 = + 12 %. Une hausse de 20 % puis une baisse de 20 % : CM = 1,2 × 0,8 = 0,96, soit **− 4 %** (et non 0 %).
+>
+> Taux moyen annuel pour + 21 % en 2 ans : 1,21^(1/2) − 1 = 0,10, soit + 10 % par an.
+
+### Les pièges
+
+- Additionner des pourcentages successifs.
+- Calculer un taux sur la mauvaise base (toujours la valeur de **départ**).
+- Confondre points de pourcentage et pourcentage (un taux qui passe de 5 % à 6 % augmente de 1 point, soit de 20 %).
+- Arrondir trop tôt : garde 4 décimales sur les coefficients.` },
+  { id: "ma-fin", ep: "E3", cat: "ma", t: "Suites et mathématiques financières", min: 3, qch: ["m7", "m8"], gen: "maint", gc: ["ma-x2", "ma-x3"], les: [["ma", 4, "La leçon"]],
+    md: `\`\`\`f
+Suite arithmétique : u(n) = u(0) + n × r        somme = nombre de termes × (premier + dernier) / 2
+Suite géométrique : u(n) = u(0) × q^n           somme = premier × (1 − q^nombre de termes) / (1 − q)
+Intérêts simples : C × t × n         Intérêts composés : C(n) = C(0) × (1 + t)^n
+Valeur actuelle : C(0) = C(n) × (1 + t)^−n
+Annuité constante : a = C × t / (1 − (1 + t)^−n)
+\`\`\`
+
+> **Exemple**
+>
+> 10 000 € placés à 3 % par an pendant 5 ans : 10 000 × 1,03^5 = 11 592,74 €.
+>
+> Au bout de combien d'années un capital double-t-il à 4 % ? On cherche n tel que 1,04^n ≥ 2, soit n ≥ ln 2 / ln 1,04 ≈ 17,7 : **18 ans**.
+
+### Reconnaître la suite
+
+Une augmentation d'un **même montant** chaque période : arithmétique. D'un **même pourcentage** : géométrique, de raison q = 1 + t.
+
+### Les pièges
+
+- Confondre le rang : u(0) ou u(1) comme premier terme ; compte bien les termes dans une somme.
+- Pour trouver n, passer par le logarithme (ou la calculatrice, en tabulant) et arrondir à l'entier **supérieur**.` },
+  { id: "ma-stat", ep: "E3", cat: "ma", t: "Statistique : ajustement et prévision", min: 3, qch: ["m4", "m5"], gc: ["ma-x5"], les: [["ma", 3, "La leçon"]],
+    md: `### À une variable
+
+Moyenne, médiane, quartiles (Q1, Q3), écart interquartile Q3 − Q1, écart type (dispersion autour de la moyenne). À la calculatrice : mode statistique, entrer les valeurs et les effectifs.
+
+### À deux variables
+
+1. Représenter le **nuage de points** (x, y) et le point moyen G (moyenne des x ; moyenne des y).
+2. Si le nuage est allongé, faire un **ajustement affine** par la méthode des moindres carrés : y = ax + b, donné par la calculatrice ; la droite passe par G.
+3. Le **coefficient de corrélation** r, entre − 1 et 1 : plus |r| est proche de 1, plus l'ajustement est justifié (on juge souvent l'ajustement satisfaisant au-delà de 0,87).
+4. **Prévoir** : remplacer x par la valeur voulue dans l'équation.
+
+> **Exemple**
+>
+> Ventes (en milliers) selon le rang de l'année : la calculatrice donne y = 2,4x + 31,5 et r = 0,98. Prévision pour le rang 8 : 2,4 × 8 + 31,5 = 50,7, soit environ 50 700 unités.
+
+### Les pièges
+
+- Arrondir a et b trop tôt (garde 3 ou 4 décimales).
+- Oublier de commenter : une prévision n'est valable que si la tendance se maintient.
+- Inverser x et y : x est la variable explicative (le rang, le prix).` },
+  { id: "ma-proba", ep: "E3", cat: "ma", t: "Probabilités et loi binomiale", min: 3, qch: ["m6"], gen: "mabin", gc: ["ma-x4"], les: [["ma", 6, "La leçon"]],
+    md: `### Les bases
+
+P(A ou B) = P(A) + P(B) − P(A et B). P(non A) = 1 − P(A). Probabilité conditionnelle : P_A(B) = P(A et B) / P(A). Un **arbre pondéré** se lit en multipliant le long des branches et en additionnant les chemins.
+
+### La loi binomiale
+
+On répète **n fois**, de façon **indépendante**, une épreuve à deux issues (succès de probabilité p). X = nombre de succès suit la loi binomiale B(n ; p).
+
+\`\`\`f
+P(X = k) = C(n, k) × p^k × (1 − p)^(n − k)
+Espérance E(X) = n × p
+\`\`\`
+
+> **Exemple**
+>
+> 8 % des factures sont payées en retard. On prend 20 factures au hasard (tirage assimilé à des tirages avec remise). X suit B(20 ; 0,08).
+>
+> - P(X = 0) = 0,92^20 ≈ 0,189.
+> - P(X ≥ 1) = 1 − 0,189 ≈ 0,811.
+> - E(X) = 20 × 0,08 = 1,6 facture en retard en moyenne.
+
+### Les pièges
+
+- Justifier la loi : répétition, indépendance, deux issues, n et p précisés.
+- « Au moins un » : passer par l'événement contraire.
+- P(X ≤ k) se lit avec la fonction cumulée de la calculatrice.` },
+  { id: "ma-fct", ep: "E3", cat: "ma", t: "Fonctions, dérivée, ln et exponentielle", min: 3, qch: ["m9", "m10"], gc: ["ma-x6"], les: [["ma", 5, "La leçon"]],
+    md: `### Coût, recette, bénéfice
+
+B(x) = R(x) − C(x). Le **coût marginal** est la dérivée du coût total : C'(x). Le bénéfice est **maximal** quand B'(x) = 0 et que B' passe du positif au négatif.
+
+\`\`\`f
+(x^n)' = n × x^(n−1)      (ln x)' = 1 / x      (e^x)' = e^x      (e^(ax+b))' = a × e^(ax+b)
+(u + v)' = u' + v'        (k × u)' = k × u'
+ln(a × b) = ln a + ln b   ln(a^n) = n × ln a   e^(ln a) = a
+\`\`\`
+
+### La démarche d'étude
+
+1. Calculer la dérivée f'(x).
+2. Étudier son signe (tableau de signes).
+3. En déduire le tableau de variations de f.
+4. Répondre à la question économique (production qui maximise le bénéfice, coût minimal).
+
+> **Exemple**
+>
+> B(x) = − 2x² + 120x − 1 000 pour x unités. B'(x) = − 4x + 120, nul pour x = 30. B' positif avant, négatif après : bénéfice maximal pour **30 unités**, B(30) = 800 €.
+
+### Les pièges
+
+- Oublier le domaine de définition (x ≥ 0, ou x > 0 pour ln).
+- Répondre « x = 30 » sans phrase ni unité.
+- Résoudre e^x = k : x = ln k ; ln x = k : x = e^k.` },
+
+  /* ---------- E6 et E2 · mercredi 28 ---------- */
+  { id: "e6-oral", ep: "E6", cat: "me", t: "L'oral sur poste : tes situations P1 à P4", min: 4, oral: "E6", les: [["or", 2, "L'oral E6 en détail"]],
+    md: `L'oral dure environ **30 minutes** sur poste : une présentation et un entretien, puis des travaux que le jury te fait **reprendre ou modifier** sur le logiciel.
+
+### Pour chaque situation, prépare trois choses
+
+1. **Ce que tu as fait** : l'objectif, les pièces, les étapes, le logiciel.
+2. **La règle qui le justifie** : le compte, le taux, l'article, le principe comptable.
+3. **Ce que le jury peut changer** : un autre taux, une autre date, un cas particulier.
+
+| Processus | Ce qu'on te fera modifier |
+| --- | --- |
+| P1 | Une autre remise, un autre taux de TVA, un règlement partiel, un écart bancaire |
+| P2 | Une autre date de mise en service, un autre taux de risque d'une créance |
+| P3 | Un crédit de TVA, une acquisition intracommunautaire, une réintégration fiscale |
+| P4 | Des heures supplémentaires, une absence, un autre taux de prélèvement à la source |
+| P7 | Une requête ou une extraction à adapter, un contrôle à ajouter |
+
+### Les réflexes
+
+- Toujours **justifier** : « je débite le 44566 parce que la TVA sur cet achat de biens est déductible ».
+- Montrer un **contrôle** : lettrage, rapprochement, contrôle de cohérence de la TVA.
+- Si tu ne sais pas : raisonne à voix haute, puis cherche dans le logiciel ou dans ta documentation.
+
+> **À retenir**
+>
+> - Ce que tu as fait, pourquoi, et ce qui change si une donnée change.
+> - Entraîne-toi avec le simulateur de questions du jury (bouton ci-dessous).` },
+  { id: "an-oral", ep: "E2", cat: "an", t: "Présenter un document en anglais", min: 3, qch: ["a6", "a7"], gc: ["an-x1", "an-x2"], les: [["an", 1, "Comment se passe l'oral"], ["an", 5, "Un oral modèle"]],
+    md: `L'oral : **20 minutes de préparation**, puis **20 minutes** devant l'examinateur : tu présentes le document, puis vous échangez.
+
+### Ta présentation en 5 temps
+
+1. **Introduce** : *This document is an article / a chart from ..., published in ... It deals with ...*
+2. **Main ideas** : *The author explains that ... First, ... Then, ... Finally, ...*
+3. **Figures** : *Sales rose by 12% / fell sharply / remained stable between 2024 and 2026.*
+4. **Your opinion and link with your job** : *In my opinion, ... In the accounting firm where I work, ...*
+5. **Conclude** : *To sum up, ...*
+
+### Phrases de secours
+
+- *Could you repeat the question, please?*
+- *What I mean is ...*
+- *Let me think for a second.*
+
+### Les pièges
+
+- Lire tes notes : garde des mots clés.
+- Les faux amis : *actually* = en fait ; *eventually* = finalement ; *a charge* = des frais.
+- Les chiffres : *20%* se dit *twenty percent* ; *1,5 million* s'écrit *1.5 million* en anglais.
+
+> **À retenir**
+>
+> - Présentation, idées, chiffres, avis relié à ton métier, conclusion.
+> - Prépare ce week-end ta présentation personnelle de 2 minutes (exercice guidé ci-dessous).` },
+  { id: "an-vocab", ep: "E2", cat: "an", t: "Vocabulaire comptable, chiffres et faux amis", min: 3, qch: ["a2", "a3", "a5"], les: [["an", 2, "Le vocabulaire comptable"], ["an", 3, "Les faux amis"], ["an", 4, "Parler de chiffres"]],
+    md: `| Français | Anglais |
+| --- | --- |
+| Chiffre d'affaires | turnover (UK), revenue, sales |
+| Bénéfice / perte | profit / loss |
+| Bilan / compte de résultat | balance sheet / income statement (profit and loss account) |
+| Actif / passif | assets / liabilities and equity |
+| Facture / avoir | invoice / credit note |
+| Fournisseur / client | supplier / customer, client |
+| Comptabilité / expert-comptable | accounting, bookkeeping / chartered accountant |
+| Amortissement | depreciation |
+| TVA / impôt sur les sociétés | VAT / corporate tax |
+| Trésorerie | cash, cash flow |
+
+### Décrire une évolution
+
+*to increase, to rise, to grow* / *to decrease, to fall, to drop* ; *slightly, steadily, sharply* ; *to reach a peak* ; *by* (de combien) / *to* (jusqu'à) : *Sales increased by 10% to €2 million.*
+
+### Faux amis fréquents
+
+*actually* (en fait), *eventually* (finalement), *library* (bibliothèque), *to control* (maîtriser, diriger), *a balance* (un solde), *the accounts* (les comptes annuels).` },
+
+  /* ---------- E5 · jeudi 29 : incontournables en plus des sujets annoncés ---------- */
+  { id: "p1-fact", ep: "E5", cat: "p1", t: "Factures, avoirs et TVA du mois", min: 3, qch: ["p1c2", "p1c3", "p1c4"], gen: "p1fact", cx: "tvadec", gc: ["p1-x3"],
+    md: `\`\`\`f
+Brut HT − remises en cascade = net commercial − escompte = net financier + port = base HT
+TVA à décaisser = TVA collectée − TVA déductible (biens et services, immobilisations) − crédit antérieur
+\`\`\`
+
+| Opération | Vendeur | Acheteur |
+| --- | --- | --- |
+| Facture | 411 / 707 + 44571 | 607 + 44566 / 401 |
+| Escompte | 665 Escomptes accordés | 765 Escomptes obtenus |
+| Avoir (rabais, retour) | 709 (ou 707) + 44571 / 411 | 401 / 609 (ou 607) + 44566 |
+| Acompte reçu ou versé | 512 / 4191 (+ 44571 seulement pour une prestation de services) | 4091 (+ 44566 pour une prestation de services) / 512 |
+
+### Les pièges
+
+- Remises et rabais **sur facture** ne s'enregistrent pas : on passe le net commercial.
+- La TVA sur une **immobilisation** va en 44562.
+- La TVA d'un mois se paie le mois suivant ; sur les **prestations de services**, elle est exigible à l'encaissement (sauf option sur les débits).` },
+  { id: "p1-banque", ep: "E5", cat: "p1", t: "Règlements et rapprochement bancaire", min: 3, qch: ["p1c5"], gen: "p1rappro", gc: ["p1-x4"],
+    md: `### Le rapprochement bancaire en 4 étapes
+
+1. Pointer les opérations communes au compte 512 et au relevé.
+2. Dans le tableau, reporter les soldes de départ (attention : le 512 et le relevé sont **inversés** : un solde débiteur chez nous est créditeur à la banque).
+3. Ajouter les opérations non pointées : celles du **relevé** que nous n'avons pas encore enregistrées iront dans le 512 (frais, agios, virements reçus, prélèvements) ; celles du **512** absentes du relevé sont en attente à la banque (chèques émis non encaissés).
+4. Vérifier que les deux soldes rectifiés sont égaux, puis **passer les écritures** pour les opérations du relevé.
+
+### Les écritures typiques après rapprochement
+
+| Opération du relevé | Écriture |
+| --- | --- |
+| Frais bancaires | 627 + 44566 / 512 |
+| Agios | 661 / 512 |
+| Virement d'un client | 512 / 411 |
+| Prélèvement d'un fournisseur | 401 / 512 |
+
+> **À retenir**
+>
+> - On n'enregistre en comptabilité **que** ce qui figure sur le relevé et pas encore chez nous.` },
+  { id: "p3-tva", ep: "E5", cat: "p3", t: "TVA : exigibilité, déduction et déclaration", min: 3, qch: ["p3c1"], gen: "p3tva", gen2: "p3exig", cx: "ca12",
+    md: `| Opération | Exigibilité | Déduction |
+| --- | --- | --- |
+| Livraison de biens | À la livraison | Dès que la TVA est exigible chez le fournisseur et qu'on a la facture |
+| Prestation de services | À l'encaissement (sauf option pour les débits) | Au paiement du fournisseur |
+| Acquisition intracommunautaire | Autoliquidation : TVA collectée **et** déductible | Même déclaration |
+| Importation | Autoliquidation sur la déclaration de TVA | Même déclaration |
+| Exportation, livraison intracommunautaire | Exonérées | |
+
+### TVA non déductible
+
+Véhicules de tourisme et leur entretien (sauf le carburant, partiellement), cadeaux de plus de 73 € TTC par bénéficiaire et par an, dépenses de logement des dirigeants et salariés.
+
+### La déclaration CA3 (régime réel normal)
+
+TVA collectée (lignes par taux, autoliquidation comprise) − TVA déductible (biens et services, immobilisations, autoliquidation) − crédit reporté = **TVA à payer** ou **crédit de TVA**. Écriture de liquidation : 44571 / 44566, 44562, 4452 éventuel et 44551 TVA à décaisser (ou 44567 crédit).
+
+### Les pièges
+
+- Déduire la TVA d'une prestation non encore payée.
+- Oublier l'autoliquidation des achats dans l'Union européenne, qui apparaît **deux fois**.` },
+  { id: "p3-is", ep: "E5", cat: "p3", t: "Résultat fiscal et impôt sur les sociétés", min: 3, qch: ["p3c2", "p3c3"], gen: "p3is", cx: "rfisc", dw: "p3c2",
+    md: `\`\`\`f
+Résultat fiscal = résultat comptable + réintégrations − déductions
+IS (PME éligible) = 15 % jusqu'à 42 500 € + 25 % au-delà
+Acomptes : 4 versements (15 mars, 15 juin, 15 septembre, 15 décembre) ; solde le 15 mai de l'année suivante
+\`\`\`
+
+| Réintégrer (2058-A) | Déduire |
+| --- | --- |
+| IS lui-même, amendes et pénalités | Dividendes reçus d'une filiale mère-fille (quote-part de 5 % réintégrée) |
+| Amortissement d'un véhicule de tourisme au-delà du plafond | Plus-values à long terme taxées à part, le cas échéant |
+| Dépenses somptuaires (chasse, yacht) | Reprises de provisions déjà réintégrées |
+| Provisions non déductibles, taxe sur les véhicules | Déficits antérieurs reportés |
+
+> **Exemple**
+>
+> Résultat comptable 90 000 € ; IS comptabilisé 12 000 € ; amende 1 500 €. Résultat fiscal : 103 500 €. IS : 42 500 × 15 % + 61 000 × 25 % = 6 375 + 15 250 = 21 625 €.
+
+Écriture : 695 Impôts sur les bénéfices / 444 État, impôt sur les bénéfices (acomptes au débit du 444 lors de leur paiement).
+
+### Les pièges
+
+- Réintégrer et déduire à l'envers : demande-toi si la charge **ne doit pas** diminuer l'impôt.
+- Le taux réduit suppose un CA inférieur à 10 M€ et un capital entièrement libéré, détenu à 75 % au moins par des personnes physiques.` },
+  { id: "p4-paie", ep: "E5", cat: "p4", t: "Bulletin et écriture de paie", min: 3, qch: ["p4c3", "p4c4"], gen: "p4paie", cx: "net", gc: ["p4-x3"],
+    md: `\`\`\`f
+Salaire brut = base + heures supplémentaires (+ 25 % les 8 premières, + 50 % ensuite) + primes + avantages en nature − absences
+Net à payer = brut − cotisations salariales − prélèvement à la source (+ remboursements, − acomptes)
+Coût employeur = brut + cotisations patronales
+\`\`\`
+
+### L'écriture de paie
+
+| Compte | Débit | Crédit |
+| --- | --- | --- |
+| 641 Rémunérations du personnel | Brut | |
+| 431 Sécurité sociale, 437 autres organismes | | Cotisations salariales |
+| 4421 Prélèvement à la source | | Impôt retenu |
+| 425 Avances et acomptes | | Acompte déjà versé |
+| 421 Personnel, rémunérations dues | | Net à payer |
+| 645 Charges de sécurité sociale et de prévoyance | Cotisations patronales | |
+| 431, 437 | | Cotisations patronales |
+
+Puis le paiement : 421 / 512 ; et le versement aux organismes : 431, 437, 4421 / 512.
+
+### Les pièges
+
+- La CSG et la CRDS se calculent sur **98,25 %** du brut (dans la limite de 4 plafonds).
+- L'avantage en nature s'ajoute au brut puis se **retire** du net (il n'est pas payé en argent).
+- Les heures supplémentaires : majorations de 25 % et 50 % sauf accord (au moins 10 %).` },
+  { id: "p2-immo", ep: "E5", cat: "p2", t: "Amortissements, cessions et provisions", min: 3, qch: ["p2c1", "p2c2"], gen: "p2deg", gen2: "p2cess", cx: "amdeg",
+    md: `| Calcul | Règle |
+| --- | --- |
+| Linéaire | Base / durée, prorata **en jours** depuis la **mise en service** |
+| Dégressif | Taux linéaire × coefficient (1,25 ; 1,75 ; 2,25), sur la **VNC**, prorata **en mois** depuis le **1er jour du mois d'acquisition**, bascule en linéaire quand c'est plus favorable |
+| Dérogatoire | Fiscal − comptable : 6872 / 145 ; reprise 145 / 7872 |
+| Cession (PCG 2025) | Dotation complémentaire ; sortie : 28 + 657 / 2x ; prix : 462 / 757 + 44571 |
+| Provision pour risque | Obligation, sortie probable, montant estimable : 6815 / 151 |
+
+> **Exemple**
+>
+> Machine de 10 000 € sur 5 ans, acquise le 15 mars N. Dégressif : 20 % × 1,75 = 35 % ; N : 10 000 × 35 % × 10/12 = 2 916,67 €.
+
+### Les pièges
+
+- Utiliser 675 et 775 : depuis 2025, ce sont **657** et **757**.
+- Calculer le prorata du dégressif depuis la mise en service.` },
+  { id: "p7-sql", ep: "E5", cat: "p7", t: "SQL et contrôle interne", min: 3, qch: ["p7c2", "p7c5"], gen: "p7sql", gc: ["p7-x1", "p7-x4"],
+    md: `\`\`\`sql
+SELECT C.nomClient, SUM(F.montantHT) AS CA
+FROM CLIENT C INNER JOIN FACTURE F ON C.numClient = F.numClient
+WHERE F.dateFacture BETWEEN '2026-01-01' AND '2026-12-31'
+GROUP BY C.nomClient
+HAVING SUM(F.montantHT) > 10000
+ORDER BY CA DESC;
+\`\`\`
+
+- Jointure sur la **clé étrangère** ; tout attribut non agrégé du SELECT va dans le GROUP BY.
+- WHERE filtre les lignes, HAVING filtre les groupes.
+- Sans WHERE, un UPDATE ou un DELETE touche **toute** la table.
+
+### Contrôle interne : les réflexes à citer
+
+- **Séparation des tâches** : celui qui commande n'est pas celui qui paie.
+- **Triple rapprochement** : bon de commande, bon de livraison, facture.
+- **Contre-appel** au numéro habituel avant un changement de RIB.
+- **Piste d'audit** : de la déclaration à la pièce, et retour ; écritures validées non modifiables.` },
+  { id: "e5-blanc", ep: "E5", cat: "me", t: "S'entraîner en conditions réelles", min: 2, act: [["exam5", "Examen blanc complet (4 h 30)"]], les: [["me", 1, "Méthode de l'étude de cas"]],
+    md: `L'étude de cas dure **4 h 30**, en plusieurs dossiers indépendants (P1 à P4, avec du P7). Tu peux en traiter les dossiers dans l'ordre que tu veux.
+
+### Gérer le temps
+
+1. **10 minutes** pour lire tout le sujet et répartir le temps selon les points de chaque dossier.
+2. Commence par le dossier que tu maîtrises le mieux.
+3. Garde **15 minutes** de relecture : comptes, montants, arrondis.
+
+### Présenter
+
+- Écritures au format journal : date, numéros **et** intitulés des comptes, débit, crédit, libellé.
+- **Calculs détaillés** : le correcteur note la démarche, même si le résultat est faux.
+- Pour une question d'analyse : réponse rédigée, structurée, avec la règle citée.
+
+> **À retenir**
+>
+> - Lire tout, répartir le temps, commencer par le plus sûr.
+> - Comptes avec intitulés, calculs détaillés, règles citées.` }
+];
+RX.items.push(...RX_MORE);
 /* QF-ENRICHI:end */
 </script>
 <script>
@@ -8101,56 +8781,72 @@ function vPack() {
     <div class="row">${p.date && dt != null && dt >= 0 ? `<button class="btn small" data-act="pkIcs">${ICON.cal}Ajouter à mon agenda</button>` : ""}<button class="btn small" data-act="pkEdit">Modifier le contrôle</button><button class="btn small" data-act="pkDel">Supprimer le contrôle</button></div>
   </section>`;
 }
-/* ---------- Révision express (sujets annoncés avant un examen blanc) ---------- */
+/* ---------- Révision express (avant un examen blanc : sujets annoncés et incontournables) ---------- */
 let RXI = null;
 const rxItems = () => (typeof RX !== "undefined" && RX && RX.items ? RX.items.filter(it => !lockedCat(it.cat)) : []);
 function rxOn() { if (typeof RX === "undefined" || !RX) return false; const e = daysTo(RX.to), s = daysTo(RX.from); return e != null && e >= 0 && s != null && s <= 21; }
 function rxResolve(keys, pool) { return (keys || []).map(k => k.charAt(0) === "@" ? pool.find(x => (x.q || x.f) === k.slice(1)) : pool.find(x => x.id === k)).filter(Boolean); }
-const rxQs = it => rxResolve(it.q, QS), rxFs = it => rxResolve(it.f, FS);
-function rxStat(it) { const L = rxQs(it); return { n: L.length, ok: L.filter(x => S.q[x.id] && S.q[x.id][2] === 1).length, read: !!(S.rx && S.rx[it.id]) }; }
-function rxDateTxt() {
-  const s = daysTo(RX.from), e = daysTo(RX.to);
-  return s > 1 ? `dans ${s} jours` : s === 1 ? "demain" : e >= 0 ? "en cours" : "terminés";
+function rxQs(it) { const a = rxResolve(it.q, QS), b = it.qch ? QS.filter(x => it.qch.includes(x.ch) && !a.includes(x)) : []; return a.concat(b); }
+function rxFs(it) { const a = rxResolve(it.f, FS), b = it.qch ? FS.filter(x => it.qch.includes(x.ch) && !a.includes(x)) : []; return a.concat(b); }
+function rxPick(it) { // 10 questions au plus : d'abord les ratées, puis les jamais faites, puis le reste
+  const L = rxQs(it), r = x => { const s = S.q[x.id]; return !s ? 1 : s[2] === 0 ? 0 : 2; };
+  return shuffle(L).sort((a, b) => r(a) - r(b)).slice(0, it.q && !it.qch ? L.length : 10);
 }
+function rxStat(it) {
+  const L = rxQs(it), seen = L.filter(x => S.q[x.id]), ok = seen.filter(x => S.q[x.id][2] === 1).length, read = !!(S.rx && S.rx[it.id]);
+  const ready = read && (!L.length || (seen.length >= Math.min(6, L.length) && ok / seen.length >= .6));
+  return { n: L.length, seen: seen.length, ok, read, ready };
+}
+function rxEp(ep) { return (RX.eps || []).find(e => e.ep === ep) || { ep, t: (EPREUVES.find(e => e.c === ep) || {}).t || ep }; }
+function rxDateTxt() { const s = daysTo(RX.from), e = daysTo(RX.to); return s > 1 ? `dans ${s} jours` : s === 1 ? "demain" : e >= 0 ? "en cours" : "terminés"; }
 function rxHomeCard() {
   if (!rxOn()) return "";
   const its = rxItems(); if (!its.length) return "";
-  const st = its.map(rxStat), done = st.filter(x => x.read && x.n && x.ok >= Math.ceil(x.n * .6)).length;
-  return `<button class="wk-cta" data-act="rxOpen"><span class="wk-ic">${ICON.clock}</span><span><b>${h(RX.title)} ${rxDateTxt()} : révision express</b><small>${its.length} sujet${its.length > 1 ? "s" : ""} annoncé${its.length > 1 ? "s" : ""} · ${done} prêt${done > 1 ? "s" : ""}</small></span><span class="wk-go">Réviser ›</span></button>`;
+  const done = its.filter(it => rxStat(it).ready).length, eps = [...new Set(its.map(it => it.ep))].length;
+  return `<button class="wk-cta" data-act="rxOpen"><span class="wk-ic">${ICON.clock}</span><span><b>${h(RX.title)} ${rxDateTxt()} : révision express</b><small>${eps} épreuves, ${its.length} fiches express · ${done} prête${done > 1 ? "s" : ""}</small></span><span class="wk-go">Réviser ›</span></button>`;
+}
+function rxBtns(it, s, inRead) {
+  const b = [];
+  if (!inRead) b.push(`<button class="btn small${s.read ? "" : " primary"}" data-act="rxRead" data-id="${it.id}">${ICON.book}L'essentiel</button>`);
+  if (s.n) b.push(`<button class="btn small${(s.read || inRead) && !s.ready ? " primary" : ""}" data-act="rxQuiz" data-id="${it.id}">Quiz${s.n > 10 && it.qch ? " de 10" : ` (${s.n})`}</button>`);
+  if (it.dw && typeof CTLX !== "undefined" && CTLX[it.dw]) b.push(`<button class="btn small" data-act="dwRun" data-ch="${it.dw}">Décider et justifier</button>`);
+  [it.gen, it.gen2].filter(Boolean).forEach(g => { const x = GENS.find(y => y.id === g); if (x) b.push(`<button class="btn small" data-act="exStart" data-gid="${g}">Exercice : ${h(x.title.charAt(0).toLowerCase() + x.title.slice(1))}</button>`); });
+  if (it.cx) b.push(`<button class="btn small" data-act="rxCx" data-id="${it.id}">Calcul express</button>`);
+  (it.gc || []).forEach(g => { const x = GCASES.find(y => y.id === g); if (x) b.push(`<button class="btn small" data-act="gcase" data-id="${g}">Cas guidé : ${h(x.title)}</button>`); });
+  (it.rd || []).forEach(r => { const x = REDACBY[r]; if (x) b.push(`<button class="btn small" data-act="exRedac" data-rid="${r}">Rédaction : ${h(x.title)}</button>`); });
+  if (it.oral) b.push(`<button class="btn small" data-act="rxOral" data-e="${it.oral}">Questions du jury ${h(it.oral)}</button>`);
+  (it.act || []).forEach(([a, l]) => b.push(`<button class="btn small" data-act="${a}">${h(l)}</button>`));
+  if (rxFs(it).length) b.push(`<button class="btn small" data-act="rxCards" data-id="${it.id}">Cartes (${Math.min(20, rxFs(it).length)})</button>`);
+  (it.les || []).forEach(([c, k, l]) => { if (COURS[c] && k <= nLessons(c)) b.push(`<button class="btn small" data-act="lesson" data-cid="${c}" data-k="${k}">${h(l || "La leçon")}</button>`); });
+  if (it.ch && CHID[it.ch]) b.push(`<button class="btn small" data-act="fiche" data-id="${it.ch}">La fiche complète</button>`);
+  return b.join("");
 }
 function vRx() {
   const its = rxItems();
   if (!its.length) return `<section class="pk-page"><div class="runner-top"><button class="crumb" data-nav="home">${ICON.back}Accueil</button></div><p class="muted">Aucune révision express en ce moment.</p></section>`;
-  const eps = [...new Set(its.map(it => it.ep))];
-  const row = it => { const s = rxStat(it), c = CAT[it.cat], ok = s.read && s.n && s.ok >= Math.ceil(s.n * .6);
-    return `<li style="${hueStyle(it.cat)}"><div><b>${h(it.t)}</b><span>${h(c.code)} · ${s.read ? "Essentiel lu" : `Essentiel : ${it.min || 3} min`} · ${s.ok}/${s.n} questions réussies${ok ? " · prêt" : ""}</span></div>
-      <div class="pk-btns">
-        <button class="btn small${s.read ? "" : " primary"}" data-act="rxRead" data-id="${it.id}">${ICON.book}L'essentiel</button>
-        ${s.n ? `<button class="btn small${s.read && !ok ? " primary" : ""}" data-act="rxQuiz" data-id="${it.id}">Quiz (${s.n})</button>` : ""}
-        ${it.gen ? `<button class="btn small" data-act="exStart" data-gid="${it.gen}">Exercice chiffré</button>` : ""}
-        ${it.cx ? `<button class="btn small" data-act="rxCx" data-id="${it.id}">Calcul express</button>` : ""}
-        ${rxFs(it).length ? `<button class="btn small" data-act="rxCards" data-id="${it.id}">Cartes</button>` : ""}
-      </div></li>`; };
+  const order = (RX.eps || []).map(e => e.ep), eps = [...new Set(its.map(it => it.ep))].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+  const row = it => { const s = rxStat(it), c = CAT[it.cat];
+    const info = [c && it.cat !== "me" ? h(c.code) : "", it.annonce ? "<b>sujet annoncé</b>" : "", s.read ? "essentiel lu" : `essentiel : ${it.min || 3} min`, s.n ? (s.seen ? `${s.ok}/${s.seen} réussies (${s.n} questions)` : `${s.n} questions`) : "", s.ready ? "<b>prêt</b>" : ""].filter(Boolean).join(" · ");
+    return `<li style="${hueStyle(it.cat)}"${it.annonce ? ' class="pk-next"' : ""}><div><b>${h(it.t)}</b><span>${info}</span></div><div class="pk-btns">${rxBtns(it, s)}</div></li>`; };
+  const nav = eps.map(ep => { const w = (rxEp(ep).when || "").split(" ")[0]; return `<button class="chip" data-act="rxJump" data-ep="${ep}">${w ? h(w.slice(0, 3)) + " · " : ""}${h(ep)}</button>`; }).join("");
   return `<section class="pk-page">
     <div class="runner-top"><button class="crumb" data-nav="home">${ICON.back}Accueil</button><span class="pill ${daysTo(RX.from) <= 3 ? "ko" : ""}">${h(RX.title)} ${rxDateTxt()}</span></div>
     <div class="pk-hero"><h1>Révision express</h1><p class="muted">${h(RX.intro || "")}</p>
-      <p class="muted small">Pour chaque sujet : lis l'essentiel, fais le quiz, puis l'exercice. Un sujet est « prêt » quand l'essentiel est lu et 60 % des questions réussies.</p></div>
-    ${eps.map(ep => `<h2 class="grp-title">${h(ep)}${EPREUVES && EPREUVES.find(e => e.c === ep) ? " · " + h(EPREUVES.find(e => e.c === ep).t) : ""}</h2><ol class="pk-steps">${its.filter(it => it.ep === ep).map(row).join("")}</ol>`).join("")}
+      <p class="muted small">Pour chaque fiche : lis l'essentiel, fais le quiz, puis un exercice. Elle est « prête » quand l'essentiel est lu et que tu réussis au moins 60 % des questions faites.</p>
+      <div class="picker">${nav}</div></div>
+    ${eps.map(ep => { const e = rxEp(ep), L = its.filter(it => it.ep === ep).sort((a, b) => (b.annonce ? 1 : 0) - (a.annonce ? 1 : 0)), r = L.filter(it => rxStat(it).ready).length;
+      return `<div class="stack" id="rx-${ep}"><div class="sec-head"><h2 class="grp-title">${h(ep)} · ${h(e.t)}</h2><p>${e.when ? h(e.when) + " · " : ""}${r}/${L.length} prête${r > 1 ? "s" : ""}</p></div><ol class="pk-steps">${L.map(row).join("")}</ol></div>`; }).join("")}
   </section>`;
 }
 function vRxRead() {
   const it = rxItems().find(x => x.id === RXI); if (!it) return vRx();
-  const c = CAT[it.cat], s = rxStat(it);
+  const c = CAT[it.cat], s = rxStat(it), e = rxEp(it.ep);
   return `<div class="reader" style="${hueStyle(it.cat)}"><article class="lesson">
     <div class="runner-top"><button class="crumb" data-act="rxOpen">${ICON.back}Révision express</button></div>
-    <p class="lesson-meta"><span class="tabcode">${h(c.code)}</span><span>Révision express · ${h(it.ep)}</span><span>${it.min || 3} min de lecture</span></p>
+    <p class="lesson-meta">${c && it.cat !== "me" ? `<span class="tabcode">${h(c.code)}</span>` : ""}<span>${h(it.ep)} · ${h(e.t)}</span>${it.annonce ? "<span>Sujet annoncé</span>" : ""}<span>${it.min || 3} min de lecture</span></p>
     <h1>${inl(it.t)}</h1>
     <div class="md">${mdBlocks(String(it.md).split("\n"), "rx-" + it.id)}</div>
-    <div class="lesson-test"><div><b>À toi maintenant</b><span>${s.n} questions ciblées, puis un exercice chiffré.</span></div><div class="row">
-      ${s.n ? `<button class="btn small primary" data-act="rxQuiz" data-id="${it.id}">Quiz (${s.n})</button>` : ""}
-      ${it.gen ? `<button class="btn small" data-act="exStart" data-gid="${it.gen}">Exercice chiffré</button>` : ""}
-      ${it.ch && CHID[it.ch] ? `<button class="btn small" data-act="fiche" data-id="${it.ch}">La fiche complète</button>` : ""}
-    </div></div>
+    <div class="lesson-test"><div><b>À toi maintenant</b><span>${s.n ? "Un quiz ciblé, puis un exercice." : "Passe à la pratique."}</span></div><div class="row pk-btns">${rxBtns(it, s, true)}</div></div>
   </article></div>`;
 }
 function vExHome() {
@@ -9197,9 +9893,11 @@ document.addEventListener("click", e => {
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "rxOpen": go("rx"); break;
     case "rxRead": { RXI = b.dataset.id; S.rx = S.rx || {}; if (!S.rx[RXI]) { S.rx[RXI] = dayNum(); touch(); } go("rxread"); break; }
-    case "rxQuiz": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startRun(shuffle(rxQs(it)), "quiz"); break; }
+    case "rxQuiz": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startRun(rxPick(it), "quiz"); break; }
+    case "rxOral": OF.e = b.dataset.e || "E6"; OR = null; oralStart(); break;
+    case "rxJump": { const el = document.getElementById("rx-" + b.dataset.ep); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); break; }
     case "rxCx": { const it = rxItems().find(x => x.id === b.dataset.id); if (it && it.cx) cxStart(it.cat, [it.cx]); break; }
-    case "rxCards": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startCards(shuffle(rxFs(it))); break; }
+    case "rxCards": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startCards(shuffle(rxFs(it)).slice(0, 20)); break; }
     case "exCheck": { readUser(); const it = X.list[X.i]; grade(it); recordEx(it); touch(); render(); break; }
     case "exShow": { readUser(); const it = X.list[X.i]; it.user = { f: [], rows: [] }; grade(it); render(); break; }
     case "exAgain": startEx([X.list[X.i].gid], "single"); break;
