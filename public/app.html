@@ -8782,7 +8782,7 @@ function vPack() {
   </section>`;
 }
 /* ---------- Révision express (avant un examen blanc : sujets annoncés et incontournables) ---------- */
-let RXI = null;
+let RXI = null, RXEP = "";
 const rxItems = () => (typeof RX !== "undefined" && RX && RX.items ? RX.items.filter(it => !lockedCat(it.cat)) : []);
 function rxOn() { if (typeof RX === "undefined" || !RX) return false; const e = daysTo(RX.to), s = daysTo(RX.from); return e != null && e >= 0 && s != null && s <= 21; }
 function rxResolve(keys, pool) { return (keys || []).map(k => k.charAt(0) === "@" ? pool.find(x => (x.q || x.f) === k.slice(1)) : pool.find(x => x.id === k)).filter(Boolean); }
@@ -8828,13 +8828,14 @@ function vRx() {
   const row = it => { const s = rxStat(it), c = CAT[it.cat];
     const info = [c && it.cat !== "me" ? h(c.code) : "", it.annonce ? "<b>sujet annoncé</b>" : "", s.read ? "essentiel lu" : `essentiel : ${it.min || 3} min`, s.n ? (s.seen ? `${s.ok}/${s.seen} réussies (${s.n} questions)` : `${s.n} questions`) : "", s.ready ? "<b>prêt</b>" : ""].filter(Boolean).join(" · ");
     return `<li style="${hueStyle(it.cat)}"${it.annonce ? ' class="pk-next"' : ""}><div><b>${h(it.t)}</b><span>${info}</span></div><div class="pk-btns">${rxBtns(it, s)}</div></li>`; };
-  const nav = eps.map(ep => { const w = (rxEp(ep).when || "").split(" ")[0]; return `<button class="chip" data-act="rxJump" data-ep="${ep}">${w ? h(w.slice(0, 3)) + " · " : ""}${h(ep)}</button>`; }).join("");
+  if (RXEP && !eps.includes(RXEP)) RXEP = "";
+  const nav = `<button class="chip" data-act="rxJump" data-ep="" aria-pressed="${!RXEP}">Tout</button>` + eps.map(ep => { const w = (rxEp(ep).when || "").split(" ")[0]; return `<button class="chip" data-act="rxJump" data-ep="${ep}" aria-pressed="${RXEP === ep}">${w ? h(w.slice(0, 3)) + " · " : ""}${h(ep)}</button>`; }).join("");
   return `<section class="pk-page">
     <div class="runner-top"><button class="crumb" data-nav="home">${ICON.back}Accueil</button><span class="pill ${daysTo(RX.from) <= 3 ? "ko" : ""}">${h(RX.title)} ${rxDateTxt()}</span></div>
     <div class="pk-hero"><h1>Révision express</h1><p class="muted">${h(RX.intro || "")}</p>
       <p class="muted small">Pour chaque fiche : lis l'essentiel, fais le quiz, puis un exercice. Elle est « prête » quand l'essentiel est lu et que tu réussis au moins 60 % des questions faites.</p>
       <div class="picker">${nav}</div></div>
-    ${eps.map(ep => { const e = rxEp(ep), L = its.filter(it => it.ep === ep).sort((a, b) => (b.annonce ? 1 : 0) - (a.annonce ? 1 : 0)), r = L.filter(it => rxStat(it).ready).length;
+    ${eps.filter(ep => !RXEP || ep === RXEP).map(ep => { const e = rxEp(ep), L = its.filter(it => it.ep === ep).sort((a, b) => (b.annonce ? 1 : 0) - (a.annonce ? 1 : 0)), r = L.filter(it => rxStat(it).ready).length;
       return `<div class="stack" id="rx-${ep}"><div class="sec-head"><h2 class="grp-title">${h(ep)} · ${h(e.t)}</h2><p>${e.when ? h(e.when) + " · " : ""}${r}/${L.length} prête${r > 1 ? "s" : ""}</p></div><ol class="pk-steps">${L.map(row).join("")}</ol></div>`; }).join("")}
   </section>`;
 }
@@ -9895,7 +9896,7 @@ document.addEventListener("click", e => {
     case "rxRead": { RXI = b.dataset.id; S.rx = S.rx || {}; if (!S.rx[RXI]) { S.rx[RXI] = dayNum(); touch(); } go("rxread"); break; }
     case "rxQuiz": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startRun(rxPick(it), "quiz"); break; }
     case "rxOral": OF.e = b.dataset.e || "E6"; OR = null; oralStart(); break;
-    case "rxJump": { const el = document.getElementById("rx-" + b.dataset.ep); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); break; }
+    case "rxJump": RXEP = b.dataset.ep || ""; render(); break;
     case "rxCx": { const it = rxItems().find(x => x.id === b.dataset.id); if (it && it.cx) cxStart(it.cat, [it.cx]); break; }
     case "rxCards": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startCards(shuffle(rxFs(it)).slice(0, 20)); break; }
     case "exCheck": { readUser(); const it = X.list[X.i]; grade(it); recordEx(it); touch(); render(); break; }
