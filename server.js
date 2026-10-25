@@ -38,11 +38,23 @@ const zlib = require("zlib");
 const APP_VER = crypto.createHash("sha1").update(APP_HTML).digest("hex").slice(0, 12);
 /* Page de l'appli par élève : construite une fois, compressée une fois, puis resservie (ou 304 si rien n'a changé). */
 const appCache = new Map();
-function appFor(u) {
-  const me = u.guest ? { id: "guest", name: "", ai: false, guest: true } : { id: u.id, name: u.name, ai: !!AI_KEY }, key = JSON.stringify(me);
+/* Contenu personnel d'un compte (fiches propres à un élève, jamais dans le dépôt) : réglage « perso:<id> », injecté après le bloc de contenu. */
+const PERSO = new Map();
+const CONTENT_END = (() => { const i = APP_HTML.indexOf('id="gl-content"'); return i < 0 ? -1 : APP_HTML.indexOf("</script>", i) + "</script>".length; })();
+async function persoFor(u) {
+  if (!u || u.guest) return "";
+  if (PERSO.has(u.id)) return PERSO.get(u.id);
+  let js = ""; try { js = (await store.getSetting("perso:" + u.id)) || ""; } catch (e) { return ""; }
+  PERSO.set(u.id, js); if (PERSO.size > 200) PERSO.delete(PERSO.keys().next().value);
+  return js;
+}
+function appFor(u, perso) {
+  perso = CONTENT_END > 0 ? (perso || "") : "";
+  const me = u.guest ? { id: "guest", name: "", ai: false, guest: true } : { id: u.id, name: u.name, ai: !!AI_KEY }, key = JSON.stringify(me) + (perso ? "|" + crypto.createHash("sha1").update(perso).digest("hex") : "");
   let c = appCache.get(u.id);
   if (c && c.key === key) { appCache.delete(u.id); appCache.set(u.id, c); return c; }
-  const build = () => Buffer.from(APP_HTML
+  const base = perso ? APP_HTML.slice(0, CONTENT_END) + "\n<script>/* contenu personnel */\n" + perso.replace(/<\/script/gi, "<\\/script") + "\n</script>" + APP_HTML.slice(CONTENT_END) : APP_HTML;
+  const build = () => Buffer.from(base
     .replace("__GL_ME__", JSON.stringify(me).replace(/</g, "\\u003c"))
     .split("grand-livre-btscg-v1").join("grand-livre-btscg-v1-" + u.id)
     .split('"gl-recent"').join('"gl-recent-' + u.id + '"'), "utf8");
@@ -124,7 +136,7 @@ app.get("/", async (req, res, next) => {
     const u = await currentUser(req);
     if (!u) res.setHeader("Cache-Control", "no-store");
     if (!u) return res.type("html").send(LOGIN_HTML.replace("__SIGNUP_CODE__", REGISTRATION === "code" ? "1" : "0").replace("<!--VERIFY-->", VERIFY_TAG));
-    sendApp(req, res, appFor(u));
+    sendApp(req, res, appFor(u, await persoFor(u)));
   } catch (e) { next(e); }
 });
 app.get("/essai", async (req, res, next) => {
@@ -781,6 +793,20 @@ app.post("/api/admin/users", async (req, res, next) => {
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
     if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
     res.json({ users: await store.listUsers() });
+  } catch (e) { next(e); }
+});
+/* Contenu personnel d'un compte : { name, js } pour l'enregistrer, js vide pour le retirer. */
+app.post("/api/admin/perso", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const u = await store.userByKey(nameKey(cleanName(req.body.name || "")));
+    if (!u) return res.status(404).json({ error: "Compte introuvable." });
+    const js = String(req.body.js || "");
+    if (js.length > 400000) return res.status(413).json({ error: "Contenu trop volumineux." });
+    await store.setSetting("perso:" + u.id, js);
+    PERSO.delete(u.id); appCache.delete(u.id);
+    res.json({ ok: true, name: u.name, size: js.length });
   } catch (e) { next(e); }
 });
 app.post("/api/admin/errors", (req, res) => {
