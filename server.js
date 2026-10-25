@@ -166,7 +166,7 @@ app.get("/admin", async (req, res, next) => {
 });
 /* Dépôt ponctuel de contenu personnel sans session admin : actif seulement si la variable PERSO_KEY (32 caractères au moins) est définie, puis retirée après usage.
    Sans « name », le contenu va au premier compte de ADMIN_USERS. */
-app.post("/api/perso-upload", async (req, res, next) => {
+app.post("/api/perso-upload", express.json({ limit: "1mb" }), async (req, res, next) => {
   try {
     const K = process.env.PERSO_KEY || "";
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
