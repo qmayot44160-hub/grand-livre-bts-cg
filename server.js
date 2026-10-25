@@ -1139,14 +1139,15 @@ app.use((err, req, res, next) => { console.error(err); res.status(500).json({ er
 /* Contenu personnel transmis par variables Railway (PERSO_DATA_1, _2… : JavaScript compressé en gzip puis base64), pour le compte PERSO_USER ou, à défaut, le premier de ADMIN_USERS.
    Appliqué une seule fois par version (empreinte gardée en base), pour ne pas écraser un retrait fait depuis GL Admin. */
 async function applyPersoEnv() {
-  const parts = Object.keys(process.env).filter(k => /^PERSO_DATA_\d+$/.test(k)).sort((a, b) => +a.split("_")[2] - +b.split("_")[2]).map(k => process.env[k].trim());
+  const grab = re => Object.keys(process.env).filter(k => re.test(k)).sort((a, b) => +a.split("_")[2] - +b.split("_")[2]).map(k => process.env[k].trim());
+  const parts = grab(/^PERSO_DATA_\d+$/), adds = grab(/^PERSO_ADD_\d+$/); // ADD : compléments indépendants, ajoutés après le contenu principal
   if (!parts.length) return;
-  const b64 = parts.join(""), hash = crypto.createHash("sha1").update(b64).digest("hex");
+  const b64 = parts.join(""), hash = crypto.createHash("sha1").update(b64 + "|" + adds.join("|")).digest("hex");
   const key = process.env.PERSO_USER ? nameKey(process.env.PERSO_USER) : ADMIN_USERS[0];
   const u = key ? await store.userByKey(key) : null;
   if (!u) return console.log("Contenu personnel : compte introuvable");
   if ((await store.getSetting("perso-env:" + u.id)) === hash) return;
-  const js = zlib.gunzipSync(Buffer.from(b64, "base64")).toString("utf8");
+  const js = [b64].concat(adds).map(x => zlib.gunzipSync(Buffer.from(x, "base64")).toString("utf8")).join("\n");
   await store.setSetting("perso:" + u.id, js); await store.setSetting("perso-env:" + u.id, hash);
   PERSO.delete(u.id); appCache.delete(u.id);
   console.log("Contenu personnel appliqué au compte " + u.name + " (" + js.length + " caractères)");

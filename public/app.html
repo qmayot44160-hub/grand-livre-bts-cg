@@ -1297,6 +1297,15 @@ html, body { overflow-x: hidden; }
 .wk-bar { height: 6px; border-radius:0; background: var(--rule); overflow: hidden; } .wk-bar i { display: block; height: 100%; background: #d9534f; }
 .wk-cta { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--sheet); border: 1px solid color-mix(in srgb, #e0a31f 45%, var(--rule)); border-radius:var(--radius); padding: 12px 14px; }
 .wk-cta:hover { border-color: #e0a31f; }
+.rc-box { display: grid; gap: 10px; margin: 14px 0; }
+.rc-line { margin: 0; padding: 10px 12px; border-radius: var(--radius); background: var(--sheet); border: 1px solid var(--rule); line-height: 1.55; }
+.rc-line.rc-ko { border-color: color-mix(in srgb, #c0392b 45%, var(--rule)); }
+.rc-line.rc-cur { border-color: var(--ink); font-weight: 600; }
+.rc-line.rc-note { font-style: italic; color: var(--muted); font-weight: 400; }
+.rc-mask { display: grid; gap: 4px; width: 100%; min-height: 84px; text-align: left; font: inherit; color: var(--muted); background: transparent; border: 2px dashed var(--rule); border-radius: var(--radius); padding: 12px; cursor: pointer; }
+.rc-mask small { font-size: .8em; }
+.rc-hint { color: var(--ink); letter-spacing: .02em; line-height: 1.6; }
+.rc-act { gap: 8px; }
 .wk-ic { font-size: 1.5rem; } .wk-cta > span:nth-child(2) { flex: 1; min-width: 0; display: grid; } .wk-cta small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wk-go { font-weight:600; color: var(--accent); white-space: nowrap; }
 @media (max-width: 760px) { .wk { flex-wrap: wrap; } .wk .btn { margin-left: auto; } .hm i, .hm-col { } }
@@ -4878,7 +4887,7 @@ Une amorce (un fait, une citation liée au thème « Le vrai du faux »), l'anal
 > - Prépare trois ou quatre exemples précis par axe, dont les œuvres du programme.` },
 
   /* ---------- E8 · lundi 26 après-midi ---------- */
-  { id: "e8-perso", ep: "E8", cat: "me", need: ["or-m1"], t: "Ta présentation d'entreprise (ton dossier)", min: 3, qch: ["or-m1", "or-m2", "or-m3", "or-m4", "or-m5", "or-m6"], gc: ["oral-m-x1", "oral-m-x2"], les: [["e8p", 1, "Ton cours E8"]], fiches: [["or-m1", "Le déroulé minuté"], ["or-m2", "Identité et organisation"], ["or-m3", "Structures, zone, SI"], ["or-m4", "Missions et cadre légal"], ["or-m5", "Ton processus"], ["or-m6", "Questions du jury et veille"]],
+  { id: "e8-perso", ep: "E8", cat: "me", need: ["or-m1"], t: "Ta présentation d'entreprise (ton dossier)", min: 3, qch: ["or-m1", "or-m2", "or-m3", "or-m4", "or-m5", "or-m6"], gc: ["oral-m-x1", "oral-m-x2"], les: [["e8p", 1, "Ton cours E8"]], act: [["reciteHome", "Apprendre mon oral par cœur"]], fiches: [["or-m1", "Le déroulé minuté"], ["or-m2", "Identité et organisation"], ["or-m3", "Structures, zone, SI"], ["or-m4", "Missions et cadre légal"], ["or-m5", "Ton processus"], ["or-m6", "Questions du jury et veille"]],
     md: `Tes fiches personnelles reprennent ton dossier et tes 13 cartes d'oral. Pour lundi :
 
 1. **Relis le déroulé minuté**, puis dis ta présentation à voix haute, **chronomètre en main**.
@@ -5541,6 +5550,7 @@ function mergeS(a, b) {
   each("qd", (p, q) => ({ w: Math.max(p.w || 0, q.w || 0), ok: [...new Set([].concat(p.ok || [], q.ok || []))].sort((m, n) => m - n).slice(-6) }));
   each("h", (p, q) => Math.max(+p || 0, +q || 0));
   each("dwr", (p, q) => ((q && q.n) || 0) > ((p && p.n) || 0) ? q : p);
+  each("rc", (p, q) => ((q && q[1]) || 0) > ((p && p[1]) || 0) ? q : p);
   ["l", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
   each("gc", (p, q) => Object.keys(q.ok || {}).length > Object.keys(p.ok || {}).length ? q : p);
@@ -6138,7 +6148,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, recite: vRecite, rchome: vReciteHome, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   if (inPack() && /^(run|result|cards|card|cardsEnd|exrun|exres|calc|schema|gcase|oral|redac)$/.test(view) && !(view === "result" && R && R.pack != null)) v.insertAdjacentHTML("afterbegin", `<div class="pk-ban" style="${hueStyle(S.packs[FROMPACK].cat)}"><span>Contrôle : <b>${h(packName(S.packs[FROMPACK]))}</b></span><button class="btn small primary" data-act="pkResume">Suite du contrôle</button></div>`);
   v.dataset.view = view;
@@ -7147,7 +7157,7 @@ function vLesson() {
       <div class="lprog" role="presentation"><i style="width:${pct(k, n)}%"></i></div>
       <h1>${inl(lb.t)}</h1>
       <div class="md">${mdBlocks(s.lines, "l-" + cid + "-" + k)}</div>
-      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row">${m.chs ? (() => { const lc = (m.lch || [])[k - 1], one = lc ? [lc] : null, nq = L => QS.filter(x => L.includes(x.ch)).length, nf = L => FS.filter(x => L.includes(x.ch)).length; return (one ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${lc}">Quiz de cette leçon (${nq(one)})</button><button class="btn small" data-act="chsCards" data-chs="${lc}">Flashcards de cette leçon (${nf(one)})</button>` : "") + `<button class="btn small${one ? "" : " primary"}" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz de tout le cours (${nq(m.chs)})</button><button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards de tout le cours (${nf(m.chs)})</button>`; })() : `<button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button>`}</div></div>
+      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row">${m.script ? `<button class="btn small primary" data-act="reciteHome" data-cid="${cid}">Apprendre mon oral par cœur</button>` : ""}${m.chs ? (() => { const lc = (m.lch || [])[k - 1], one = lc ? [lc] : null, nq = L => QS.filter(x => L.includes(x.ch)).length, nf = L => FS.filter(x => L.includes(x.ch)).length; return (one ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${lc}">Quiz de cette leçon (${nq(one)})</button><button class="btn small" data-act="chsCards" data-chs="${lc}">Flashcards de cette leçon (${nf(one)})</button>` : "") + `<button class="btn small${one ? "" : " primary"}" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz de tout le cours (${nq(m.chs)})</button><button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards de tout le cours (${nf(m.chs)})</button>`; })() : `<button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button>`}</div></div>
       <p class="rep-row"><button class="rep-btn" data-act="report" data-t="l" data-id="${h(cid + ":" + k)}" data-l="${h(String(lb.t).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="lessonPrev">Leçon précédente</button>` : `<button class="btn" data-act="mat" data-cat="${cat}" data-seg="lecons">Retour à la matière</button>`}${nextBtn}</footer>
     </article>
@@ -8874,6 +8884,57 @@ function vRxRead() {
     <div class="lesson-test"><div><b>À toi maintenant</b><span>${s.n ? "Un quiz ciblé, puis un exercice." : "Passe à la pratique."}</span></div><div class="row pk-btns">${rxBtns(it, s, true)}</div></div>
   </article></div>`;
 }
+/* ---------- Apprendre son oral par cœur (texte découpé en phrases : on devine la suite, puis on la dévoile) ---------- */
+let RC = null;
+const reciteKeys = () => Object.keys(COURS_META).filter(id => COURS_META[id].script && COURS_META[id].script.length);
+const rcNote = t => /^\(/.test(t);
+function rcStat(key, ci, li) { return (S.rc || {})[key + "|" + ci + "-" + li]; }
+function rcWeak(key) { const sc = COURS_META[key].script, out = []; sc.forEach((c, ci) => c[2].forEach((t, li) => { if (rcNote(t)) return; const r = rcStat(key, ci, li); if (!r || r[2] === 0) out.push(ci + "-" + li); })); return out; }
+function rcHint(t) { return t.split(/\s+/).map(w => { const m = w.match(/^([«(]?)(\S)(.*?)([.,;:!?»)]*)$/); return m ? m[1] + m[2] + m[3].replace(/[^\s'’-]/g, "·").slice(0, 3) + m[4] : w; }).join(" "); }
+function reciteStart(key, cards, weakOnly) {
+  const sc = COURS_META[key].script, weak = weakOnly ? new Set(rcWeak(key)) : null, items = [];
+  sc.forEach((c, ci) => { if (cards && !cards.includes(ci)) return; c[2].forEach((t, li) => { if (weak && !rcNote(t) && !weak.has(ci + "-" + li)) return; if (weak && rcNote(t)) return; items.push({ ci, li }); }); });
+  if (!items.length) { toast(weakOnly ? "Aucune phrase à revoir : tout est su !" : "Rien à réciter"); return; }
+  RC = { key, items, i: 0, shown: false, hint: false, res: [], cards, weakOnly };
+  if (rcNote(sc[items[0].ci][2][items[0].li])) RC.shown = true;
+  go("recite");
+}
+function vReciteHome() {
+  const key = (RC && RC.key) || reciteKeys()[0]; if (!key) return vCoursList();
+  const m = COURS_META[key], sc = m.script, weak = rcWeak(key), tot = sc.reduce((n, c) => n + c[2].filter(t => !rcNote(t)).length, 0);
+  return `<section class="pk-page">
+    <div class="runner-top"><button class="crumb" data-act="lesson" data-cid="${key}" data-k="1">${ICON.back}${h(m.name)}</button></div>
+    <div class="pk-hero"><h1>Apprendre mon oral par cœur</h1>
+      <p class="muted">Lis le début, dis la phrase suivante à voix haute, puis touche « Voir la suite » pour vérifier. Réponds honnêtement : les phrases ratées ou jamais récitées restent dans « Phrases pas encore sues ».</p>
+      <div class="pk-ready"><div class="meter"><i style="width:${pct(tot - weak.length, tot)}%"></i></div><span><b>${tot - weak.length}/${tot}</b> phrases sues</span></div></div>
+    <div class="row"><button class="btn primary" data-act="rcGo" data-key="${key}">Toute la présentation</button><button class="btn" data-act="rcGo" data-key="${key}" data-weak="1" ${weak.length ? "" : "disabled"}>Phrases pas encore sues (${weak.length})</button></div>
+    <ol class="pk-steps">${sc.map((c, ci) => { const n = c[2].filter(t => !rcNote(t)).length, ok = n - weak.filter(x => +x.split("-")[0] === ci).length;
+      return `<li${ok === n ? "" : ' class="pk-next"'}><div><b>Carte ${h(c[0])}</b><span>${h(c[1])} · ${ok}/${n} phrases sues</span></div><div class="pk-btns"><button class="btn small" data-act="rcGo" data-key="${key}" data-card="${ci}">Réciter cette carte</button></div></li>`; }).join("")}</ol>
+  </section>`;
+}
+function vRecite() {
+  if (!RC) return vReciteHome();
+  const sc = COURS_META[RC.key].script;
+  if (RC.i >= RC.items.length) {
+    const ok = RC.res.filter(x => x === true).length, n = RC.res.filter(x => x === true || x === false).length, weak = rcWeak(RC.key).length;
+    return `<section class="pk-page"><div class="pk-hero"><h1>${ok === n ? "Récitation parfaite" : "Récitation terminée"}</h1>
+      <p class="muted">${ok} phrase${ok > 1 ? "s" : ""} sue${ok > 1 ? "s" : ""} sur ${n}. ${weak ? `Dans toute la présentation, ${weak} phrase${weak > 1 ? "s ne sont" : " n'est"} pas encore sue${weak > 1 ? "s" : ""}.` : "Toute ta présentation est sue."}</p></div>
+      <div class="row">${weak ? `<button class="btn primary" data-act="rcGo" data-key="${RC.key}" data-weak="1">Travailler les phrases pas encore sues</button>` : ""}<button class="btn" data-act="rcAgain">Recommencer</button><button class="btn" data-act="rcHome">Choisir une carte</button></div></section>`;
+  }
+  const cur = RC.items[RC.i], card = sc[cur.ci], t = card[2][cur.li], note = rcNote(t);
+  const before = RC.items.slice(0, RC.i).filter(x => x.ci === cur.ci).map(x => { const r = RC.res[RC.items.indexOf(x)]; return `<p class="rc-line${r === false ? " rc-ko" : ""}">${h(card[2][x.li])}</p>`; }).join("");
+  const done = RC.items.slice(0, RC.i).length;
+  return `<section class="runner rc">
+    <div class="runner-top"><span class="progress-text"><button class="quit" data-act="rcHome" aria-label="Arrêter">✕</button>Phrase ${done + 1} / ${RC.items.length}</span><span class="ep">Carte ${h(card[0])} · ${h(card[1])}</span></div>
+    <div class="lprog"><i style="width:${pct(done, RC.items.length)}%"></i></div>
+    <div class="rc-box">${before}
+      ${RC.shown ? `<p class="rc-line rc-cur${note ? " rc-note" : ""}">${h(t)}</p>` : `<button class="rc-mask" data-act="rcShow">${RC.hint ? `<span class="rc-hint">${h(rcHint(t))}</span>` : "Dis la suite à voix haute…"}<small>Touche pour voir la suite</small></button>`}
+    </div>
+    <div class="row rc-act">${RC.shown
+      ? (note ? `<button class="btn primary" data-act="rcNext" data-ok="skip">Continuer</button>` : `<button class="btn primary" data-act="rcNext" data-ok="1">${ICON.check}Je l'avais</button><button class="btn" data-act="rcNext" data-ok="0">À revoir</button>`)
+      : `<button class="btn primary" data-act="rcShow">Voir la suite</button>${RC.hint ? "" : `<button class="btn" data-act="rcHint">Indice : premières lettres</button>`}`}</div>
+  </section>`;
+}
 function vExHome() {
   const n = todayCount(), eps = ["E5", "E4", "E3", "E1"];
   const pool = ANN.filter(a => !ANF.ep || a.ep === ANF.ep), exPool = pool.flatMap(a => a.ex);
@@ -9917,6 +9978,17 @@ document.addEventListener("click", e => {
     case "goEx": go("ex"); break;
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "rxOpen": go("rx"); break;
+    case "reciteHome": RC = { key: b.dataset.cid || reciteKeys()[0], items: null }; go("rchome"); break;
+    case "rcHome": go("rchome"); break;
+    case "rcGo": reciteStart(b.dataset.key, b.dataset.card != null ? [+b.dataset.card] : null, !!b.dataset.weak); break;
+    case "rcShow": if (RC) { RC.shown = true; render(); } break;
+    case "rcHint": if (RC) { RC.hint = true; render(); } break;
+    case "rcAgain": if (RC) reciteStart(RC.key, RC.cards, false); break;
+    case "rcNext": { if (!RC || !RC.items) break; const cur = RC.items[RC.i], ok = b.dataset.ok;
+      if (ok === "skip") RC.res[RC.i] = null; else { S.rc = S.rc || {}; const k = RC.key + "|" + cur.ci + "-" + cur.li, r = S.rc[k] || [0, 0, 0]; r[1]++; if (ok === "1") r[0]++; r[2] = ok === "1" ? 1 : 0; S.rc[k] = r; RC.res[RC.i] = ok === "1"; touch(); }
+      RC.i++; RC.shown = false; RC.hint = false;
+      const nx = RC.items[RC.i]; if (nx && rcNote(COURS_META[RC.key].script[nx.ci][2][nx.li])) RC.shown = true;
+      render(); break; }
     case "chsQuiz": { const L = (b.dataset.chs || "").split(","), r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }; const l = shuffle(QS.filter(x => L.includes(x.ch))).sort((a, c) => r(a) - r(c)).slice(0, 15); if (l.length) startRun(l, "quiz"); break; }
     case "chsCards": { const L = (b.dataset.chs || "").split(","), l = FS.filter(x => L.includes(x.ch)); if (l.length) startCards(shuffle(l).slice(0, 30)); break; }
     case "rxRead": { RXI = b.dataset.id; S.rx = S.rx || {}; if (!S.rx[RXI]) { S.rx[RXI] = dayNum(); touch(); } go("rxread"); break; }
