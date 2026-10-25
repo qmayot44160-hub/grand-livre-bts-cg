@@ -7147,7 +7147,7 @@ function vLesson() {
       <div class="lprog" role="presentation"><i style="width:${pct(k, n)}%"></i></div>
       <h1>${inl(lb.t)}</h1>
       <div class="md">${mdBlocks(s.lines, "l-" + cid + "-" + k)}</div>
-      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row"><button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button></div></div>
+      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row">${m.chs ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz (${QS.filter(x => m.chs.includes(x.ch)).length} questions)</button><button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards (${FS.filter(x => m.chs.includes(x.ch)).length})</button>` : `<button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button>`}</div></div>
       <p class="rep-row"><button class="rep-btn" data-act="report" data-t="l" data-id="${h(cid + ":" + k)}" data-l="${h(String(lb.t).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="lessonPrev">Leçon précédente</button>` : `<button class="btn" data-act="mat" data-cat="${cat}" data-seg="lecons">Retour à la matière</button>`}${nextBtn}</footer>
     </article>
@@ -9917,6 +9917,8 @@ document.addEventListener("click", e => {
     case "goEx": go("ex"); break;
     case "exStart": startEx([b.dataset.gid], "single"); break;
     case "rxOpen": go("rx"); break;
+    case "chsQuiz": { const L = (b.dataset.chs || "").split(","), r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }; const l = shuffle(QS.filter(x => L.includes(x.ch))).sort((a, c) => r(a) - r(c)).slice(0, 15); if (l.length) startRun(l, "quiz"); break; }
+    case "chsCards": { const L = (b.dataset.chs || "").split(","), l = FS.filter(x => L.includes(x.ch)); if (l.length) startCards(shuffle(l).slice(0, 30)); break; }
     case "rxRead": { RXI = b.dataset.id; S.rx = S.rx || {}; if (!S.rx[RXI]) { S.rx[RXI] = dayNum(); touch(); } go("rxread"); break; }
     case "rxQuiz": { const it = rxItems().find(x => x.id === b.dataset.id); if (it) startRun(rxPick(it), "quiz"); break; }
     case "rxOral": OF.e = b.dataset.e || "E6"; OR = null; oralStart(); break;
