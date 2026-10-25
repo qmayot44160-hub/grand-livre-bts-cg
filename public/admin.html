@@ -1174,7 +1174,23 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       setRow("Ouvrir le Grand Livre", "Comme un élève", el("a", { cls: "btn small", href: "/", target: "_blank", rel: "noopener", html: I.ext + "Ouvrir" })),
       setRow("Se déconnecter", "De GL Admin sur cet appareil", el("button", { cls: "btn small danger", html: I.logout + "Sortir", onclick: async function () { try { localStorage.removeItem(LS); } catch (x) {} await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(function () {}); location.replace("/admin"); } }))
     ]);
-    setView([prof, el("p", { cls: "eyebrow", text: "Apparence" }), look, el("p", { cls: "eyebrow", text: "Utilisation" }), use, el("p", { cls: "eyebrow", text: "Compte" }), more, el("p", { cls: "muted small", style: "text-align:center", text: "GL Admin · Grand Livre BTS CG" })]);
+    var pName = el("input", { type: "text", value: ADMIN || "", "aria-label": "Nom du compte", style: "width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border:1px solid var(--rule, #d0d7e2);border-radius:8px;background:transparent;color:inherit" });
+    var pFile = el("input", { type: "file", accept: ".js,text/javascript", "aria-label": "Fichier de contenu personnel", style: "width:100%;max-width:100%;font:inherit" });
+    var pSend = async function (js) {
+      var n = pName.value.trim(); if (!n) { toast("Indique le nom du compte"); return; }
+      try { var r = await call("/api/admin/perso", { name: n, js: js }); toast(js ? "Contenu personnel ajouté au compte " + r.name : "Contenu personnel retiré du compte " + r.name); if (js) stamp("AJOUTÉ", "#1d8a4e"); }
+      catch (x) { toast(x.message); }
+    };
+    var perso = el("div", { cls: "card", style: "display:grid;gap:10px;min-width:0" }, [
+      el("p", { cls: "muted small", style: "margin:0", text: "Des fiches propres à un seul compte (par exemple ton dossier E8). Elles ne sont jamais publiées : seul ce compte les voit, après rechargement de l'appli." }),
+      el("label", { style: "display:grid;gap:4px" }, [el("b", { text: "Compte" }), pName]),
+      el("label", { style: "display:grid;gap:4px" }, [el("b", { text: "Fichier fourni par Claude (.js)" }), pFile]),
+      el("div", { cls: "row" }, [
+        el("button", { cls: "btn primary small", html: I.plus + "Ajouter au compte", onclick: function () { var f = pFile.files && pFile.files[0]; if (!f) { toast("Choisis le fichier"); return; } f.text().then(pSend); } }),
+        el("button", { cls: "btn small danger", text: "Retirer le contenu", onclick: function () { pSend(""); } })
+      ])
+    ]);
+    setView([prof, el("p", { cls: "eyebrow", text: "Contenu personnel" }), perso, el("p", { cls: "eyebrow", text: "Apparence" }), look, el("p", { cls: "eyebrow", text: "Utilisation" }), use, el("p", { cls: "eyebrow", text: "Compte" }), more, el("p", { cls: "muted small", style: "text-align:center", text: "GL Admin · Grand Livre BTS CG" })]);
   }
 
   /* ---------- Visite guidée ---------- */
