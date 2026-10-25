@@ -164,6 +164,23 @@ app.get("/admin", async (req, res, next) => {
     res.type("html").send(ADMIN_HTML.split("__ADMIN_NAME__").join(esc((u || {}).name || "")));
   } catch (e) { next(e); }
 });
+/* Dépôt du contenu personnel par Claude, sans session admin : actif seulement si la variable PERSO_KEY (32 caractères au moins) est définie dans Railway.
+   Sans « name », le contenu va au premier compte de ADMIN_USERS. Supprimer PERSO_KEY désactive la route. */
+app.post("/api/perso-upload", express.json({ limit: "1mb" }), async (req, res, next) => {
+  try {
+    const K = process.env.PERSO_KEY || "";
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (K.length < 32 || String(req.headers["x-perso-key"] || "") !== K) { adFail(req); return res.status(404).json({ error: "Introuvable." }); }
+    const key = req.body.name ? nameKey(cleanName(req.body.name)) : ADMIN_USERS[0];
+    const u = key ? await store.userByKey(key) : null;
+    if (!u) return res.status(404).json({ error: "Compte introuvable." });
+    const js = String(req.body.js || "");
+    if (js.length > 400000) return res.status(413).json({ error: "Contenu trop volumineux." });
+    await store.setSetting("perso:" + u.id, js);
+    PERSO.delete(u.id); appCache.delete(u.id);
+    res.json({ ok: true, name: u.name, size: js.length });
+  } catch (e) { next(e); }
+});
 app.use("/api/admin", (req, res, next) => { isAdminUser(req).then(ok => ok ? next() : res.status(404).json({ error: "Introuvable." })).catch(next); });
 app.use((req, res, next) => /^\/(app|login|admin)\.html$/.test(req.path) ? res.status(404).end() : next());
 /* Les pages HTML ne passent jamais par les fichiers statiques (sinon /admin.html ou /app.html contourneraient la connexion). */
