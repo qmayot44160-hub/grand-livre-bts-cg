@@ -6,7 +6,7 @@ let chromium; try { ({ chromium } = require("playwright")); } catch (e) { consol
   const src = path.resolve(process.argv[2]), out = path.resolve(process.argv[3]);
   const b = await chromium.launch(); const p = await b.newPage();
   await p.goto("file://" + src); await p.waitForTimeout(1200);
-  const m = await p.evaluate(() => Object.fromEntries(QS.map(x => [x.id, [CAT[x.c] ? CAT[x.c].code + " " + CAT[x.c].name : x.c, x.q, (() => { try { return x.ch ? chLabel(x.ch) : ""; } catch (e) { return ""; } })(), x.o && x.o[0] || ""]])));
+  const m = await p.evaluate(() => Object.fromEntries(QS.filter(x => !/^or-m/.test(String(x.ch || ""))).map(x => [x.id, [CAT[x.c] ? CAT[x.c].code + " " + CAT[x.c].name : x.c, x.q, (() => { try { return x.ch ? chLabel(x.ch) : ""; } catch (e) { return ""; } })(), x.o && x.o[0] || ""]])));
   /* Chapitres (hors parties personnelles) et exercices d'annales, pour les statistiques pédagogiques de l'admin */
   const meta = await p.evaluate(() => ({ ch: Object.fromEntries(CATS.filter(c => c.id !== "me").flatMap(c => (CHBY[c.id] || []).filter(x => !/^or-m/.test(x.id)).map(x => [x.id, [c.code, x.title]]))), ann: Object.fromEntries((typeof ANNEX !== "undefined" ? ANNEX : []).map(x => [x.id, [x.a.ep, x.a.year, x.a.cas, x.t, x.pts || 0]])) }));
   /* Chiffres réels affichés sur la page d'accueil (comptés dans le contenu, jamais écrits à la main) */

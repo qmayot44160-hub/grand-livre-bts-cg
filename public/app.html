@@ -4878,6 +4878,19 @@ Une amorce (un fait, une citation liée au thème « Le vrai du faux »), l'anal
 > - Prépare trois ou quatre exemples précis par axe, dont les œuvres du programme.` },
 
   /* ---------- E8 · lundi 26 après-midi ---------- */
+  { id: "e8-perso", ep: "E8", cat: "me", need: ["or-m1"], t: "Ta présentation d'entreprise (ton dossier)", min: 3, qch: ["or-m1", "or-m2", "or-m3", "or-m4", "or-m5", "or-m6"], gc: ["oral-m-x1", "oral-m-x2"], fiches: [["or-m1", "Le déroulé minuté"], ["or-m2", "Identité et organisation"], ["or-m3", "Structures, zone, SI"], ["or-m4", "Missions et cadre légal"], ["or-m5", "Ton processus"], ["or-m6", "Questions du jury et veille"]],
+    md: `Tes fiches personnelles reprennent ton dossier et tes 13 cartes d'oral. Pour lundi :
+
+1. **Relis le déroulé minuté**, puis dis ta présentation à voix haute, **chronomètre en main**.
+2. **Fais le quiz** : il porte sur tes chiffres, tes écritures et ton processus.
+3. **Révise les cartes** : une carte par moment de ta présentation, plus les chiffres à retenir.
+4. **Entraîne-toi aux deux cas guidés** : présenter l'organisation en 2 minutes, répartir et comptabiliser une subvention.
+5. **Prépare les questions du jury**, et complète ce qui manque encore (ta veille, deux réponses de la carte 15).
+
+> **À retenir**
+>
+> - Du concret et des chiffres, sans lire.
+> - Si tu ne sais pas : dis ce que tu ferais pour vérifier, et auprès de qui.` },
   { id: "e8-oral", ep: "E8", cat: "me", t: "Présenter ton parcours de professionnalisation", min: 4, les: [["or", 4, "L'oral E8 en détail"], ["or", 1, "Ce que les oraux ont en commun"]],
     md: `L'oral dure environ **30 minutes**. Le jury attend que tu parles de ce que tu as **réellement fait**, avec des exemples précis et chiffrés.
 
@@ -8783,7 +8796,7 @@ function vPack() {
 }
 /* ---------- Révision express (avant un examen blanc : sujets annoncés et incontournables) ---------- */
 let RXI = null, RXEP = "";
-const rxItems = () => (typeof RX !== "undefined" && RX && RX.items ? RX.items.filter(it => !lockedCat(it.cat)) : []);
+const rxItems = () => (typeof RX !== "undefined" && RX && RX.items ? RX.items.filter(it => !lockedCat(it.cat) && !(it.need && !it.need.some(id => CHID[id]))) : []);
 function rxOn() { if (typeof RX === "undefined" || !RX) return false; const e = daysTo(RX.to), s = daysTo(RX.from); return e != null && e >= 0 && s != null && s <= 21; }
 function rxResolve(keys, pool) { return (keys || []).map(k => k.charAt(0) === "@" ? pool.find(x => (x.q || x.f) === k.slice(1)) : pool.find(x => x.id === k)).filter(Boolean); }
 function rxQs(it) { const a = rxResolve(it.q, QS), b = it.qch ? QS.filter(x => it.qch.includes(x.ch) && !a.includes(x)) : []; return a.concat(b); }
@@ -8819,6 +8832,7 @@ function rxBtns(it, s, inRead) {
   if (rxFs(it).length) b.push(`<button class="btn small" data-act="rxCards" data-id="${it.id}">Cartes (${Math.min(20, rxFs(it).length)})</button>`);
   (it.les || []).forEach(([c, k, l]) => { if (COURS[c] && k <= nLessons(c)) b.push(`<button class="btn small" data-act="lesson" data-cid="${c}" data-k="${k}">${h(l || "La leçon")}</button>`); });
   if (it.ch && CHID[it.ch]) b.push(`<button class="btn small" data-act="fiche" data-id="${it.ch}">La fiche complète</button>`);
+  (it.fiches || []).forEach(([id, l]) => { if (CHID[id]) b.push(`<button class="btn small" data-act="fiche" data-id="${id}">Fiche : ${h(l)}</button>`); });
   return b.join("");
 }
 function vRx() {
