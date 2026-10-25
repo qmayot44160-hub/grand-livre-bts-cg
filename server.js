@@ -1136,7 +1136,23 @@ app.post("/api/admin/reset", async (req, res, next) => {
 app.get("/healthz", (req, res) => res.json({ ok: true }));
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: "Erreur du serveur. Réessaie dans un instant." }); });
 
+/* Contenu personnel transmis par variables Railway (PERSO_DATA_1, _2… : JavaScript compressé en gzip puis base64), pour le compte PERSO_USER ou, à défaut, le premier de ADMIN_USERS.
+   Appliqué une seule fois par version (empreinte gardée en base), pour ne pas écraser un retrait fait depuis GL Admin. */
+async function applyPersoEnv() {
+  const parts = Object.keys(process.env).filter(k => /^PERSO_DATA_\d+$/.test(k)).sort((a, b) => +a.split("_")[2] - +b.split("_")[2]).map(k => process.env[k].trim());
+  if (!parts.length) return;
+  const b64 = parts.join(""), hash = crypto.createHash("sha1").update(b64).digest("hex");
+  const key = process.env.PERSO_USER ? nameKey(process.env.PERSO_USER) : ADMIN_USERS[0];
+  const u = key ? await store.userByKey(key) : null;
+  if (!u) return console.log("Contenu personnel : compte introuvable");
+  if ((await store.getSetting("perso-env:" + u.id)) === hash) return;
+  const js = zlib.gunzipSync(Buffer.from(b64, "base64")).toString("utf8");
+  await store.setSetting("perso:" + u.id, js); await store.setSetting("perso-env:" + u.id, hash);
+  PERSO.delete(u.id); appCache.delete(u.id);
+  console.log("Contenu personnel appliqué au compte " + u.name + " (" + js.length + " caractères)");
+}
 store.init().then(() => {
+  applyPersoEnv().catch(e => console.error("Contenu personnel :", e.message));
   setInterval(pushTick, 5 * 60e3).unref(); setTimeout(pushTick, 20e3).unref();
   setInterval(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60 * 60e3).unref(); setTimeout(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60e3).unref();
   app.listen(PORT, () => console.log(`Grand Livre en ligne sur le port ${PORT} (stockage : ${store.kind}, correction Claude : ${AI_KEY ? "activée" : "désactivée"})`));
