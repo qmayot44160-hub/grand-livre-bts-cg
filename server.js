@@ -1146,8 +1146,10 @@ async function applyPersoEnv() {
   const key = process.env.PERSO_USER ? nameKey(process.env.PERSO_USER) : ADMIN_USERS[0];
   const u = key ? await store.userByKey(key) : null;
   if (!u) return console.log("Contenu personnel : compte introuvable");
-  if ((await store.getSetting("perso-env:" + u.id)) === hash) return;
   const js = [b64].concat(adds).map(x => zlib.gunzipSync(Buffer.from(x, "base64")).toString("utf8")).join("\n");
+  const cur = (await store.getSetting("perso:" + u.id)) || "";
+  console.log("Contenu personnel du compte " + u.name + " avant démarrage : " + cur.length + " caractères" + (cur === js ? " (à jour)" : ""));
+  if (cur === js) return; // la version des variables Railway fait foi
   await store.setSetting("perso:" + u.id, js); await store.setSetting("perso-env:" + u.id, hash);
   PERSO.delete(u.id); appCache.delete(u.id);
   console.log("Contenu personnel appliqué au compte " + u.name + " (" + js.length + " caractères)");
