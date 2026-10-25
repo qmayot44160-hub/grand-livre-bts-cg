@@ -4878,7 +4878,7 @@ Une amorce (un fait, une citation liée au thème « Le vrai du faux »), l'anal
 > - Prépare trois ou quatre exemples précis par axe, dont les œuvres du programme.` },
 
   /* ---------- E8 · lundi 26 après-midi ---------- */
-  { id: "e8-perso", ep: "E8", cat: "me", need: ["or-m1"], t: "Ta présentation d'entreprise (ton dossier)", min: 3, qch: ["or-m1", "or-m2", "or-m3", "or-m4", "or-m5", "or-m6"], gc: ["oral-m-x1", "oral-m-x2"], fiches: [["or-m1", "Le déroulé minuté"], ["or-m2", "Identité et organisation"], ["or-m3", "Structures, zone, SI"], ["or-m4", "Missions et cadre légal"], ["or-m5", "Ton processus"], ["or-m6", "Questions du jury et veille"]],
+  { id: "e8-perso", ep: "E8", cat: "me", need: ["or-m1"], t: "Ta présentation d'entreprise (ton dossier)", min: 3, qch: ["or-m1", "or-m2", "or-m3", "or-m4", "or-m5", "or-m6"], gc: ["oral-m-x1", "oral-m-x2"], les: [["e8p", 1, "Ton cours E8"]], fiches: [["or-m1", "Le déroulé minuté"], ["or-m2", "Identité et organisation"], ["or-m3", "Structures, zone, SI"], ["or-m4", "Missions et cadre légal"], ["or-m5", "Ton processus"], ["or-m6", "Questions du jury et veille"]],
     md: `Tes fiches personnelles reprennent ton dossier et tes 13 cartes d'oral. Pour lundi :
 
 1. **Relis le déroulé minuté**, puis dis ta présentation à voix haute, **chronomètre en main**.
@@ -6242,6 +6242,7 @@ function vHome() {
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
   ${rxHomeCard()}
+  ${persoCoursCards()}
   ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
   ${duelHomeCard()}
   ${amisHomeCard()}
@@ -6899,6 +6900,8 @@ const LES_MIG = {"p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "
 const COURS_ORDER = ["me", "or", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "ce1", "ce2", "ce3", "ce4", "cg", "an"];
 function CMETA(id) { if (COURS_META[id]) return COURS_META[id]; const c = CAT[id]; return c ? Object.assign({ cat: c.id, short: c.name }, c) : null; }
 const COURSES_BY_CAT = { ce: ["ce1", "ce2", "ce3", "ce4", "ce"], me: ["me", "or"] };
+/* Cours personnels (ajoutés pour un seul compte) : rangés à la fin de leur matière */
+Object.keys(COURS_META).forEach(id => { const m = COURS_META[id]; if (!m.perso || !COURS[id]) return; if (!COURS_ORDER.includes(id)) COURS_ORDER.push(id); const l = COURSES_BY_CAT[m.cat] || (COURSES_BY_CAT[m.cat] = [m.cat]); if (!l.includes(id)) l.push(id); });
 const coursesOf = cat => COURSES_BY_CAT[cat] || (COURS[cat] ? [cat] : []);
 const LESSON_PATH = ["p1", "p2", "p3", "p4", "ce1", "p5", "p6", "ce2", "p7", "ce3", "ma", "cg", "ce4", "an", "me", "or", "ce"];
 
@@ -7010,6 +7013,7 @@ function vCoursList() {
     </section>
     <div id="coursHits" hidden></div>
     <div id="coursMain" class="stack">
+      ${persoCoursCards()}
       ${nl ? resumeCard(nl) : ""}
       ${groupsOf(dividerCours)}
     </div>`;
@@ -8812,6 +8816,12 @@ function rxStat(it) {
 }
 function rxEp(ep) { return (RX.eps || []).find(e => e.ep === ep) || { ep, t: (EPREUVES.find(e => e.c === ep) || {}).t || ep }; }
 function rxDateTxt() { const s = daysTo(RX.from), e = daysTo(RX.to); return s > 1 ? `dans ${s} jours` : s === 1 ? "demain" : e >= 0 ? "en cours" : "terminés"; }
+function persoCoursCards() {
+  return Object.values(COURS_META).filter(m => m.perso && COURS[m.id]).map(m => {
+    const n = nLessons(m.id); let k = 1, r = 0; for (let i = n; i >= 1; i--) { if (isRead(m.id, i)) r++; else k = i; }
+    return `<button class="wk-cta" data-act="lesson" data-cid="${m.id}" data-k="${k}"><span class="wk-ic">${ICON.book}</span><span><b>${h(m.name)}</b><small>Ton cours personnel · ${r} leçon${r > 1 ? "s" : ""} lue${r > 1 ? "s" : ""} sur ${n}</small></span><span class="wk-go">Ouvrir ›</span></button>`;
+  }).join("");
+}
 function rxHomeCard() {
   if (!rxOn()) return "";
   const its = rxItems(); if (!its.length) return "";

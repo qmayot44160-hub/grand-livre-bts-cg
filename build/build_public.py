@@ -10,6 +10,7 @@ src = sys.argv[1]
 s = open(src, encoding="utf-8").read()
 
 # 1. Contenus personnels
+s = re.sub(r'\n?<script id="gl-perso">.*?</script>', "", s, flags=re.S)  # cours personnels : version privée seulement
 s = s.replace("Quentin", "Alex")
 import json
 dec = json.JSONDecoder()
