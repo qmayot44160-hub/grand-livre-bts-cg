@@ -1,6 +1,6 @@
 /* Service worker du Grand Livre : la dernière version en ligne quand le réseau répond vite,
    sinon la copie gardée sur l'appareil (réseau lent ou hors connexion). */
-const CACHE = "grand-livre-v3";
+const CACHE = "grand-livre-v3"; // sw 2026-10-26 : avertit la page quand une version plus récente est arrivée
 const SHELL = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/install.js"];
 const SLOW_MS = 3500;
 
@@ -33,7 +33,11 @@ self.addEventListener("fetch", e => {
       if (!cached) return net.catch(() => offline());
       const timer = new Promise(r => setTimeout(() => r(null), SLOW_MS));
       try { const res = await Promise.race([net, timer]); if (res) return res; } catch (err) { return cached; }
-      e.waitUntil(net.catch(() => {}));
+      /* Copie locale servie : si la version en ligne est plus récente, on prévient la page pour qu'elle propose de recharger. */
+      e.waitUntil(net.then(res => {
+        if (!res || !res.ok || res.headers.get("ETag") === cached.headers.get("ETag")) return;
+        return new Promise(r => setTimeout(r, 1500)).then(() => self.clients.matchAll({ type: "window" })).then(list => list.forEach(c => c.postMessage({ type: "gl-update" })));
+      }).catch(() => {}));
       return cached;
     })());
     return;
