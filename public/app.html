@@ -1094,6 +1094,7 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .md-yr { margin: 4px 0 8px; gap: 6px; flex-wrap: wrap; align-items: center; }
 .md-auq { margin-left: auto; }
 .md-yrt tr[hidden] { display: none; }
+.fb-row { margin-top: 14px; }
 .chip.small, .btn.small { font-size: .8rem; padding: 5px 10px; }
 .ann-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .ann-card { background: var(--sheet); border: 1px solid var(--rule); border-top: 4px solid var(--c); border-radius:var(--radius) var(--radius) var(--radius) var(--radius); display: flex; flex-direction: column; min-width: 0;
@@ -6304,6 +6305,7 @@ function vHome() {
         <div class="fig"><b>+${weekAcq().n}</b><span>questions acquises cette semaine</span></div>
         <div class="fig"><b>${exCount()}</b><span>exercices pratiqués</span></div>
       </div>
+      <div class="row fb-row"><button class="btn small" data-act="feedback">Une idée ou un souci ? Donne ton avis</button></div>
       <div class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></div>
     </div>
   </section>`;
@@ -6632,30 +6634,32 @@ function weakSheet(k) {
   document.body.appendChild(el);
   const f = el.querySelector(".wk-opt"); if (f) f.focus();
 }
-const REP_KIND = { q: "Question de quiz", c: "Flashcard", l: "Leçon", f: "Fiche", o: "Question d'oral" };
+const REP_KIND = { q: "Question de quiz", c: "Flashcard", l: "Leçon", f: "Fiche", o: "Question d'oral", i: "Avis sur le Grand Livre" };
 const REP_CHOICES = { q: ["La bonne réponse est fausse", "Plusieurs réponses sont justes", "L'explication est fausse ou pas claire", "Faute de frappe ou de français", "Autre"],
   c: ["Le verso est faux", "Ce n'est pas clair", "Faute de frappe ou de français", "Autre"], l: ["Une information est fausse", "Ce n'est pas clair", "Information plus à jour", "Faute de frappe ou de français", "Autre"],
-  f: ["Une information est fausse", "Ce n'est pas clair", "Information plus à jour", "Faute de frappe ou de français", "Autre"], o: ["Un élément attendu est faux", "Il manque un élément important", "Autre"] };
+  f: ["Une information est fausse", "Ce n'est pas clair", "Information plus à jour", "Faute de frappe ou de français", "Autre"], o: ["Un élément attendu est faux", "Il manque un élément important", "Autre"],
+  i: ["Une idée d'amélioration", "Il manque un cours, un quiz ou un exercice", "Quelque chose ne marche pas (bug)", "J'aime bien", "Autre"] };
 function reportSheet(t, id, label) {
   closeSheet();
   const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
   el.innerHTML = `<form class="wk-box rep-box" role="dialog" aria-modal="true" aria-labelledby="repT">
     <button type="button" class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>
-    <span class="eyebrow">${h(REP_KIND[t] || "Contenu")}</span><h2 id="repT">Signaler une erreur</h2>
-    <p class="muted rep-l">« ${h(label)} »</p>
+    <span class="eyebrow">${h(REP_KIND[t] || "Contenu")}</span><h2 id="repT">${t === "i" ? "Ton avis compte" : "Signaler une erreur"}</h2>
+    ${t === "i" ? `<p class="muted rep-l">Une idée, un manque, un bug ? Écris-le ici : chaque message est lu.</p>` : `<p class="muted rep-l">« ${h(label)} »</p>`}
     <fieldset class="rep-ch"><legend class="sr-only">Type de problème</legend>${(REP_CHOICES[t] || REP_CHOICES.q).map((c, i) => `<label><input type="radio" name="rc" value="${h(c)}"${i === 0 ? " checked" : ""}><span>${h(c)}</span></label>`).join("")}</fieldset>
-    <label class="rep-c"><span>Précise si tu peux (facultatif)</span><textarea name="cm" rows="3" maxlength="600" placeholder="Ex. : la TVA sur les services est exigible à l'encaissement, pas à la livraison."></textarea></label>
+    ${t === "i" ? `<label class="rep-c"><span>Ton message</span><textarea name="cm" rows="5" maxlength="1500" required placeholder="Ex. : ce serait bien d'avoir un quiz sur les articles du Code civil, ou : le bouton retour ne marche pas sur téléphone."></textarea></label>` : `<label class="rep-c"><span>Précise si tu peux (facultatif)</span><textarea name="cm" rows="3" maxlength="600" placeholder="Ex. : la TVA sur les services est exigible à l'encaissement, pas à la livraison."></textarea></label>`}
     <div class="row"><button type="button" class="btn" data-act="wkClose">Annuler</button><button type="submit" class="btn primary">Envoyer</button></div>
   </form>`;
   el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
   el.querySelector("form").addEventListener("submit", async e => {
     e.preventDefault();
-    const f = e.target, r = { t, id: String(id), l: String(label).slice(0, 200), ch: f.rc.value, cm: f.cm.value.trim().slice(0, 600), d: Date.now(), v: view };
+    const f = e.target, r = { t, id: String(id), l: String(label).slice(0, 200), ch: f.rc.value, cm: f.cm.value.trim().slice(0, t === "i" ? 1500 : 600), d: Date.now(), v: view };
+    if (t === "i" && !r.cm) { f.cm.focus(); return; }
     const b = f.querySelector('[type="submit"]'); b.disabled = true;
     let sent = false;
     if (typeof window.GL_REPORT === "function") { try { await window.GL_REPORT(r); sent = true; } catch (x) {} }
     if (!sent) { S.rp = S.rp || []; S.rp.unshift(r); if (S.rp.length > 100) S.rp.pop(); touch(); }
-    closeSheet(); toast(sent ? "Merci ! Ton signalement est envoyé." : "Signalement noté dans ton profil.");
+    closeSheet(); toast(sent ? (t === "i" ? "Merci ! Ton message est envoyé." : "Merci ! Ton signalement est envoyé.") : t === "i" ? "Envoi impossible pour l'instant : crée un compte ou réessaie en ligne." : "Signalement noté dans ton profil.");
   });
   document.body.appendChild(el);
   const f = el.querySelector("input"); if (f) f.focus();
@@ -6803,6 +6807,7 @@ function vProfil() {
       <p class="muted small">Tes réglages sont enregistrés avec ta progression et te suivent sur tes appareils.</p>
     </section>` : ""}
     ${PFT.t === "acc" ? `<div class="pf-settings" aria-hidden="true"></div>${pvSection()}
+    <section class="stack"><h2>Ton avis sur le Grand Livre</h2><div class="pf-set"><div class="pf-row"><div><b>Idées, manques, bugs</b><span>Propose une amélioration ou signale un problème. Chaque message est lu.</span></div><button class="btn small primary" data-act="feedback">Donner mon avis</button></div></div></section>
     ${(S.rp || []).length ? `<section class="stack"><div class="sec-head"><h2>Mes signalements</h2><p>${S.rp.length} erreur${S.rp.length > 1 ? "s" : ""} signalée${S.rp.length > 1 ? "s" : ""}, gardée${S.rp.length > 1 ? "s" : ""} ici. Copie-les et envoie-les pour qu'elles soient corrigées.</p></div>
       <div class="rep-list">${S.rp.slice(0, 20).map(r => `<div class="rep-it"><small>${h(REP_KIND[r.t] || r.t)} · ${new Date(r.d).toLocaleDateString("fr-FR")}</small><b>${h(r.ch)}</b><span>« ${h(r.l)} »</span>${r.cm ? `<em>${h(r.cm)}</em>` : ""}</div>`).join("")}</div>
       <div class="row"><button class="btn" data-act="repCopy">Copier mes signalements</button><button class="btn" data-act="repClear">Vider la liste</button></div></section>` : ""}
@@ -10195,6 +10200,7 @@ document.addEventListener("click", e => {
     case "sitClose": OSIT = null; render(); break;
     case "sitDel": { S.sit.splice(+b.dataset.i, 1); OSIT = null; touch(); render(); break; }
     case "sitTrain": { const x = S.sit[+b.dataset.i], p = (x.p || "").toLowerCase(); if (!p) { toast("Choisis d'abord le processus de la situation"); break; } OF.n = Math.max(OF.n, 3); oralStart(p); break; }
+    case "feedback": reportSheet("i", "avis:" + view, "Avis sur le Grand Livre"); break;
     case "report": reportSheet(b.dataset.t, b.dataset.id, b.dataset.l || ""); break;
     case "repCopy": { const t = (S.rp || []).map(r => `- ${REP_KIND[r.t] || r.t} ${r.id} : ${r.ch}${r.cm ? " : " + r.cm : ""}\n  « ${r.l} »`).join("\n"); (navigator.clipboard ? navigator.clipboard.writeText("Mes signalements Grand Livre :\n" + t) : Promise.reject()).then(() => toast("Signalements copiés")).catch(() => toast("Copie impossible")); break; }
     case "repClear": S.rp = []; touch(); render(); break;

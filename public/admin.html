@@ -358,7 +358,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
   var $ = function (i) { return document.getElementById(i); };
   var ADMIN = "__ADMIN_NAME__";
   var LS = "gl-admin-key", LP = "gl-admin-pref";
-  var GROUP = "", GROUPS = null, CVIEW = "apercu", KEY = "", TAB = "classe", FILTER = "tous", SORT = "recent", SEARCH = "", RFILTER = "open", CACHE = {}, AUTO = null;
+  var GROUP = "", GROUPS = null, CVIEW = "apercu", KEY = "", TAB = "classe", FILTER = "tous", SORT = "recent", SEARCH = "", RFILTER = "open", RKIND = "", CACHE = {}, AUTO = null;
   var PREF = { theme: "auto", motion: "on", snd: "off", vib: "on", auto: 0, start: "classe", tour: 0 };
   try { Object.assign(PREF, JSON.parse(localStorage.getItem(LP) || "{}")); } catch (e) {}
   try { KEY = localStorage.getItem(LS) || ""; } catch (e) {}
@@ -401,7 +401,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     bug: svg('<rect x="7" y="8" width="10" height="12" rx="5"/><path d="M12 8V5M9 5l-1-2M15 5l1-2M3 13h4M17 13h4M4 19l3-2M20 19l-3-2M4 7l3 2M20 7l-3 2"/>'),
     help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>')
   };
-  var KIND = { q: ["Quiz", I.q], c: ["Carte", I.card], l: ["Leçon", I.book], f: ["Fiche", I.book], o: ["Oral", I.talk], p: ["Demande d'un enseignant", I.users] };
+  var KIND = { q: ["Quiz", I.q], c: ["Carte", I.card], l: ["Leçon", I.book], f: ["Fiche", I.book], o: ["Oral", I.talk], p: ["Demande d'un enseignant", I.users], i: ["Avis d'élève", I.talk] };
   var HUE = { p1: [220, 64], p2: [170, 62], p3: [265, 50], p4: [335, 58], p5: [28, 78], p6: [132, 46], p7: [228, 20], ma: [5, 62], ce: [194, 70], cg: [300, 38], an: [42, 78], me: [214, 24] };
   var LBL = { p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", ma: "Maths", ce: "CEJM", cg: "Culture G.", an: "Anglais", me: "Méthodes" };
   var BYLBL = {}; Object.keys(LBL).forEach(function (k) { BYLBL[LBL[k].toLowerCase()] = k; });
@@ -565,7 +565,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
   });
 
   /* ---------- Coquille de l'appli ---------- */
-  var TABS = [["classe", "Classe"], ["eleves", "Élèves"], ["signal", "Signalements"], ["systeme", "Système"], ["profil", "Profil"]];
+  var TABS = [["classe", "Classe"], ["eleves", "Élèves"], ["signal", "Retours"], ["systeme", "Système"], ["profil", "Profil"]];
   function greet() { var h = new Date().getHours(); return (h < 5 || h >= 18 ? "Bonsoir" : "Bonjour") + (ADMIN ? " " + ADMIN.split(" ")[0] : ""); }
   function buildShell() {
     $("hello").textContent = greet();
@@ -1087,7 +1087,9 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       var open = j.reports.filter(function (r) { return !r.done; }).length, b = $("repBadge"); if (b) { b.hidden = !open; b.textContent = open; }
       var F = [["open", "À traiter", open], ["done", "Traités", j.reports.length - open], ["all", "Tous", j.reports.length]];
       var chips = el("div", { cls: "chips" }, F.map(function (f) { return el("button", { cls: "chip", "aria-pressed": String(RFILTER === f[0]), onclick: function () { RFILTER = f[0]; vSignal(); } }, [f[1], el("span", { cls: "n", text: f[2] })]); }));
-      var rows = j.reports.filter(function (r) { return RFILTER === "all" || (RFILTER === "open" ? !r.done : r.done); }), list = el("div", { cls: "list" });
+      var KF = [["", "Tout"], ["err", "Erreurs de contenu"], ["i", "Avis et idées"], ["p", "Enseignants"]], isK = function (r) { return !RKIND || (RKIND === "err" ? /^[qclfo]$/.test(r.kind) : r.kind === RKIND); };
+      var kchips = el("div", { cls: "chips" }, KF.map(function (f) { return el("button", { cls: "chip", "aria-pressed": String(RKIND === f[0]), onclick: function () { RKIND = f[0]; vSignal(); } }, [f[1], el("span", { cls: "n", text: j.reports.filter(function (r) { return !r.done && (!f[0] || (f[0] === "err" ? /^[qclfo]$/.test(r.kind) : r.kind === f[0])); }).length })]); }));
+      var rows = j.reports.filter(function (r) { return isK(r) && (RFILTER === "all" || (RFILTER === "open" ? !r.done : r.done)); }), list = el("div", { cls: "list" });
       if (!rows.length) list.append(el("div", { cls: "card empty" }, [el("span", { cls: "big", html: RFILTER === "open" ? I.check : I.flag }), el("b", { text: RFILTER === "open" ? "Tout est traité !" : "Rien ici." }), RFILTER === "open" ? el("span", { text: "Aucune erreur signalée en attente." }) : null]));
       rows.forEach(function (r) {
         var k = KIND[r.kind] || [r.kind, I.flag], cat = (String(r.item || "").match(/^(p\d|ma|ce|cg|an|me)/) || [""])[0];
@@ -1104,7 +1106,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         ]);
         list.append(card);
       });
-      if (TAB === "signal") setView([el("div", { cls: "sec-head" }, [el("h2", { text: "Signalements" }), el("p", { text: "Erreurs repérées par les élèves dans le contenu, et demandes envoyées par des enseignants depuis la page d'accueil. Marque-les comme traitées une fois réglées." })]), chips, list]);
+      if (TAB === "signal") setView([el("div", { cls: "sec-head" }, [el("h2", { text: "Signalements" }), el("p", { text: "Erreurs repérées par les élèves dans le contenu, avis et idées d'amélioration des élèves, et demandes envoyées par des enseignants depuis la page d'accueil. Marque-les comme traités une fois réglés." })]), kchips, chips, list]);
     } catch (e) { errView(e); }
   }
 

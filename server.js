@@ -312,8 +312,9 @@ app.post("/api/report", auth, async (req, res, next) => {
   try {
     if (limited("rp:" + req.user.id, 40, 24 * 3600e3)) return res.status(429).json({ error: "Tu as déjà envoyé beaucoup de signalements aujourd'hui. Merci !" });
     const b = req.body || {}, cut = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
-    if (!/^[qclfo]$/.test(String(b.t))) return res.status(400).json({ error: "Signalement invalide." });
-    await store.addReport({ user_name: req.user.name, kind: b.t, item: cut(b.id, 80), label: cut(b.l, 200), choice: cut(b.ch, 80), comment: cut(b.cm, 600) });
+    if (!/^[qclfoi]$/.test(String(b.t))) return res.status(400).json({ error: "Signalement invalide." });
+    if (b.t === "i" && !cut(b.cm, 10)) return res.status(400).json({ error: "Écris ton message avant d'envoyer." });
+    await store.addReport({ user_name: req.user.name, kind: b.t, item: cut(b.id, 80), label: cut(b.l, 200), choice: cut(b.ch, 80), comment: b.t === "i" ? String(b.cm == null ? "" : b.cm).replace(/[\u0000-\u0009\u000b-\u001f]/g, " ").trim().slice(0, 1500) : cut(b.cm, 600) });
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
