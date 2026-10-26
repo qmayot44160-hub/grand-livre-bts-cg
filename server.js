@@ -231,6 +231,23 @@ app.post("/api/password", auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+app.post("/api/account/name", auth, async (req, res, next) => {
+  try {
+    if (limited("rn:" + req.user.id, 5, 3600e3)) return res.status(429).json({ error: "Trop de changements de nom. Réessaie dans une heure." });
+    const name = cleanName(req.body.name), key = nameKey(name), pass = String(req.body.password || "");
+    if (!(await bcrypt.compare(pass, req.user.pass))) return res.status(403).json({ error: "Mot de passe incorrect." });
+    if (ADMIN_USERS.includes(req.user.name_key || nameKey(req.user.name))) return res.status(403).json({ error: "Le nom d'un compte administrateur ne se change pas ici : il est fixé dans la configuration du site." });
+    if (name.length < 2 || name.length > 40) return res.status(400).json({ error: "Ton nom doit faire entre 2 et 40 caractères." });
+    if (name === req.user.name) return res.json({ ok: true, name });
+    if (ADMIN_USERS.includes(key)) return res.status(409).json({ error: "Ce nom est réservé." });
+    const other = await store.userByKey(key);
+    if (other && other.id !== req.user.id) return res.status(409).json({ error: "Ce nom est déjà pris. Ajoute l'initiale de ton nom de famille, par exemple." });
+    try { await store.setName(req.user.id, name, key); } catch (e) { if (e.code === "23505") return res.status(409).json({ error: "Ce nom est déjà pris." }); throw e; }
+    console.log("[compte] nom changé :", req.user.name, "->", name);
+    res.json({ ok: true, name });
+  } catch (e) { next(e); }
+});
+
 app.get("/api/account/export", auth, async (req, res, next) => {
   try {
     res.setHeader("Cache-Control", "no-store");
