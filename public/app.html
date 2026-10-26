@@ -1201,6 +1201,9 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .qf-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qf-b { display: flex; gap: 8px; flex-wrap: wrap; }
 .qf { align-content: start; }
+.cible-au { display: grid; gap: 8px; }
+.chip[aria-pressed="true"] .muted { color: var(--accent-ink); opacity: .8; }
+.cible-au p { margin: 0; }
 .qf-b { align-items: flex-start; align-content: flex-start; }
 .qf-b .btn span { opacity: .75; font-weight: 500; margin-left: 4px; }
 .qf-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
@@ -6840,6 +6843,10 @@ function vCible() {
     <button class="crumb" data-nav="ex">${ICON.back}S'entraîner</button>
     <div><span class="eyebrow"><span class="tabcode">${h(c.code)}</span> ${h(c.name)}</span><h1>Choisis tes chapitres</h1></div>
     <p class="muted">Touche les chapitres à travailler. Ton choix est enregistré : les boutons Quiz et Flashcards de cette matière ne porteront que sur eux, même la prochaine fois, jusqu'à ce que tu reprennes « Tous les chapitres ».</p>
+    ${(() => { const yrs = { 1: (CHBY[c.id] || []).filter(x => chapYr(x) === 1).map(x => x.id), 2: (CHBY[c.id] || []).filter(x => chapYr(x) === 2).map(x => x.id) }; if (!yrs[1].length || !yrs[2].length) return "";
+      const mine = chapSel.filter(k => (CHBY[c.id] || []).some(x => x.id === k)).sort().join(","), on = y => mine === yrs[y].slice().sort().join(",");
+      return `${c.id === "ce" ? `<div class="panel cible-au"><b>Les auteurs (tous les chapitres)</b><p class="muted small">Incontournables : l'auteur puis la définition. Ou tous les auteurs de l'index, par année.</p><div class="qf-b">${auBtns()}</div></div>` : ""}
+      <div><div class="label">Par année</div><div class="picker"><button class="chip" data-act="chapAll" data-cat="${c.id}" aria-pressed="${!mine}">Les deux années</button><button class="chip" data-act="chapYear" data-cat="${c.id}" data-y="1" aria-pressed="${on(1)}">1re année <span class="muted">${yrs[1].length} chapitres</span></button><button class="chip" data-act="chapYear" data-cat="${c.id}" data-y="2" aria-pressed="${on(2)}">2e année <span class="muted">${yrs[2].length} chapitres</span></button></div></div>`; })()}
     ${chapPicker([c.id], "")}
     <div><div class="label">Nombre de questions</div><div class="picker">${[10, 20, 40].map(k => `<button class="chip" data-act="len" data-n="${k}" aria-pressed="${quizLen === k}">${k}</button>`).join("")}</div></div>
     <div class="row cible-go">
@@ -7221,6 +7228,7 @@ function bindView() {
 
 /* ---------- Fusion : fiches-chapitres, exercices guidés, défi, maths, Mon BTS, 3D ---------- */
 const CHID = Object.fromEntries(CHAP.map(c => [c.id, c]));
+const chapYr = ch => { const m = String((ch && ch.src) || "").match(/^cejm([12])$/); return m ? +m[1] : null; }; // année du chapitre quand les supports le disent (CEJM)
 const CHBY = {}; CHAP.forEach(c => (CHBY[c.cat] = CHBY[c.cat] || []).push(c));
 const THEME = Object.fromEntries(IMP_THEMES.map(t => [t.key, t]));
 const GCBY = {}; GCASES.forEach(k => (GCBY[k.cat] = GCBY[k.cat] || []).push(k));
@@ -10278,6 +10286,7 @@ document.addEventListener("click", e => {
     case "quitCards": if (C && (C.knew + C.again) > 0) go("cardsEnd"); else backOrig("ex"); break;
     case "ctlStart": startCtl(b.dataset.k); break;
     case "dueQuiz": { const d = shuffle(dueQs()); if (d.length) startRun(d.slice(0, quizLen), "quiz"); break; }
+    case "chapYear": { const ids = (CHBY[cat] || []).filter(x => chapYr(x) === +b.dataset.y).map(x => x.id); chapSel = chapSel.filter(k => chCat(k) !== cat).concat(ids); S.chap = chapSel.slice(); touch(); render(); break; }
     case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); S.chap = chapSel.slice(); touch(); render(); break;
     case "pickChap": cibleCat = cat; go("cible"); break;
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
