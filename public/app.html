@@ -1200,6 +1200,8 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .qf-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .qf-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qf-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.qf { align-content: start; }
+.qf-b { align-items: flex-start; align-content: flex-start; }
 .qf-b .btn span { opacity: .75; font-weight: 500; margin-left: 4px; }
 .qf-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
 .qf-cta > span { margin-right: 2px; }
@@ -7141,6 +7143,7 @@ function matTrain(c) {
       <button class="mode" data-act="pickChap" data-cat="${c.id}"><b>Chapitres et contrôles</b><span>${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""} choisi${chapCount(c.id) > 1 ? "s" : ""} : quiz et cartes ne portent que sur eux.` : "Quiz et flashcards sur les seuls chapitres que tu veux."}</span></button>
       <button class="mode" data-act="quizCat" data-cat="${c.id}"><b>Quiz plus long</b><span>Choisis 20 ou 40 questions, ou mélange avec d'autres matières.</span></button>
     </div>
+    ${c.id === "ce" ? `<div class="ex-group"><h2>Les auteurs</h2><p class="muted">Incontournables (auteur puis définition) et quiz sur tous les auteurs de l'index.</p><div class="row qf-b">${auBtns()}</div></div>` : ""}
     ${c.id === "ma" ? `<div class="ex-group"><h2>Entraînement à l'infini</h2><p class="muted">10 questions générées au hasard, de nouveaux nombres à chaque fois.</p><div class="ex-grid g3">${(CHBY.ma || []).filter(x => MATHS.GENERATORS[x.id]).map(x => `<button class="ex-card" style="${hueStyle("ma")}" data-act="genQuiz" data-ch="${x.id}"><b>${h(x.title)}</b><span class="muted">Questions générées</span></button>`).join("")}</div></div>` : ""}
     ${CXG.some(g => g.cat === c.id) ? cxHome(c.id) : ""}
     ${dosSection(c.id)}
@@ -8972,16 +8975,12 @@ function vRecite() {
       : `<button class="btn primary" data-act="rcShow">Voir la suite</button>${RC.hint ? "" : `<button class="btn" data-act="rcHint">Indice : premières lettres</button>`}`}</div>
   </section>`;
 }
+function auBtns() { const nAu = y => QS.filter(x => x.t && /^au/.test(x.t) && (y === "all" || x.t.includes(y))).length;
+  return `<button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="1">Incontournables 1re année <span>auteur + définition</span></button> <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="2">Incontournables 2e année <span>auteur + définition</span></button> <button class="btn small" data-act="auQuiz" data-yr="1">Auteurs 1re année <span>${nAu("1")} q.</span></button> <button class="btn small" data-act="auQuiz" data-yr="2">Auteurs 2e année <span>${nAu("2")} q.</span></button> <button class="btn small" data-act="auQuiz" data-yr="all">Tous les auteurs <span>${nAu("all")} q.</span></button> <button class="btn small" data-act="lesson" data-cid="ce" data-k="2">Lire l'index des auteurs</button>`; }
 function specialQuizzes() { // les quiz qui ne vivent que dans un cours, regroupés ici
   const nAu = y => QS.filter(x => x.t && /^au/.test(x.t) && (y === "all" || x.t.includes(y))).length, nAd = y => QS.filter(x => x.t && x.t.startsWith("ad" + y + ":")).length;
   const cards = [];
-  if (!lockedCat("ce") && nAu("all")) cards.push(`<div class="qf" style="${hueStyle("ce")}"><div class="qf-h"><span class="tabcode">${h(CAT.ce.code)}</span><b>CEJM : les auteurs</b></div><div class="qf-b">
-    <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="1">Incontournables 1re année <span>auteur + définition</span></button>
-    <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="2">Incontournables 2e année <span>auteur + définition</span></button>
-    <button class="btn small" data-act="auQuiz" data-yr="1">Auteurs 1re année <span>${nAu("1")} q.</span></button>
-    <button class="btn small" data-act="auQuiz" data-yr="2">Auteurs 2e année <span>${nAu("2")} q.</span></button>
-    <button class="btn small" data-act="auQuiz" data-yr="all">Tous les auteurs <span>${nAu("all")} q.</span></button>
-    <button class="btn small" data-act="lesson" data-cid="ce" data-k="2">Lire l'index des auteurs</button></div></div>`);
+  if (!lockedCat("ce") && nAu("all")) cards.push(`<div class="qf" style="${hueStyle("ce")}"><div class="qf-h"><span class="tabcode">${h(CAT.ce.code)}</span><b>CEJM : les auteurs</b></div><div class="qf-b">${auBtns()}</div></div>`);
   Object.values(COURS_META).filter(m => m.perso && COURS[m.id] && m.chs).forEach(m => { const nq = QS.filter(x => m.chs.includes(x.ch)).length, nf = FS.filter(x => m.chs.includes(x.ch)).length;
     cards.push(`<div class="qf" style="${hueStyle(m.cat)}"><div class="qf-h"><span class="tabcode">${h(m.code)}</span><b>${h(m.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz du cours <span>${nq} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards <span>${nf}</span></button>` : ""}${m.script ? `<button class="btn small" data-act="reciteHome" data-cid="${m.id}">Oral par cœur</button>` : ""}</div></div>`); });
   if (rxOn()) cards.push(`<div class="qf" style="${hueStyle("p2")}"><div class="qf-h"><b>${h(RX.title)}</b></div><div class="qf-b"><button class="btn small primary" data-act="rxOpen">Révision express <span>quiz par sujet</span></button></div></div>`);
@@ -9015,9 +9014,9 @@ function vExHome() {
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button></div>
+      ${specialQuizzes()}
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
-      ${specialQuizzes()}
     </section>` : ""}
     ${EXT === "justif" ? `<section class="stack">${dwHome()}</section>` : ""}
     ${EXT === "chiffres" ? `<section class="stack">${cxHome()}${dosSection()}</section>` : ""}
