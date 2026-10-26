@@ -6332,7 +6332,13 @@ function vQuizSetup() {
     </div>
   </section>`;
 }
+let ORIG = null; // page d'où l'on a lancé un quiz ou des cartes, pour y revenir
+const RUNV = /^(run|result|card|cardsEnd|exrun|exres|recite|rchome)$/;
+function markOrig() { if (RUNV.test(view)) return; ORIG = { view, LS: LS ? Object.assign({}, LS) : null, FC, mat: [matCat, matSeg, matSub], y: window.scrollY || 0, lab: view === "lesson" && LS ? "Retour au cours" : view === "mat" ? "Retour à la matière" : view === "fiche" ? "Retour à la fiche" : view === "home" ? "Retour à l'accueil" : view === "ex" ? "Retour à S'entraîner" : "Retour" }; }
+function backOrig(fallback) { const o = ORIG; ORIG = null; if (!o) return go(fallback || "ex"); if (o.LS) LS = o.LS; if (o.FC) FC = o.FC; [matCat, matSeg, matSub] = o.mat; go(o.view); setTimeout(() => window.scrollTo(0, o.y), 30); }
+const origBtn = (cls) => ORIG ? `<button class="btn${cls ? " " + cls : ""}" data-act="backOrig">${ICON.back}${h(ORIG.lab)}</button>` : "";
 function startRun(items, mode) {
+  markOrig();
   if (isGuest()) { items = items.filter(x => !lockedCat(x.c)); if (!items.length) { R = null; lockSheet(); return; } }
   if (examTick) { clearInterval(examTick); examTick = null; }
   R = { mode, list: items.map(it => ({ it, order: shuffle([0, 1, 2, 3]), pick: null })), i: 0, start: Date.now(), xp0: S.xp };
@@ -6555,7 +6561,7 @@ function vResult() {
     <div class="row">
       ${bad.length ? `<button class="btn primary" data-act="redoErrors">Refaire ces ${bad.length} erreurs</button><button class="btn" data-act="goErr">${ICON.errbook}Cahier des erreurs</button>` : ""}
       <button class="btn" data-act="${R.mode === "exam" ? "goExam" : "goQuiz"}">${R.mode === "exam" ? "Nouveau QCM chronométré" : "Nouveau quiz"}</button>
-      <button class="btn" data-act="goHome">Accueil</button>
+      ${origBtn("primary")}<button class="btn" data-act="goHome">Accueil</button>
       ${nextBtn(true)}
     </div>
     ${(() => { const ks = {}; bad.forEach(x => { const k = chKey(x.it); ks[k] = (ks[k] || 0) + 1; }); const list = Object.entries(ks).sort((a, b) => b[1] - a[1]); return list.length ? `<div class="res-ch"><h2>Chapitres à retravailler</h2><div class="res-ch-l">${list.map(([k, n]) => `<button class="res-chip" style="${hueStyle(chCat(k))}" data-act="weakPick" data-k="${h(k)}"><span>${h(chLabel(k))}</span><small>${n} erreur${n > 1 ? "s" : ""} · retravailler ›</small></button>`).join("")}</div></div>` : ""; })()}
@@ -6856,6 +6862,7 @@ function vCardsSetup() {
 }
 function startCards(list) {
   if (!list.length) return;
+  markOrig();
   C = { q: list.map(it => ({ it, again: 0 })), i: 0, flip: false, knew: 0, again: 0, total: list.length, xp0: S.xp };
   go("card");
 }
@@ -6866,7 +6873,7 @@ function vCard() {
   const boxes = [1, 2, 3, 4, 5].map(b => `<i class="${b <= box ? "on" : ""}"></i>`).join("");
   const head = `<div class="bristol-head"><span class="ep" title="${h(c.code)} ${h(ch ? ch.title : c.name)}">${h(c.code)} ${h(ch ? ch.title : c.name)}</span><span class="boxes" title="Niveau de la carte">${boxes}</span></div>`;
   return `<section class="runner card-runner${C.flip ? " flipped" : ""}" style="${hueStyle(it.c)}">
-    <div class="runner-top"><span class="progress-text">Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
+    <div class="runner-top"><span class="progress-text"><button class="quit" data-act="quitCards" aria-label="Quitter les cartes">✕</button>Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
       <div class="face face-front bristol">${head}<div class="bristol-body">${(() => { const cq = cardQ(it); return `<span class="front-k">${h(cq.k)}</span><p class="front">${h(cq.q)}</p>`; })()}<span class="hint">Touche ou clique pour retourner la carte</span></div></div>
       <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span><span class="stamp hd" aria-hidden="true">Difficile</span></div>
@@ -6897,7 +6904,7 @@ function vCardsEnd() {
       <tbody><tr class="total"><td>${C.total} cartes revues</td><td class="num debit">${C.knew}</td><td class="num credit">${C.again}</td></tr></tbody>
     </table></div>
     <p class="muted">+${S.xp - C.xp0} XP. Les cartes ratées reviendront dès ta prochaine révision du jour.</p>
-    <div class="row">${nextBtn(true)}<button class="btn${nextBtn() ? "" : " primary"}" data-act="goCards">Autre session</button><button class="btn" data-act="goHome">Accueil</button></div>
+    <div class="row">${nextBtn(true)}<button class="btn${nextBtn() ? "" : " primary"}" data-act="goCards">Autre session</button>${origBtn()}<button class="btn" data-act="goHome">Accueil</button></div>
   </section>`;
 }
 
@@ -8960,6 +8967,21 @@ function vRecite() {
       : `<button class="btn primary" data-act="rcShow">Voir la suite</button>${RC.hint ? "" : `<button class="btn" data-act="rcHint">Indice : premières lettres</button>`}`}</div>
   </section>`;
 }
+function specialQuizzes() { // les quiz qui ne vivent que dans un cours, regroupés ici
+  const nAu = y => QS.filter(x => x.t && /^au/.test(x.t) && (y === "all" || x.t.includes(y))).length, nAd = y => QS.filter(x => x.t && x.t.startsWith("ad" + y + ":")).length;
+  const cards = [];
+  if (!lockedCat("ce") && nAu("all")) cards.push(`<div class="qf" style="${hueStyle("ce")}"><div class="qf-h"><span class="tabcode">${h(CAT.ce.code)}</span><b>CEJM : les auteurs</b></div><div class="qf-b">
+    <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="1">Incontournables 1re année <span>auteur + définition</span></button>
+    <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="2">Incontournables 2e année <span>auteur + définition</span></button>
+    <button class="btn small" data-act="auQuiz" data-yr="1">Auteurs 1re année <span>${nAu("1")} q.</span></button>
+    <button class="btn small" data-act="auQuiz" data-yr="2">Auteurs 2e année <span>${nAu("2")} q.</span></button>
+    <button class="btn small" data-act="auQuiz" data-yr="all">Tous les auteurs <span>${nAu("all")} q.</span></button>
+    <button class="btn small" data-act="lesson" data-cid="ce" data-k="2">Lire l'index des auteurs</button></div></div>`);
+  Object.values(COURS_META).filter(m => m.perso && COURS[m.id] && m.chs).forEach(m => { const nq = QS.filter(x => m.chs.includes(x.ch)).length, nf = FS.filter(x => m.chs.includes(x.ch)).length;
+    cards.push(`<div class="qf" style="${hueStyle(m.cat)}"><div class="qf-h"><span class="tabcode">${h(m.code)}</span><b>${h(m.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz du cours <span>${nq} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards <span>${nf}</span></button>` : ""}${m.script ? `<button class="btn small" data-act="reciteHome" data-cid="${m.id}">Oral par cœur</button>` : ""}</div></div>`); });
+  if (rxOn()) cards.push(`<div class="qf" style="${hueStyle("p2")}"><div class="qf-h"><b>${h(RX.title)}</b></div><div class="qf-b"><button class="btn small primary" data-act="rxOpen">Révision express <span>quiz par sujet</span></button></div></div>`);
+  return cards.length ? `<h3 class="qf-title">Quiz des cours</h3><p class="muted small">Les quiz qu'on lance aussi depuis un cours, rassemblés ici.</p><div class="qf-grid">${cards.join("")}</div>` : "";
+}
 function vExHome() {
   const n = todayCount(), eps = ["E5", "E4", "E3", "E1"];
   const pool = ANN.filter(a => !ANF.ep || a.ep === ANF.ep), exPool = pool.flatMap(a => a.ex);
@@ -8990,6 +9012,7 @@ function vExHome() {
       <div class="row"><button class="btn" data-act="goCards">Flashcards au choix (${FS.length})</button></div>
       <h3 class="qf-title">Par matière</h3>
       <div class="qf-grid">${CATS.filter(c => (QBY[c.id] || []).length || FS.some(x => x.c === c.id)).map(c => { const nf = FS.filter(x => x.c === c.id).length, nq = (QBY[c.id] || []).length; return `<div class="qf" style="${hueStyle(c.id)}"><div class="qf-h"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b></div><div class="qf-b">${nq ? `<button class="btn small primary" data-act="quickQuiz" data-cat="${c.id}">Quiz <span>${quizLen} q.</span></button>` : ""}${nf ? `<button class="btn small" data-act="flashCat" data-cat="${c.id}">Flashcards <span>${nf}</span></button>` : ""}<button class="btn small qf-ch" data-act="pickChap" data-cat="${c.id}">${chapCount(c.id) ? `${chapCount(c.id)} chapitre${chapCount(c.id) > 1 ? "s" : ""}` : "Chapitres"}</button></div></div>`; }).join("")}</div>
+      ${specialQuizzes()}
     </section>` : ""}
     ${EXT === "justif" ? `<section class="stack">${dwHome()}</section>` : ""}
     ${EXT === "chiffres" ? `<section class="stack">${cxHome()}${dosSection()}</section>` : ""}
@@ -9991,7 +10014,7 @@ document.addEventListener("click", e => {
   { const t0 = tone.n || 0, sh0 = !!document.getElementById("wkSheet"), el = e.target.closest("button, a.btn, [data-act], [data-nav], summary, label");
     if (el && !el.disabled) setTimeout(() => { if ((tone.n || 0) !== t0) return; const sh = document.getElementById("wkSheet"); tone(sh && !sh0 ? "open" : el.closest("[data-nav]") ? "nav" : "tick"); }, 0); }
   const nb = e.target.closest("[data-nav]");
-  if (nb) { FROMPACK = null; const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
+  if (nb) { FROMPACK = null; ORIG = null; const v = nb.dataset.nav; if (v === "cours") coursQuery = ""; if (v === "fiches") ficheQuery = ""; if (view === "annex") annSaveNow(); go(v); return; }
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, cat = b.dataset.cat;
   if (view === "pack" && PK != null && !/^(pkBack|pkEdit|pkDel|pkIcs)$/.test(a)) FROMPACK = PK;
@@ -10245,7 +10268,9 @@ document.addEventListener("click", e => {
     case "ebTrain": { const l = errFiltered().map(e => e.x); startRun(l.slice(0, 20), "quiz"); break; }
     case "weakQuiz": { const k = b.dataset.k; startRun(shuffle(QS.filter(x => chKey(x) === k)).slice(0, quizLen), "quiz"); break; }
     case "weakMix": { const ks = weakChaps(5).map(o => o.k), wrong = QS.filter(x => ks.includes(chKey(x)) && S.q[x.id] && S.q[x.id][2] === 0), rest = QS.filter(x => ks.includes(chKey(x)) && !wrong.includes(x)); startRun(shuffle(wrong).concat(shuffle(rest)).slice(0, quizLen), "quiz"); break; }
-    case "quitRun": go(R && R.list.some(x => x.pick !== null) ? "result" : "ex"); break;
+    case "quitRun": if (R && R.list.some(x => x.pick !== null)) go("result"); else backOrig("ex"); break;
+    case "backOrig": backOrig(); break;
+    case "quitCards": if (C && (C.knew + C.again) > 0) go("cardsEnd"); else backOrig("ex"); break;
     case "ctlStart": startCtl(b.dataset.k); break;
     case "dueQuiz": { const d = shuffle(dueQs()); if (d.length) startRun(d.slice(0, quizLen), "quiz"); break; }
     case "chapAll": chapSel = chapSel.filter(k => chCat(k) !== cat); S.chap = chapSel.slice(); touch(); render(); break;
