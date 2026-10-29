@@ -1095,6 +1095,30 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .md-auq { margin-left: auto; }
 .md-yrt tr[hidden] { display: none; }
 .fb-row { margin-top: 14px; }
+.mem-home { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--sheet); }
+.mem-home > div:first-child { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.mem-home p { margin: 0; }
+.mem-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.mem-top .fig { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px; display: grid; gap: 2px; }
+.mem-top .fig b { font-size: 1.5rem; font-family: var(--f-display); }
+.mem-top .fig span { color: var(--muted); font-size: .88rem; }
+.mem-g { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--c, var(--accent)); border-radius: var(--radius); }
+.mem-g > summary { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; padding: 12px; cursor: pointer; list-style: none; }
+.mem-g > summary::-webkit-details-marker { display: none; }
+.mem-g > summary .muted { grid-column: 1 / -1; font-size: .88rem; }
+.mem-g > summary .mem-bar { grid-column: 1 / -1; }
+.mem-list { display: grid; gap: 0; padding: 0 12px 6px; }
+.mem-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--rule); }
+.mem-t { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.mem-t small { color: var(--muted); }
+.mem-bar { display: block; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.mem-bar i { display: block; height: 100%; border-radius: 3px; background: var(--muted); }
+.mem-bar.ok i { background: var(--ok); } .mem-bar.mid i { background: var(--accent); } .mem-bar.warn i { background: var(--gold); } .mem-bar.ko i { background: var(--bad); }
+.bb-todo { display: grid; gap: 10px; }
+.bb-e { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px; display: grid; gap: 8px; }
+.bb-h { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
+.bb-e .mem-list { padding: 0; }
+
 .chip.small, .btn.small { font-size: .8rem; padding: 5px 10px; }
 .ann-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .ann-card { background: var(--sheet); border: 1px solid var(--rule); border-top: 4px solid var(--c); border-radius:var(--radius) var(--radius) var(--radius) var(--radius); display: flex; flex-direction: column; min-width: 0;
@@ -5576,6 +5600,7 @@ function mergeS(a, b) {
   each("qd", (p, q) => ({ w: Math.max(p.w || 0, q.w || 0), ok: [...new Set([].concat(p.ok || [], q.ok || []))].sort((m, n) => m - n).slice(-6) }));
   each("h", (p, q) => Math.max(+p || 0, +q || 0));
   each("dwr", (p, q) => ((q && q.n) || 0) > ((p && p.n) || 0) ? q : p);
+  each("bb", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("rc", (p, q) => ((q && q[1]) || 0) > ((p && p[1]) || 0) ? q : p);
   ["l", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
@@ -6174,7 +6199,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, recite: vRecite, rchome: vReciteHome, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, recite: vRecite, rchome: vReciteHome, memo: vMemo, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   if (inPack() && /^(run|result|cards|card|cardsEnd|exrun|exres|calc|schema|gcase|oral|redac)$/.test(view) && !(view === "result" && R && R.pack != null)) v.insertAdjacentHTML("afterbegin", `<div class="pk-ban" style="${hueStyle(S.packs[FROMPACK].cat)}"><span>Contrôle : <b>${h(packName(S.packs[FROMPACK]))}</b></span><button class="btn small primary" data-act="pkResume">Suite du contrôle</button></div>`);
   v.dataset.view = view;
@@ -6278,6 +6303,8 @@ function vHome() {
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
   ${rxHomeCard()}
+  ${bbHomeCard()}
+  ${memoHomeCard()}
   ${persoCoursCards()}
   ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
   ${duelHomeCard()}
@@ -6355,6 +6382,10 @@ function runTitle(b, a, cat) {
   const c = /^(cibleQuiz|cibleCards)$/.test(a) ? cibleCat : cat;
   if (/^(cibleQuiz|cibleCards|quickQuiz|flashCat|quizCat|cardsCat|dueCat)$/.test(a) && CAT[c]) return CAT[c].name + " · " + yrOfSel(c) + (/Cards|flash|due/i.test(a) ? " · flashcards" : "");
   if (/^(chQuiz|chCards)$/.test(a) && CHID[b.dataset.ch]) return CHID[b.dataset.ch].title + " · " + (a === "chQuiz" ? "quiz de la fiche" : "cartes");
+  if (a === "memoGo") return "Séance mémoire" + (view === "memo" && MEMCAT && CAT[MEMCAT] ? " · " + CAT[MEMCAT].name : "");
+  if (a === "memoCards") return "Cartes qui s'effacent";
+  if (a === "memoCh" && CHID[b.dataset.k]) return CHID[b.dataset.k].title + " · rafraîchir";
+  if (a === "bbPlan") { const e = EPREUVES.find(x => x.c === b.dataset.e); return "Reprise après le BTS blanc · " + b.dataset.e + (e ? " " + e.t.split(" : ")[0] : ""); }
   if (a === "auQuiz") return "CEJM · " + lab;
   if (a === "auSit") return "CEJM · Notion : auteur puis définition · " + (b.dataset.yr === "2" ? "2e année" : b.dataset.yr === "1" ? "1re année" : "les deux années");
   if (/^(chsQuiz|chsCards)$/.test(a)) { const m = Object.values(COURS_META).find(m => m.chs && (b.dataset.chs || "").split(",").every(k => m.chs.includes(k))); return (m ? m.name + " · " : "") + lab; }
@@ -7661,6 +7692,7 @@ function vBts() {
       <div class="count3d"><span class="big">${flap(dl)}</span><span>avant les premiers écrits</span>
         <label class="small-date">Date estimée <input type="date" id="btsDate" value="${h(b.date)}"></label></div>
     </section>
+    ${bbSection()}
     ${plSection()}
     <p class="muted">Date par défaut estimée d'après la session 2026 (écrits du 18 au 21 mai). Remplace-la par celle de ta convocation dès que tu la reçois.</p>
     <section class="stack"><h2>Les épreuves et leur poids</h2>
@@ -7686,6 +7718,7 @@ function vBts() {
 function bindFusion() {
   document.querySelectorAll("[data-widget]").forEach(el => { const f = MATHS.WIDGETS[el.dataset.widget]; if (f) { try { f(el); } catch (e) { el.remove(); } } else el.remove(); });
   document.querySelectorAll("textarea[data-gstep]").forEach(t => t.addEventListener("input", () => { const st = caseState(GC.id); st.notes[t.dataset.gstep] = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(touch, 900); }));
+  document.querySelectorAll("[data-bb]").forEach(inp => inp.addEventListener("change", () => { S.bb = S.bb || {}; const v = inp.value.trim().replace(",", "."), n = v === "" ? null : Math.max(0, Math.min(20, +v)); S.bb[inp.dataset.bb] = { n: n != null && !isNaN(n) ? n : null, d: dayNum() }; touch(); const y = window.scrollY; render(); window.scrollTo(0, y); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
   document.querySelectorAll("[data-sit], [data-sitf]").forEach(inp => inp.addEventListener(inp.tagName === "SELECT" ? "change" : "input", () => {
@@ -9001,6 +9034,93 @@ function vRecite() {
       : `<button class="btn primary" data-act="rcShow">Voir la suite</button>${RC.hint ? "" : `<button class="btn" data-act="rcHint">Indice : premières lettres</button>`}`}</div>
   </section>`;
 }
+/* ---------- Ma mémoire : ce que tu retiens chapitre par chapitre, et ce qui commence à s'effacer ----------
+   Chaque question ou carte déjà travaillée a une « force » : elle baisse avec les jours sans révision,
+   d'autant moins vite que tu l'as réussie de nombreux jours différents (courbe de l'oubli). */
+const MEM_S = [1, 4, 10, 21, 45, 90]; // jours avant de retomber vers 37 %, selon le nombre de jours réussis
+function memQ(id, d) {
+  const r = S.q[id]; if (!r || !r[0]) return null; const o = (S.qd || {})[id];
+  if (!o || !o.ok.length) return r[2] === 1 ? .35 : .05;
+  return Math.exp(-Math.max(0, d - o.ok[o.ok.length - 1]) / MEM_S[Math.min(o.ok.length, 5)]);
+}
+function memC(id, d) {
+  const r = S.c[id]; if (!r) return null; const box = r[0]; if (!box) return .1;
+  return Math.exp(-Math.max(0, d - (r[1] - (INTERVALS[box] || 1))) / MEM_S[Math.min(box, 5)]);
+}
+function memChap(k, off) {
+  const d = dayNum() + (off || 0), qs = QCH[k] || [], fs = FCH[k] || []; let s = 0, n = 0;
+  qs.forEach(x => { const v = memQ(x.id, d); if (v != null) { s += v; n++; } });
+  fs.forEach(x => { const v = memC(x.id, d); if (v != null) { s += v; n++; } });
+  const tot = qs.length + fs.length; return { k, n, tot, m: n ? s / n : null };
+}
+const MEM_LV = [[.8, "Solide", "ok"], [.55, "À entretenir", "mid"], [.3, "S'efface", "warn"], [0, "Presque oublié", "ko"]];
+const memLv = m => m == null ? ["Pas encore travaillé", "none"] : MEM_LV.find(x => m >= x[0]).slice(1);
+function memChaps(cats) { return CHAP.filter(c => (!cats || cats.includes(c.cat)) && !lockedCat(c.cat) && ((QCH[c.id] || []).length + (FCH[c.id] || []).length)).map(c => Object.assign(memChap(c.id), { c })); }
+function memSum(cats, off) {
+  const L = memChaps(cats).map(x => off ? Object.assign(memChap(x.k, off), { c: x.c }) : x), w = L.filter(x => x.m != null);
+  const tot = w.reduce((a, x) => a + x.n, 0), m = tot ? w.reduce((a, x) => a + x.m * x.n, 0) / tot : null;
+  return { L, w, m, fading: w.filter(x => x.m < .55).length, solid: w.filter(x => x.m >= .8).length };
+}
+/* Séance mémoire : d'abord ce qui est en train de s'effacer (ni neuf, ni déjà perdu), puis le plus oublié */
+function memQuizItems(pool, n) {
+  const d = dayNum(), sc = x => { const v = memQ(x.id, d); return v == null ? 9 : v < .7 ? (v >= .15 ? v : .7 + v) : 5 + v; };
+  return pool.filter(x => memQ(x.id, d) != null && memQ(x.id, d) < .7).sort((a, b) => sc(a) - sc(b)).slice(0, n);
+}
+function memCardItems(n) { const d = dayNum(); return FS.filter(x => !lockedCat(x.c) && memC(x.id, d) != null && memC(x.id, d) < .7).sort((a, b) => memC(a.id, d) - memC(b.id, d)).slice(0, n); }
+let MEMCAT = "";
+const memBar = (m, cls) => `<span class="mem-bar ${cls}" role="img" aria-label="Mémoire ${m == null ? "inconnue" : Math.round(m * 100) + " %"}"><i style="width:${m == null ? 0 : Math.max(3, Math.round(m * 100))}%"></i></span>`;
+function memRow(x) {
+  const [lab, cls] = memLv(x.m), in7 = x.m != null ? memChap(x.k, 7).m : null;
+  return `<div class="mem-row"><div class="mem-t"><b>${h(x.c.title)}</b><small>${x.m == null ? `${x.tot} questions et cartes à découvrir` : `${Math.round(x.m * 100)} % · ${lab} · vu ${x.n} sur ${x.tot}${in7 != null && x.m - in7 > .08 ? ` · ${Math.round(in7 * 100)} % dans 7 jours sans révision` : ""}`}</small>${memBar(x.m, cls)}</div>
+    <button class="btn small${x.m != null && x.m < .55 ? " primary" : ""}" data-act="memoCh" data-k="${x.k}">${x.m == null ? "Commencer" : "Rafraîchir"}</button></div>`;
+}
+function memoHomeCard() {
+  const s = memSum(); if (!s.w.length) return "";
+  const nq = memQuizItems(QS.filter(x => !lockedCat(x.c)), 15).length;
+  return `<section class="mem-home"><div><span class="eyebrow">Ma mémoire</span><b>${Math.round(s.m * 100)} % de ce que tu as travaillé est encore en tête</b>
+    <p class="muted">${s.fading ? `${s.fading} chapitre${s.fading > 1 ? "s" : ""} commence${s.fading > 1 ? "nt" : ""} à s'effacer.` : "Rien ne s'efface pour l'instant."} ${s.solid} solide${s.solid > 1 ? "s" : ""}.</p></div>
+    <div class="row">${nq ? `<button class="btn primary" data-act="memoGo">Séance mémoire (${nq} questions)</button>` : ""}<button class="btn" data-act="memoOpen">Voir ma mémoire</button></div></section>`;
+}
+function vMemo() {
+  const cats = MEMCAT ? [MEMCAT] : null, s = memSum(cats), s7 = memSum(cats, 7), d = dayNum();
+  const nq = memQuizItems(QS.filter(x => !lockedCat(x.c) && (!cats || cats.includes(x.c))), 15).length, nc = memCardItems(30).filter(x => !cats || cats.includes(x.c)).length;
+  const groups = CATS.filter(c => (!MEMCAT || c.id === MEMCAT) && s.L.some(x => x.c.cat === c.id)).map(c => {
+    const L = s.L.filter(x => x.c.cat === c.id).sort((a, b) => (a.m == null) - (b.m == null) || (a.m || 0) - (b.m || 0)), w = L.filter(x => x.m != null);
+    const m = w.length ? w.reduce((a, x) => a + x.m * x.n, 0) / w.reduce((a, x) => a + x.n, 0) : null;
+    return `<details class="mem-g" style="${hueStyle(c.id)}"${MEMCAT || (w.length && m < .55) ? " open" : ""}><summary><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b><span class="muted">${m == null ? "pas encore travaillé" : `${Math.round(m * 100)} % · ${w.length} chapitre${w.length > 1 ? "s" : ""} travaillé${w.length > 1 ? "s" : ""} sur ${L.length}`}</span>${memBar(m, memLv(m)[1])}</summary><div class="mem-list">${L.map(memRow).join("")}</div></details>`;
+  }).join("");
+  return `<section class="page-head"><h1>Ma mémoire</h1><p class="muted">Ce que tu retiens encore, chapitre par chapitre. Une notion revue juste avant de l'oublier tient beaucoup plus longtemps : la séance mémoire te fait revoir en priorité ce qui commence à s'effacer.</p></section>
+    <section class="mem-top">
+      <div class="fig"><b>${s.m == null ? "-" : Math.round(s.m * 100) + " %"}</b><span>encore en tête aujourd'hui</span></div>
+      <div class="fig"><b>${s7.m == null ? "-" : Math.round(s7.m * 100) + " %"}</b><span>dans 7 jours sans réviser</span></div>
+      <div class="fig"><b>${s.fading}</b><span>chapitre${s.fading > 1 ? "s" : ""} qui s'efface${s.fading > 1 ? "nt" : ""}</span></div>
+      <div class="fig"><b>${s.solid}</b><span>chapitre${s.solid > 1 ? "s" : ""} solide${s.solid > 1 ? "s" : ""}</span></div>
+    </section>
+    <div class="row">${nq ? `<button class="btn primary" data-act="memoGo">Séance mémoire : ${nq} questions</button>` : `<button class="btn primary" disabled>Rien ne s'efface pour l'instant</button>`}${nc ? `<button class="btn" data-act="memoCards">Cartes qui s'effacent (${nc})</button>` : ""}</div>
+    <div class="picker" role="group" aria-label="Matière"><button class="chip" data-act="memoCat" data-c="" aria-pressed="${!MEMCAT}">Toutes</button>${CATS.filter(c => !lockedCat(c.id) && memChaps([c.id]).length).map(c => `<button class="chip" data-act="memoCat" data-c="${c.id}" aria-pressed="${MEMCAT === c.id}">${h(c.code)}</button>`).join("")}</div>
+    ${s.w.length ? "" : `<p class="panel muted">Ta mémoire se remplit au fil des quiz et des cartes : fais quelques quiz, puis reviens ici voir ce que tu retiens.</p>`}
+    <section class="stack">${groups}</section>
+    <p class="muted small">Estimation à partir de tes réponses : une question réussie sur plusieurs jours différents s'oublie de plus en plus lentement ; une erreur la remet à zéro.</p>`;
+}
+/* ---------- Après les BTS blancs : tes notes, et ce qu'il faut reprendre ---------- */
+function bbSection() {
+  const bb = S.bb || {}, rows = EPREUVES.filter(e => e.cats.some(c => CAT[c]));
+  const done = rows.filter(e => bb[e.c] && bb[e.c].n != null && bb[e.c].n !== "");
+  const todo = done.map(e => ({ e, n: +bb[e.c].n })).filter(x => x.n < 12).sort((a, b) => (12 - b.n) * b.e.k - (12 - a.n) * a.e.k);
+  const weak = e => memChaps(e.cats).sort((a, b) => (a.m == null ? .4 : a.m) - (b.m == null ? .4 : b.m)).slice(0, 3);
+  return `<section class="stack" id="bbSec"><h2>Mes BTS blancs</h2><p class="muted">Note tes résultats : l'appli te montre les épreuves à reprendre en premier (note basse et gros coefficient) et, pour chacune, les chapitres que tu retiens le moins.</p>
+    <div class="sim">${rows.map(e => `<label class="sim-f"><span><b>${e.c}</b> ${h(e.t.split(" : ")[0])}</span><input type="number" min="0" max="20" step="0.25" inputmode="decimal" placeholder="Note" data-bb="${e.c}" value="${h(bb[e.c] && bb[e.c].n != null ? bb[e.c].n : "")}"></label>`).join("")}</div>
+    ${done.length ? `<div class="row"><button class="btn small" data-act="bbToSim">Mettre ces notes dans le simulateur</button></div>` : ""}
+    ${todo.length ? `<div class="bb-todo">${todo.map(({ e, n }) => `<div class="bb-e"><div class="bb-h"><b>${e.c} · ${h(e.t.split(" : ")[0])}</b><span class="pill ${n < 10 ? "ko" : ""}">${String(n).replace(".", ",")}/20 · coef. ${e.k}</span></div>
+      <div class="mem-list">${weak(e).map(memRow).join("")}</div><div class="row"><button class="btn small primary" data-act="bbPlan" data-e="${e.c}">Quiz de reprise ${e.c}</button></div></div>`).join("")}</div>`
+      : done.length ? `<p class="panel">Toutes tes notes sont à 12 ou plus : garde le rythme avec la séance mémoire.</p>` : ""}
+  </section>`;
+}
+function bbHomeCard() {
+  if (typeof RX === "undefined" || !RX) return ""; const e = daysTo(RX.to); if (e == null || e >= 0 || e < -30) return "";
+  const n = Object.values(S.bb || {}).filter(x => x && x.n != null && x.n !== "").length; if (n) return "";
+  return `<button class="wk-cta" data-act="bbOpen"><span class="wk-ic">${ICON.check}</span><span><b>BTS blancs terminés</b><small>Note tes résultats : tu verras les épreuves et les chapitres à reprendre en premier.</small></span><span class="wk-go">Noter ›</span></button>`;
+}
 function auBtns() { const nAu = y => QS.filter(x => x.t && /^au/.test(x.t) && (y === "all" || x.t.includes(y))).length, nAd = y => QS.filter(x => x.t && x.t.startsWith("ad" + y + ":")).length, ser = (n, k) => n > k ? `série de ${k} sur ${n}` : `${n} q.`;
   return `<button class="btn small primary" data-act="auSit" data-yr="1">Notion 1re année <span>${AUSIT.filter(x => x.y.includes("1")).length} notions</span></button> <button class="btn small primary" data-act="auSit" data-yr="2">Notion 2e année <span>${AUSIT.filter(x => x.y.includes("2")).length} notions</span></button> <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="1">Incontournables 1re année <span>auteur + définition · ${ser(nAd("1"), 16)}</span></button> <button class="btn small primary" data-act="auQuiz" data-inc="1" data-yr="2">Incontournables 2e année <span>auteur + définition · ${ser(nAd("2"), 16)}</span></button> <button class="btn small" data-act="auQuiz" data-yr="1">Auteurs 1re année <span>${ser(nAu("1"), 15)}</span></button> <button class="btn small" data-act="auQuiz" data-yr="2">Auteurs 2e année <span>${ser(nAu("2"), 15)}</span></button> <button class="btn small" data-act="auQuiz" data-yr="all">Tous les auteurs <span>${ser(nAu("all"), 15)}</span></button> <button class="btn small" data-act="lesson" data-cid="ce" data-k="2">Lire l'index des auteurs</button>`; }
 function specialQuizzes() { // les quiz qui ne vivent que dans un cours, regroupés ici
@@ -9036,6 +9156,7 @@ function vExHome() {
         <button class="mode lead-mode" data-act="today" ${n ? "" : "disabled"}><b>Cartes du jour</b><span>${n ? `${n} cartes à revoir, de 5 à 10 minutes.` : "Rien à revoir aujourd'hui."}</span></button>
         <button class="mode" data-act="goQuiz"><b>Quiz corrigé</b><span>${QS.length} questions, expliquées juste après ta réponse.</span></button>
         <button class="mode" data-act="dueQuiz" ${dueQs().length ? "" : "disabled"}><b>Révision des acquis</b><span>${dueQs().length ? `${dueQs().length} question${dueQs().length > 1 ? "s" : ""} à revérifier aujourd'hui.` : "Rien à revérifier aujourd'hui."}</span></button>
+        <button class="mode" data-act="memoOpen"><b>Ma mémoire</b><span>Ce que tu retiens par chapitre, et une séance sur ce qui s'efface.</span></button>
         <button class="mode" data-act="goExam"><b>QCM chrono</b><span>20 questions toutes matières en 20 minutes.</span></button>
         <button class="mode" data-act="defi"><b>Défi 60 secondes</b><span>Record actuel : ${(S.df || {}).best || 0}.</span></button>
       </div>
@@ -10061,6 +10182,15 @@ document.addEventListener("click", e => {
     case "rcHome": go("rchome"); break;
     case "rcGo": reciteStart(b.dataset.key, b.dataset.card != null ? [+b.dataset.card] : null, !!b.dataset.weak); break;
     case "rcShow": if (RC) { RC.shown = true; render(); } break;
+    case "memoOpen": go("memo"); break;
+    case "memoCat": MEMCAT = b.dataset.c || ""; render(); break;
+    case "memoGo": { const l = memQuizItems(QS.filter(x => !lockedCat(x.c) && (view !== "memo" || !MEMCAT || x.c === MEMCAT)), 15); if (l.length) startRun(shuffle(l), "quiz"); else toast("Rien ne s'efface pour l'instant"); break; }
+    case "memoCards": { const l = memCardItems(30).filter(x => view !== "memo" || !MEMCAT || x.c === MEMCAT); if (l.length) startCards(l); break; }
+    case "memoCh": { const pool = (QCH[b.dataset.k] || []).filter(x => !lockedCat(x.c)), a1 = memQuizItems(pool, 10), rest = shuffle(pool.filter(x => !a1.includes(x))).sort((x, y) => (memQ(x.id, dayNum()) == null ? 0 : 1) - (memQ(y.id, dayNum()) == null ? 0 : 1)); const l = a1.concat(rest).slice(0, 10); if (l.length) startRun(shuffle(l), "quiz"); else { const f = FCH[b.dataset.k] || []; if (f.length) startCards(shuffle(f).slice(0, 20)); } break; }
+    case "bbOpen": go("bts"); setTimeout(() => { const e = document.getElementById("bbSec"); if (e) e.scrollIntoView({ block: "start" }); }, 60); break;
+    case "bbToSim": { const bt = btsState(); Object.entries(S.bb || {}).forEach(([k, v]) => { if (v && v.n != null && v.n !== "") bt.notes[k] = v.n; }); touch(); render(); toast("Notes reportées dans le simulateur"); break; }
+    case "bbPlan": { const e = EPREUVES.find(x => x.c === b.dataset.e); if (!e) break; const pool = QS.filter(x => e.cats.includes(x.c) && !lockedCat(x.c)), wk = memChaps(e.cats).sort((a, c) => (a.m == null ? .4 : a.m) - (c.m == null ? .4 : c.m)).slice(0, 4).map(x => x.k);
+      const a1 = memQuizItems(pool, 10), more = shuffle(pool.filter(x => wk.includes(x.ch) && !a1.includes(x))); const l = a1.concat(more).slice(0, 15); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "auSit": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, y = b.dataset.yr || "all"; const l = AUSIT.filter(x => y === "all" || x.y.includes(y)); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "auQuiz": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, yr = b.dataset.yr || MDYR, inc = !!b.dataset.inc; const l = shuffle(QS.filter(x => x.t && /^au/.test(x.t) && !inc && (yr === "all" || x.t.includes(yr)))).sort((a, c) => r(a) - r(c)).slice(0, 15);
       if (inc) { const g = {}; QS.filter(x => x.t && x.t.startsWith("ad" + yr + ":")).forEach(x => (g[x.t] = g[x.t] || []).push(x)); const gr = Object.values(g), w = p => Math.min(...p.map(r)); l.length = 0; shuffle(gr).sort((a, c) => w(a) - w(c)).slice(0, 8).forEach(p => l.push(...p)); }
