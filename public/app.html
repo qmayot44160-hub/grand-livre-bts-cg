@@ -1095,6 +1095,17 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 .md-auq { margin-left: auto; }
 .md-yrt tr[hidden] { display: none; }
 .fb-row { margin-top: 14px; }
+.fmode { margin: 6px 0 4px; }
+.recap-pts { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.recap-defs { margin: 0; display: grid; gap: 0; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); }
+.recap-defs > div { padding: 10px 12px; border-top: 1px solid var(--rule); }
+.recap-defs > div:first-child { border-top: 0; }
+.recap-defs dt { font-weight: 700; margin: 0 0 2px; }
+.recap-defs dd { margin: 0; color: var(--ink); }
+.recap-tabs { margin-top: 16px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); padding: 10px 12px; }
+.recap-tabs > summary { cursor: pointer; font-weight: 700; }
+.recap-more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 18px; }
+
 .mem-home { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--sheet); }
 .mem-home > div:first-child { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
 .mem-home p { margin: 0; }
@@ -1898,6 +1909,6 @@ select[data-fi] { width: 100%; max-width: 100%; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="gl-content" data-formation="bts-cg" src="/c/contenu-d7eb3ccd8442.js"></script>
-<script src="/c/moteur-524baa5a7ebd.js"></script>
+<script src="/c/moteur-199095eaba55.js"></script>
 
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML='<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body></html>

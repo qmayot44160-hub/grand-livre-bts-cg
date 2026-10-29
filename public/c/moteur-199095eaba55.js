@@ -1954,6 +1954,24 @@ function ficheTrain(c, compact) {
     ${all.length ? `<div class="ft-grid">${all.map(exBtn).join("")}</div>` : ""}
   </section>`;
 }
+/* Fiche récap : l'idée, l'essentiel, les définitions, les tableaux et les pièges, sans les explications ni les exemples (qui restent dans la fiche détaillée) */
+let FMODE = (() => { try { return localStorage.getItem("gl-fmode") || "recap"; } catch (e) { return "recap"; } })();
+const firstSent = t => { const m = String(t).match(/^.{25,}?[.!?](?=\s+[A-ZÀÂÉÈÊÎÔÛÇ«(]|$)/); return m ? m[0] : String(t); }; // la première phrase d'une définition
+function ficheRecap(c) {
+  const all = (c.sections || []).flatMap(s => s.b || []), tabs = all.filter(b => b[0] === "t"), traps = all.filter(b => b[0] === "trap" || b[0] === "w");
+  /* Définitions : celles du cours (pas les versions « En clair » pour débuter), sans doublon */
+  const nk2 = t => String(t).toLowerCase().replace(/\(.*?\)/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).map(w => w.replace(/s$/, "")).join(" ");
+  const seen = new Set(), defs = [];
+  (c.sections || []).filter(s => !/^en clair/i.test(s.h)).concat((c.sections || []).filter(s => /^en clair/i.test(s.h))).forEach(s => (s.b || []).forEach(b => { if (b[0] !== "d") return; const k = nk2(b[1]); if (seen.has(k)) return; seen.add(k); defs.push(b); }));
+  return `<div class="md fiche-recap">
+    <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
+    ${c.points && c.points.length ? `<h4>L'essentiel</h4><ul class="recap-pts">${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul>` : ""}
+    ${defs.length ? `<h4>Les mots à savoir définir</h4><dl class="recap-defs">${defs.map(b => `<div><dt>${h(b[1])}</dt><dd>${h(firstSent(b[2]))}</dd></div>`).join("")}</dl>` : ""}
+    ${tabs.length ? `<details class="recap-tabs"><summary>${tabs.length > 1 ? `Les ${tabs.length} tableaux` : "Le tableau"} de la fiche</summary>${blocksHTML(tabs)}</details>` : ""}
+    ${traps.length ? `<h4>Les pièges</h4>${blocksHTML(traps)}` : ""}
+    <p class="recap-more"><button class="btn small" data-act="fmode" data-m="full">Lire la fiche détaillée</button><span class="muted small">explications, exemples et exercices</span></p>
+  </div>`;
+}
 function vFiche() {
   const c = FC && CHID[FC.id]; if (!c) return vFiches();
   const list = CHBY[c.cat], i = list.indexOf(c), pv = list[i - 1], nx = list[i + 1], th = THEME[c.th];
@@ -1970,11 +1988,12 @@ function vFiche() {
       <div class="lprog" role="presentation"><i style="width:${pct(i + 1, list.length)}%"></i></div>
       <h1>${h(c.title)}</h1>
       ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
-      <div class="md">
+      <div class="picker fmode" role="tablist" aria-label="Version de la fiche"><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Récap</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Fiche détaillée</button></div>
+      ${FMODE === "recap" ? ficheRecap(c) : `<div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
         ${(c.sections || []).map((s, si) => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}${ficheInlineEx(c, si)}`).join("")}
         ${c.points && c.points.length ? `<blockquote class="callout retain"><p class="md-label"><strong>L'essentiel</strong></p><ul>${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul></blockquote>` : ""}
-      </div>
+      </div>`}
       ${ficheTrain(c)}
       <p class="rep-row"><button class="rep-btn" data-act="report" data-t="f" data-id="${h(c.id)}" data-l="${h(String(c.title).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="fiche" data-fprev data-id="${pv.id}">Fiche précédente</button>` : `<button class="btn" data-act="mat" data-cat="${c.cat}" data-seg="fiche">Retour à la matière</button>`}
@@ -1994,7 +2013,7 @@ function matFiche(c) {
     const groups = {}; const order = [];
     chs.forEach(x => { if (!groups[x.th]) { groups[x.th] = []; order.push(x.th); } groups[x.th].push(x); });
     const nr = chs.filter(x => ficheRead(x.id)).length;
-    body = `<p class="muted">${chs.length} fiches : l'idée clé, l'explication simple, les définitions, un exemple concret et l'essentiel à retenir. Tu en as lu ${nr}.</p>` +
+    body = `<p class="muted">${chs.length} fiches. Chacune s'ouvre en version récap (l'idée clé, l'essentiel, les définitions, les pièges) ; la fiche détaillée garde les explications et les exemples. Tu en as lu ${nr}.</p>` +
       order.map(t => `<div class="fiche-group"><h3>${h((THEME[t] || {}).title || "")}</h3><div class="fcards">${groups[t].map(x => fcard(x)).join("")}</div></div>`).join("");
   } else if (matSub === "meth") {
     body = meths.map(m => `<div class="stack"><h3>${h(m.title)}</h3>${m.intro ? `<p class="muted">${h(m.intro)}</p>` : ""}<ol class="meth">${m.steps.map(s => `<li><span class="mk">${h(s.k)}</span><div><b>${h(s.name)}</b><p>${h(s.txt || "")}</p>${s.tip ? `<p class="muted">${h(s.tip)}</p>` : ""}</div></li>`).join("")}</ol>${m.note ? `<p class="muted">${h(m.note)}</p>` : ""}</div>`).join("");
@@ -4657,6 +4676,7 @@ document.addEventListener("click", e => {
     case "bbToSim": { const bt = btsState(); Object.entries(S.bb || {}).forEach(([k, v]) => { if (v && v.n != null && v.n !== "") bt.notes[k] = v.n; }); touch(); render(); toast("Notes reportées dans le simulateur"); break; }
     case "bbPlan": { const e = EPREUVES.find(x => x.c === b.dataset.e); if (!e) break; const pool = QS.filter(x => e.cats.includes(x.c) && !lockedCat(x.c)), wk = memChaps(e.cats).sort((a, c) => (a.m == null ? .4 : a.m) - (c.m == null ? .4 : c.m)).slice(0, 4).map(x => x.k);
       const a1 = memQuizItems(pool, 10), more = shuffle(pool.filter(x => wk.includes(x.ch) && !a1.includes(x))); const l = a1.concat(more).slice(0, 15); if (l.length) startRun(shuffle(l), "quiz"); break; }
+    case "fmode": FMODE = b.dataset.m === "full" ? "full" : "recap"; try { localStorage.setItem("gl-fmode", FMODE); } catch (e) {} render(); window.scrollTo(0, 0); break;
     case "auSit": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, y = b.dataset.yr || "all"; const l = AUSIT.filter(x => y === "all" || x.y.includes(y)); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "auQuiz": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, yr = b.dataset.yr || MDYR, inc = !!b.dataset.inc; const l = shuffle(QS.filter(x => x.t && /^au/.test(x.t) && !inc && (yr === "all" || x.t.includes(yr)))).sort((a, c) => r(a) - r(c)).slice(0, 15);
       if (inc) { const g = {}; QS.filter(x => x.t && x.t.startsWith("ad" + yr + ":")).forEach(x => (g[x.t] = g[x.t] || []).push(x)); const gr = Object.values(g), w = p => Math.min(...p.map(r)); l.length = 0; shuffle(gr).sort((a, c) => w(a) - w(c)).slice(0, 8).forEach(p => l.push(...p)); }
