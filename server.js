@@ -990,6 +990,11 @@ async function snapWeek(force) {
 async function snaps(n) { const all = await store.settingsLike("wk:"); return all.slice(-n).map(x => { try { return JSON.parse(x.v); } catch (e) { return null; } }).filter(Boolean); }
 
 /* ---------- Analyse : tendances, fidélité, décrochage, maîtrise par chapitre ---------- */
+/* Mémoire estimée d'une question (même modèle que l'appli : courbe de l'oubli selon les jours réussis) */
+const MEM_S = [1, 4, 10, 21, 45, 90];
+function memQS(d, id, dn) { const a = (d.q || {})[id]; if (!Array.isArray(a) || !a[0]) return null; const o = (d.qd || {})[id]; if (!o || !(o.ok || []).length) return a[2] === 1 ? .35 : .05; return Math.exp(-Math.max(0, dn - o.ok[o.ok.length - 1]) / MEM_S[Math.min(o.ok.length, 5)]); }
+function memAll(d, dn) { let s = 0, n = 0; Object.keys(d.q || {}).forEach(id => { const v = memQS(d, id, dn); if (v != null) { s += v; n++; } }); return n ? Math.round(s / n * 100) : null; }
+const BB_EP = ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"];
 app.post("/api/admin/insights", async (req, res, next) => {
   try {
     if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
@@ -1020,9 +1025,9 @@ app.post("/api/admin/insights", async (req, res, next) => {
     /* Maîtrise par chapitre */
     const CH = {}; Object.entries(QMAP).forEach(([id, m]) => { if (!m || !m[2]) return; const k = m[0] + "|" + m[2], o = CH[k] || (CH[k] = { c: CATN[m[0]] || m[0], t: m[2], ids: [] }); o.ids.push(id); });
     const chapitres = Object.values(CH).map(o => {
-      let el = 0, n = 0, ok = 0, acq = 0;
-      rows.forEach(r => { const d = r.data || {}, q = d.q || {}; let t = 0; o.ids.forEach(id => { const a = q[id]; if (!Array.isArray(a)) return; t++; n += a[0] || 0; ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; }); if (t) el++; });
-      return { c: o.c, t: o.t, questions: o.ids.length, eleves: el, couverture: rows.length ? Math.round(el / rows.length * 100) : 0, reponses: n, reussite: n ? Math.round(ok / n * 100) : null, maitrise: el ? Math.round(acq / (o.ids.length * el) * 100) : 0 };
+      let el = 0, n = 0, ok = 0, acq = 0, ms = 0, mn = 0;
+      rows.forEach(r => { const d = r.data || {}, q = d.q || {}; let t = 0; o.ids.forEach(id => { const a = q[id]; if (!Array.isArray(a)) return; t++; n += a[0] || 0; ok += a[1] || 0; if (qSt(d, id) >= 2) acq++; const v = memQS(d, id, dn); if (v != null) { ms += v; mn++; } }); if (t) el++; });
+      return { c: o.c, t: o.t, questions: o.ids.length, eleves: el, couverture: rows.length ? Math.round(el / rows.length * 100) : 0, reponses: n, reussite: n ? Math.round(ok / n * 100) : null, maitrise: el ? Math.round(acq / (o.ids.length * el) * 100) : 0, memoire: mn ? Math.round(ms / mn * 100) : null };
     }).sort((a, b) => a.c.localeCompare(b.c) || a.t.localeCompare(b.t));
     res.json({ eleves: rows.length, semaine: W, semaines, cohortes, regularite: reg, decroche, chapitres, historique: hist.length });
   } catch (e) { next(e); }
@@ -1052,7 +1057,8 @@ app.post("/api/admin/pedago", async (req, res, next) => {
         mat: Object.fromEntries(MAINC.filter(c => cat[c] && cat[c].n).map(c => [c, { n: cat[c].n, r: Math.round(cat[c].ok / cat[c].n * 100) }])),
         programme: nCh ? Math.round(chs.size / nCh * 100) : 0, chapitres: chs.size,
         ctlTentes: Object.keys(ctl).filter(k => (ctl[k] || []).length).length, ctlValides: Object.keys(ctl).filter(k => ctlOk(ctl[k])).length,
-        annales: faits, noteMoy: nb ? Math.round(sum / nb * 10) / 10 : null, fiches: Object.keys(d.fr || {}).length };
+        annales: faits, noteMoy: nb ? Math.round(sum / nb * 10) / 10 : null, fiches: Object.keys(d.fr || {}).length,
+        memoire: memAll(d, dn), bb: Object.fromEntries(BB_EP.filter(e => d.bb && d.bb[e] && typeof d.bb[e].n === "number").map(e => [e, d.bb[e].n])) };
     }).sort((a, b) => a.name.localeCompare(b.name, "fr"));
     /* 2. Erreurs typiques : questions ratées par au moins deux élèves, avec la mauvaise réponse la plus choisie */
     const E = {};
@@ -1097,7 +1103,7 @@ function studentSummary(r, dn, full) {
   const days = Object.keys(h).map(Number), lv = LV.filter(l => xp >= l[0]).pop();
   const s = { id: r.id, name: r.name, created: r.created, updated: r.updated, blocked: !!r.blocked, rappels: (r.subs || 0) > 0,
     xp, niveau: lv[1], serie: st.d >= dn - 1 ? st.n || 0 : 0, jours7: days.filter(k => k > dn - 7).length, jours30: days.filter(k => k > dn - 30).length,
-    reponses: rep, reussite: rep ? Math.round(ok / rep * 100) : null, acquises: acq, aRevoir: wrong, classement: !!(d.cl && d.cl.on) };
+    reponses: rep, reussite: rep ? Math.round(ok / rep * 100) : null, acquises: acq, aRevoir: wrong, classement: !!(d.cl && d.cl.on), memoire: memAll(d, dn) };
   s.activite = Array.from({ length: 28 }, (_, i) => h[dn - 27 + i] || 0);
   if (!full) return s;
   s.fiches = Object.keys(d.fr || {}).length; s.lecons = Object.keys(d.l || {}).length;
@@ -1107,6 +1113,9 @@ function studentSummary(r, dn, full) {
   { const w = weekOf(dn), fw = featWeek(d, w, full.duels || 0), fe = featEver(d); s.usage = FEATS.map(([k, nom]) => ({ k, nom, semaine: fw[k], deja: fe[k] })); }
   { const W = weekOf(dn); s.semaines = Array.from({ length: 12 }, (_, i) => W - 11 + i).map(w => { const a = w * 7 - 3, j = days.filter(k => k >= a && k < a + 7); return { w, debut: a, jours: j.length, volume: j.reduce((t, k) => t + (h[k] || 0), 0) }; });
     s.evolution = (full.hist || []).filter(x => x.el && x.el[r.id]).map(x => { const e = x.el[r.id]; return { w: x.w, debut: x.w * 7 - 3, xp: e.xp, reponses: e.rep, reussite: e.rep ? Math.round(e.ok / e.rep * 100) : null, acquises: e.acq }; }); }
+  s.bb = Object.fromEntries(BB_EP.filter(e => d.bb && d.bb[e] && typeof d.bb[e].n === "number").map(e => [e, d.bb[e].n]));
+  { const M = {}; Object.keys(q).forEach(id => { const m = QMAP[id], v = memQS(d, id, dn); if (!m || !m[2] || v == null) return; const o = M[m[2]] || (M[m[2]] = { c: CATN[m[0]] || m[0], s: 0, n: 0 }); o.s += v; o.n++; });
+    s.oublie = Object.entries(M).filter(([, o]) => o.n >= 3).map(([t, o]) => ({ t, c: o.c, memoire: Math.round(o.s / o.n * 100), questions: o.n })).filter(x => x.memoire < 55).sort((a, b) => a.memoire - b.memoire).slice(0, 6); }
   s.groupe = full.groupe || null;
   s.controles = (d.packs || []).map(p => ({ c: CATN[p.cat] || p.cat, nom: p.name || p.kw || "", date: p.date || "", dernier: p.hist && p.hist.length ? p.hist[p.hist.length - 1].pc : null }));
   return s;

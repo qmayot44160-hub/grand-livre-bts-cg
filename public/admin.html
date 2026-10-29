@@ -798,18 +798,18 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       }
       /* Chapitres */
       var chs = j.chapitres.filter(function (c) { return c.eleves > 0; }), mode = "reprendre", all = false;
-      var box = el("div"), segc = el("div", { cls: "seg", role: "group" }, [["reprendre", "À reprendre"], ["matiere", "Par matière"], ["jamais", "Pas encore vus"]].map(function (o) { return el("button", { "aria-pressed": String(o[0] === mode), text: o[1], onclick: function () { mode = o[0]; all = false; segc.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.textContent === o[1])); }); drawCh(); } }); }));
+      var box = el("div"), segc = el("div", { cls: "seg", role: "group" }, [["reprendre", "À reprendre"], ["oubli", "S'efface"], ["matiere", "Par matière"], ["jamais", "Pas encore vus"]].map(function (o) { return el("button", { "aria-pressed": String(o[0] === mode), text: o[1], onclick: function () { mode = o[0]; all = false; segc.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.textContent === o[1])); }); drawCh(); } }); }));
       function drawCh() {
-        var L = mode === "jamais" ? j.chapitres.filter(function (c) { return !c.eleves; }) : mode === "reprendre" ? chs.filter(function (c) { return c.reponses >= 3; }).sort(function (a, b) { return a.reussite - b.reussite || a.maitrise - b.maitrise; }) : chs.slice();
+        var L = mode === "jamais" ? j.chapitres.filter(function (c) { return !c.eleves; }) : mode === "oubli" ? chs.filter(function (c) { return c.memoire != null && c.reponses >= 3; }).sort(function (a, b) { return a.memoire - b.memoire; }) : mode === "reprendre" ? chs.filter(function (c) { return c.reponses >= 3; }).sort(function (a, b) { return a.reussite - b.reussite || a.maitrise - b.maitrise; }) : chs.slice();
         var shown = all ? L : L.slice(0, 12);
         box.replaceChildren.apply(box, shown.length ? shown.map(function (c) {
           return el("div", { cls: "chrow" }, [tabcode(c.c), el("span", { cls: "t", text: c.t }), mode === "jamais" ? el("small", { text: c.questions + " q." }) : el("span", { cls: "pill " + (c.reussite >= 70 ? "ok" : c.reussite >= 55 ? "warn" : "bad"), text: c.reussite + " %" }),
-            mode === "jamais" ? null : el("div", { cls: "mt" }, [meter(c.maitrise, c.c), el("small", { text: c.maitrise + " % acquis · " + c.eleves + " él. (" + c.couverture + " %)" })])]);
+            mode === "jamais" ? null : el("div", { cls: "mt" }, [meter(c.maitrise, c.c), el("small", { text: c.maitrise + " % acquis" + (c.memoire != null ? " · " + c.memoire + " % en tête" : "") + " · " + c.eleves + " él. (" + c.couverture + " %)" })])]);
         }).concat(L.length > 12 ? [el("button", { cls: "btn small", style: "margin-top:8px", text: all ? "Réduire" : "Voir les " + L.length, onclick: function () { all = !all; drawCh(); } })] : []) : [el("p", { cls: "empty", text: mode === "jamais" ? "Tous les chapitres ont déjà été travaillés." : "Pas encore assez de réponses." })]);
       }
       drawCh();
       out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Maîtrise par chapitre" }), el("span", { cls: "muted small", text: chs.length + " / " + j.chapitres.length + " travaillés" })]), el("div", { style: "overflow-x:auto" }, [segc]),
-        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz, part des questions acquises par les élèves qui ont travaillé le chapitre, et combien de la classe l'a abordé." }), box]));
+        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz, part des questions acquises, part encore en tête aujourd'hui (mémoire estimée), et combien de la classe l'a abordé. « S'efface » : les chapitres que la classe est en train d'oublier." }), box]));
       try { if (force || !CACHE.ped) CACHE.ped = await call("/api/admin/pedago"); pedagoCards(out, CACHE.ped); } catch (e) {}
       if (TAB === "classe" && CVIEW === "analyse") setView(out);
     } catch (e) { errView(e); }
@@ -828,20 +828,32 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
     function drawM() {
       var L = P.matrice.slice().sort(function (a, b) { if (sortK === "name") return a.name.localeCompare(b.name, "fr"); var va = sortK === "dernier" ? -(a.dernier == null ? 9999 : a.dernier) : a[sortK] == null ? -1 : a[sortK], vb = sortK === "dernier" ? -(b.dernier == null ? 9999 : b.dernier) : b[sortK] == null ? -1 : b[sortK]; return sortK.indexOf("mat:") === 0 ? ((b.mat[sortK.slice(4)] || { r: -1 }).r - (a.mat[sortK.slice(4)] || { r: -1 }).r) : vb - va; });
       tb.replaceChildren.apply(tb, L.map(function (m) {
-        return el("tr", { onclick: function () { openStudent(m.id, m.name); }, style: "cursor:pointer" }, [el("td", { cls: "nm", text: m.name }), el("td", { style: rCol(m.reussite), text: m.reussite == null ? "·" : m.reussite + " %" })]
+        return el("tr", { onclick: function () { openStudent(m.id, m.name); }, style: "cursor:pointer" }, [el("td", { cls: "nm", text: m.name }), el("td", { style: rCol(m.reussite), text: m.reussite == null ? "·" : m.reussite + " %" }), el("td", { style: rCol(m.memoire), title: "Part de ce que l'élève a travaillé qui est encore en tête (estimation)", text: m.memoire == null ? "·" : m.memoire + " %" })]
           .concat(cols.map(function (c) { var x = m.mat[c]; return el("td", { style: rCol(x ? x.r : null), title: x ? x.n + " réponses" : "pas encore travaillé", text: x ? x.r : "·" }); }))
           .concat([el("td", { text: m.programme + " %" }), el("td", { text: m.ctlValides + " / " + m.ctlTentes }), el("td", { text: m.annales ? m.annales + (m.noteMoy != null ? " · " + String(m.noteMoy).replace(".", ",") : "") : "·" }), el("td", { text: m.jours7 + " j" }), el("td", { cls: "muted", text: lastTxt(m.dernier) })]));
       }));
     }
-    var heads = [["name", "Élève"], ["reussite", "Réussite"]].concat(cols.map(function (c) { return ["mat:" + c, LBL[c] || c.toUpperCase()]; })).concat([["programme", "Programme vu"], ["ctlValides", "Contrôles validés"], ["annales", "Annales · /20"], ["jours7", "Jours / 7"], ["dernier", "Dernière visite"]]);
+    var heads = [["name", "Élève"], ["reussite", "Réussite"], ["memoire", "Mémoire"]].concat(cols.map(function (c) { return ["mat:" + c, LBL[c] || c.toUpperCase()]; })).concat([["programme", "Programme vu"], ["ctlValides", "Contrôles validés"], ["annales", "Annales · /20"], ["jours7", "Jours / 7"], ["dernier", "Dernière visite"]]);
     var thead = el("thead", null, [el("tr", null, heads.map(function (hd) { return el("th", { cls: "srt", title: "Trier", onclick: function () { sortK = hd[0]; drawM(); }, text: hd[1] }); }))]);
     drawM();
     out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Tableau de la classe" }), el("button", { cls: "btn small", html: I.dl + "Excel", onclick: function () {
-      csvDownload("grand-livre-tableau-classe.csv", ["Élève", "Réussite (%)", "Réponses"].concat(cols.map(function (c) { return (LBL[c] || c) + " (%)"; })).concat(["Programme vu (%)", "Chapitres travaillés", "Contrôles tentés", "Contrôles validés", "Annales faites", "Note moyenne annales (/20)", "Fiches lues", "Jours actifs (7 j)", "Jours actifs (30 j)", "Dernière visite (jours)", "XP"]),
-        P.matrice.map(function (m) { return [m.name, m.reussite, m.reponses].concat(cols.map(function (c) { return m.mat[c] ? m.mat[c].r : ""; })).concat([m.programme, m.chapitres, m.ctlTentes, m.ctlValides, m.annales, m.noteMoy == null ? "" : String(m.noteMoy).replace(".", ","), m.fiches, m.jours7, m.jours30, m.dernier == null ? "" : m.dernier, m.xp]); }));
+      csvDownload("grand-livre-tableau-classe.csv", ["Élève", "Réussite (%)", "Mémoire (%)", "Réponses"].concat(cols.map(function (c) { return (LBL[c] || c) + " (%)"; })).concat(["Programme vu (%)", "Chapitres travaillés", "Contrôles tentés", "Contrôles validés", "Annales faites", "Note moyenne annales (/20)", "Fiches lues", "Jours actifs (7 j)", "Jours actifs (30 j)", "Dernière visite (jours)", "XP"]),
+        P.matrice.map(function (m) { return [m.name, m.reussite, m.memoire == null ? "" : m.memoire, m.reponses].concat(cols.map(function (c) { return m.mat[c] ? m.mat[c].r : ""; })).concat([m.programme, m.chapitres, m.ctlTentes, m.ctlValides, m.annales, m.noteMoy == null ? "" : String(m.noteMoy).replace(".", ","), m.fiches, m.jours7, m.jours30, m.dernier == null ? "" : m.dernier, m.xp]); }));
     } })]),
       el("div", { cls: "mtx-wrap" }, [el("table", { cls: "mtx" }, [thead, tb])]),
       el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Réussite aux quiz par matière (en %). Programme vu : part des " + P.chapitresTotal + " chapitres où l'élève a répondu à au moins une question. Contrôle validé : réussi à 80 % deux jours différents, à 3 jours d'écart au moins. Touche un en-tête pour trier, un élève pour ouvrir sa fiche." })]));
+    /* BTS blancs de la classe (notes saisies par les élèves dans Mon BTS) */
+    (function () {
+      var EP = ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"], rows = EP.map(function (e) { var L = P.matrice.filter(function (m) { return m.bb && m.bb[e] != null; }).map(function (m) { return { name: m.name, id: m.id, n: m.bb[e] }; }); return { e: e, L: L }; }).filter(function (x) { return x.L.length; });
+      if (!rows.length) return;
+      var f = function (v) { return String(Math.round(v * 10) / 10).replace(".", ","); };
+      out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "BTS blancs de la classe" }), el("span", { cls: "muted small", text: "notes saisies par les élèves" })]),
+        el("div", { style: "overflow-x:auto" }, [el("table", { cls: "mtx" }, [el("thead", null, [el("tr", null, ["Épreuve", "Notés", "Moyenne", "Min", "Max", "Sous 10"].map(function (h) { return el("th", { text: h }); }))]),
+          el("tbody", null, rows.map(function (x) { var ns = x.L.map(function (y) { return y.n; }), moy = ns.reduce(function (a, b) { return a + b; }, 0) / ns.length, low = x.L.filter(function (y) { return y.n < 10; });
+            return el("tr", null, [el("td", { cls: "nm", text: x.e }), el("td", { text: String(ns.length) }), el("td", { style: rCol(moy * 5), text: f(moy) }), el("td", { text: f(Math.min.apply(null, ns)) }), el("td", { text: f(Math.max.apply(null, ns)) }),
+              el("td", { cls: "small", text: low.length ? low.map(function (y) { return y.name; }).join(", ") : "personne" })]); }))])]),
+        el("p", { cls: "muted small", style: "margin:6px 0 0", text: "Chaque élève note ses résultats dans Mon BTS › Mes BTS blancs ; l'appli lui propose ensuite les chapitres à reprendre." })]));
+    })();
     /* 2. Erreurs typiques */
     if (P.erreurs.length) {
       var allE = false, eb = el("div");
@@ -1021,6 +1033,10 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
       s.matieres.forEach(function (m) { mat.append(el("div", { cls: "mrow" }, [tabcode(m.c), meter(m.reussite, m.c), el("span", { cls: "muted small mono", text: m.reussite + " % · " + m.acquises + " acq." })])); });
       out.push(mat);
       if (s.fragiles.length) out.push(el("div", { cls: "card" }, [el("h3", { text: "Chapitres les plus fragiles" })].concat(s.fragiles.map(function (f) { return el("div", { cls: "mrow" }, [tabcode(f.c), el("span", { cls: "small", text: f.t }), el("span", { cls: "pill " + (f.reussite < 50 ? "bad" : "warn"), text: f.reussite + " %" })]); }))));
+      if (s.memoire != null || (s.oublie || []).length) out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Mémoire" }), el("span", { cls: "pill " + (s.memoire >= 70 ? "ok" : s.memoire >= 45 ? "warn" : "bad"), text: (s.memoire == null ? "·" : s.memoire + " %") + " encore en tête" })]),
+        el("p", { cls: "muted small", style: "margin:0", text: "Estimation : une question réussie plusieurs jours différents s'oublie de plus en plus lentement ; sans révision, elle s'efface." })]
+        .concat((s.oublie || []).length ? [el("b", { cls: "small", text: "Chapitres qui s'effacent" })].concat(s.oublie.map(function (f) { return el("div", { cls: "mrow" }, [tabcode(f.c), el("span", { cls: "small", text: f.t }), el("span", { cls: "pill " + (f.memoire < 30 ? "bad" : "warn"), text: f.memoire + " %" })]); })) : [])));
+      if (s.bb && Object.keys(s.bb).length) out.push(el("div", { cls: "card" }, [el("h3", { text: "BTS blancs" }), el("div", { cls: "chips" }, Object.keys(s.bb).map(function (e) { var n = s.bb[e]; return el("span", { cls: "pill " + (n >= 12 ? "ok" : n >= 10 ? "warn" : "bad"), text: e + " : " + String(n).replace(".", ",") + "/20" }); }))]));
       if (s.usage) out.push(el("div", { cls: "card" }, [el("div", { cls: "card-h" }, [el("h3", { text: "Fonctionnalités utilisées" }), el("span", { cls: "muted small", text: "cette semaine" })]), el("div", { cls: "ftiles" }, s.usage.map(function (x) {
         var on = x.semaine > 0;
         return el("div", { cls: "ftile " + (on ? "on" : "off") }, [el("span", { text: x.nom }), el("b", { text: on ? x.semaine + (x.k === "plan" ? " %" : "") : "–" }), el("small", { text: x.k === "plan" ? (on ? "du plan fait" : x.deja ? "suivi les semaines passées" : "pas encore suivi") : on ? funit(x.k, x.semaine).replace(/^\d+ /, "") : x.deja ? "déjà essayé avant" : "jamais essayé" })]);
