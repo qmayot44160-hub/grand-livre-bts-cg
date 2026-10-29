@@ -1,6 +1,6 @@
 /* Service worker du Grand Livre : la dernière version en ligne quand le réseau répond vite,
    sinon la copie gardée sur l'appareil (réseau lent ou hors connexion). */
-const CACHE = "grand-livre-v3"; // sw 2026-10-26 : avertit la page quand une version plus récente est arrivée
+const CACHE = "grand-livre-v4"; // sw 2026-10-26 : avertit la page quand une version plus récente est arrivée
 const SHELL = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/install.js"];
 const SLOW_MS = 3500;
 
@@ -11,6 +11,15 @@ self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
+/* La page de l'appli désigne ses fichiers de contenu (/c/…) : on les met de côté avec elle, et on oublie les anciens. */
+async function keepAssets(res) {
+  try {
+    const html = await res.text(), want = [...new Set(html.match(/\/c\/[a-z]+-[0-9a-f]{12}\.js/g) || [])]; if (!want.length) return;
+    const c = await caches.open(CACHE);
+    for (const u of want) { if (!(await c.match(u))) { const r = await fetch(u); if (r.ok) await c.put(u, r); } }
+    for (const k of await c.keys()) { const p = new URL(k.url).pathname; if (p.startsWith("/c/") && !want.includes(p)) await c.delete(k); }
+  } catch (e) {}
+}
 function save(req, res) {
   if (res && res.ok && res.type === "basic" && !/no-store/.test(res.headers.get("Cache-Control") || "")) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {}); }
   return res;
@@ -29,7 +38,7 @@ self.addEventListener("fetch", e => {
     const key = new Request(url.origin + url.pathname);
     e.respondWith((async () => {
       const cached = await caches.match(key);
-      const net = fetch(req).then(res => save(key, res));
+      const net = fetch(req).then(res => { save(key, res); if (res && res.ok && res.type === "basic") e.waitUntil(keepAssets(res.clone())); return res; });
       if (!cached) return net.catch(() => offline());
       const timer = new Promise(r => setTimeout(() => r(null), SLOW_MS));
       try { const res = await Promise.race([net, timer]); if (res) return res; } catch (err) { return cached; }
@@ -63,7 +72,7 @@ self.addEventListener("notificationclick", e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || "/";
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
-    for (const c of list) if (new URL(c.url).origin === location.origin && "focus" in c) return c.focus();
+    for (const c of list) if (new URL(c.url).origin === location.origin && "focus" in c) { const q = new URL(url, location.origin).searchParams.get("go"); if (q) c.postMessage({ type: "gl-go", view: q }); return c.focus(); }
     return self.clients.openWindow(url);
   }));
 });

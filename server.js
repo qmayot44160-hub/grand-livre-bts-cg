@@ -185,6 +185,20 @@ app.use("/api/admin", (req, res, next) => { isAdminUser(req).then(ok => ok ? nex
 app.use((req, res, next) => /^\/(app|login|admin)\.html$/.test(req.path) ? res.status(404).end() : next());
 /* Les pages HTML ne passent jamais par les fichiers statiques (sinon /admin.html ou /app.html contourneraient la connexion). */
 app.use((req, res, next) => (/\.html?$/i.test(req.path) ? notFound(res) : next()));
+/* Compression faite à l'avance au démarrage, pour que le premier élève n'attende pas */
+setTimeout(() => { try { (APP_HTML.match(/\/c\/[a-z]+-[0-9a-f]{12}\.js/g) || []).forEach(u => { const f = u.slice(3), p = path.join(PUB, "c", f); if (!fs.existsSync(p)) return; const raw = fs.readFileSync(p); CFILES[f] = { raw, etag: '"' + f + '"', br: zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }), gz: zlib.gzipSync(raw, { level: 7 }) }; }); } catch (e) { console.error("compression des fichiers de contenu :", e.message); } }, 50);
+/* Contenu des cours et moteur de l'appli : fichiers à empreinte, compressés une fois et gardés par le navigateur (un an, ils ne changent jamais sous le même nom) */
+const CFILES = {};
+app.get("/c/:f", (req, res) => {
+  const f = req.params.f; if (!/^[a-z]+-[0-9a-f]{12}\.js$/.test(f)) return res.status(404).end();
+  let c = CFILES[f]; if (!c) { const p = path.join(PUB, "c", f); if (!fs.existsSync(p)) return res.status(404).end(); const raw = fs.readFileSync(p); c = CFILES[f] = { raw, etag: '"' + f + '"' }; }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); res.setHeader("ETag", c.etag); res.setHeader("Vary", "Accept-Encoding"); res.type("application/javascript; charset=utf-8");
+  if (req.headers["if-none-match"] === c.etag) return res.status(304).end();
+  const ae = String(req.headers["accept-encoding"] || "");
+  if (/\bbr\b/.test(ae)) { c.br = c.br || zlib.brotliCompressSync(c.raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }); res.setHeader("Content-Encoding", "br"); return res.end(c.br); }
+  if (/\bgzip\b/.test(ae)) { c.gz = c.gz || zlib.gzipSync(c.raw, { level: 7 }); res.setHeader("Content-Encoding", "gzip"); return res.end(c.gz); }
+  res.end(c.raw);
+});
 app.use(express.static(PUB, { index: false, extensions: [], setHeaders: (res, p) => { if (/sw\.js$/.test(p)) res.setHeader("Cache-Control", "no-cache"); } }));
 
 /* ---------- Comptes ---------- */
@@ -369,6 +383,17 @@ function dueOf(d, dayNum) {
   const st = d.st || {}, streak = st.d === dayNum - 1 ? (st.n || 0) : 0;
   return { cards, qs, streak, today: (d.dy && d.dy.d === dayNum) ? (d.dy.l || 0) + (d.dy.c || 0) + (d.dy.e || 0) : 0 };
 }
+/* Rappel « mémoire » : les chapitres déjà travaillés qui commencent à s'effacer (même modèle que l'appli) */
+function memoReminder(d, dn) {
+  if (!d || typeof d !== "object" || typeof memQS !== "function") return null;
+  const by = {}; let todo = 0;
+  Object.keys(d.q || {}).forEach(id => { const m = QMAP[id], v = memQS(d, id, dn); if (v == null) return; if (v >= .15 && v < .7) todo++; if (!m || !m[2]) return; const o = by[m[2]] || (by[m[2]] = { t: m[2], c: String(m[0] || "").replace(/^\S+\s/, ""), s: 0, n: 0 }); o.s += v; o.n++; });
+  const fading = Object.values(by).filter(o => o.n >= 3 && o.s / o.n < .55 && o.s / o.n >= .1).sort((a, b) => b.n - a.n);
+  if (!fading.length || todo < 3) return null;
+  const f = fading[0], n = Math.min(15, todo), min = Math.max(3, Math.round(n / 2));
+  const body = (fading.length > 1 ? fading.length + " chapitres commencent à s'effacer, dont « " + f.t + " »" : "« " + f.t + " » commence à s'effacer") + (f.c ? " (" + f.c + ")" : "") + ". " + min + " minutes de séance mémoire pour les rattraper avant de les oublier.";
+  return { title: "Ta mémoire t'attend", body };
+}
 function reminderText(x) {
   const parts = [];
   if (x.cards) parts.push(x.cards + " carte" + (x.cards > 1 ? "s" : ""));
@@ -393,7 +418,7 @@ app.post("/api/push/test", auth, async (req, res, next) => {
     if (limited("pt:" + req.user.id, 5, 3600e3)) return res.status(429).json({ error: "Attends un peu avant un nouvel essai." });
     await vapid(); let n = 0;
     for (const s of await store.subsFull(req.user.id)) {
-      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: "Grand Livre", body: "Les rappels marchent. À demain pour ta séance !", tag: "gl-test", url: "/" }), { TTL: 600 }); n++; }
+      try { const mem = memoReminder(await store.getProgress(req.user.id), parisNow().dayNum); await webpush.sendNotification(s.sub, JSON.stringify(mem ? { title: mem.title, body: mem.body, tag: "gl-test", url: "/?go=memo" } : { title: "Grand Livre", body: "Les rappels marchent. À demain pour ta séance !", tag: "gl-test", url: "/" }), { TTL: 600 }); n++; }
       catch (e) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await store.delSub(s.endpoint); }
     }
     if (!n) return res.status(400).json({ error: "Aucun rappel actif : réactive-les sur cet appareil." });
@@ -409,8 +434,9 @@ async function pushTick() {
         const x = dueOf(await store.getProgress(s.user_id), t.dayNum);
         await store.markSub(s.endpoint, t.day);
         if (x.today > 0) continue;
-        const body = reminderText(x); if (!body) continue;
-        await webpush.sendNotification(s.sub, JSON.stringify({ title: "Ta séance du jour", body, tag: "gl-daily", url: "/" }), { TTL: 6 * 3600 });
+        const mem = memoReminder(await store.getProgress(s.user_id), t.dayNum);
+        const body = mem ? mem.body : reminderText(x); if (!body) continue;
+        await webpush.sendNotification(s.sub, JSON.stringify({ title: mem ? mem.title : "Ta séance du jour", body, tag: "gl-daily", url: mem ? "/?go=memo" : "/" }), { TTL: 6 * 3600 });
       } catch (e) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await store.delSub(s.endpoint); else console.error("push", e && e.statusCode, e && e.body); }
     }
   } catch (e) { console.error("pushTick", e); }
