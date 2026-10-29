@@ -550,7 +550,7 @@ let chapSel = [];   // chapitres choisis (quiz et flashcards) ; vide pour une ma
 let cibleCat = "p1";
 const chKey = x => (x.ch && CHID[x.ch] ? x.ch : x.c + ":g");
 const chCat = k => (CHID[k] ? CHID[k].cat : k.split(":")[0]);
-function chapOk(x) { return !chapSel.some(k => chCat(k) === x.c) || chapSel.includes(chKey(x)); }
+function chapOk(x) { return yrQ(x) && (!chapSel.some(k => chCat(k) === x.c) || chapSel.includes(chKey(x))); }
 function chapCount(cat) { return chapSel.filter(k => chCat(k) === cat).length; }
 function chapPicker(cats, mode) {
   if (!cats.length) return `<p class="muted small">Choisis d'abord une ou plusieurs matières : tu pourras ensuite cocher leurs chapitres.</p>`;
@@ -695,8 +695,8 @@ function groupsOf(fn) {
       <div class="dividers">${CATS.filter(c => c.grp === g).map(fn).join("")}</div>
     </div>`).join("");
 }
-const dividerCours = c => { const ls = lessonStats(c.id); return divider(c, `${ls.r} leçon${ls.r > 1 ? "s" : ""} lue${ls.r > 1 ? "s" : ""} sur ${ls.n}`, pct(ls.r, ls.n), "mat", "lecons"); };
-const dividerFiche = c => { const chs = CHBY[c.id] || [], r = chs.filter(x => ficheRead(x.id)).length; return divider(c, `${chs.length} fiches, ${r} lue${r > 1 ? "s" : ""}`, pct(r, chs.length), "mat", "fiche"); };
+const dividerCours = c => { const ls = lessonStats(c.id); if (!ls.n && YRS() !== "all") return divider(c, `Pas de leçon en ${YR_LBL[YRS()]}`, 0, "mat", "lecons"); return divider(c, `${ls.r} leçon${ls.r > 1 ? "s" : ""} lue${ls.r > 1 ? "s" : ""} sur ${ls.n}`, pct(ls.r, ls.n), "mat", "lecons"); };
+const dividerFiche = c => { const chs = (CHBY[c.id] || []).filter(x => yrOk(chYrs(x.id))), r = chs.filter(x => ficheRead(x.id)).length; return divider(c, `${chs.length} fiches, ${r} lue${r > 1 ? "s" : ""}`, pct(r, chs.length), "mat", "fiche"); };
 
 /* Accueil */
 function greet() { const hr = new Date().getHours(); return hr >= 5 && hr < 18 ? "Bonjour" : "Bonsoir"; }
@@ -840,7 +840,7 @@ function markOrig() { if (RUNV.test(view)) return; ORIG = { view, LS: LS ? Objec
 function backOrig(fallback) { const o = ORIG; ORIG = null; if (!o) return go(fallback || "ex"); if (o.LS) LS = o.LS; if (o.FC) FC = o.FC; [matCat, matSeg, matSub] = o.mat; go(o.view); setTimeout(() => window.scrollTo(0, o.y), 30); }
 const origBtn = (cls) => ORIG ? `<button class="btn${cls ? " " + cls : ""}" data-act="backOrig">${ICON.back}${h(ORIG.lab)}</button>` : "";
 let RUN_T = null; // titre de la session lancée par le dernier bouton touché
-function yrOfSel(c) { const mine = chapSel.filter(k => chCat(k) === c); if (!mine.length) return "toute la matière"; const all = CHBY[c] || [];
+function yrOfSel(c) { const mine = chapSel.filter(k => chCat(k) === c); if (!mine.length) return YRS() === "all" ? "toute la matière" : YR_LBL[YRS()]; const all = CHBY[c] || [];
   for (const y of [1, 2]) { const ids = all.filter(x => chapYr(x) === y).map(x => x.id); if (ids.length && ids.length === mine.length && ids.every(k => mine.includes(k))) return y === 1 ? "1re année" : "2e année"; }
   return mine.length === 1 && CHID[mine[0]] ? CHID[mine[0]].title : mine.length + " chapitres choisis"; }
 function runTitle(b, a, cat) {
@@ -1488,11 +1488,11 @@ function lessonLabel(title, k) {
   return { lab: "Leçon " + k, t: title, num: String(k) };
 }
 const isRead = (cid, k) => !!(S.l && S.l[cid + ":" + k]);
-function lessonStats(cat) { let n = 0, r = 0; coursesOf(cat).forEach(cid => { const L = nLessons(cid); n += L; for (let k = 1; k <= L; k++) if (isRead(cid, k)) r++; }); return { n, r }; }
+function lessonStats(cat) { let n = 0, r = 0; coursesOf(cat).forEach(cid => { const L = nLessons(cid); for (let k = 1; k <= L; k++) { if (!yrOk(lesYr(cid, k))) continue; n++; if (isRead(cid, k)) r++; } }); return { n, r }; }
 function totalLessons() { let n = 0, r = 0; CATS.forEach(c => { const s = lessonStats(c.id); n += s.n; r += s.r; }); return { n, r }; }
 const MINC = {};
 function readMin(cid, k) { const key = cid + ":" + k; if (!MINC[key]) { const w = SPLIT(cid)[k].lines.join(" ").split(/\s+/).filter(Boolean).length; MINC[key] = Math.max(1, Math.round(w / 170)); } return MINC[key]; }
-function firstUnread(cids) { for (const cid of cids) for (let k = 1; k <= nLessons(cid); k++) if (!isRead(cid, k)) return { cid, k }; return null; }
+function firstUnread(cids) { for (const cid of cids) for (let k = 1; k <= nLessons(cid); k++) if (!isRead(cid, k) && yrOk(lesYr(cid, k))) return { cid, k }; return null; }
 function nextLesson() {
   if (S.last && COURS[S.last.c] && S.last.k <= nLessons(S.last.c)) {
     const { c, k } = S.last;
@@ -1579,6 +1579,7 @@ function vCoursList() {
   return `<section class="page-head">
       <h1>Cours</h1>
       <p class="muted">Chaque matière est découpée en leçons courtes, à lire dans l'ordre. Quand tu passes à la leçon suivante, celle que tu viens de lire est cochée. Tu en as lu ${tl.r} sur ${tl.n}.</p>
+      ${yrSwitch()}
       <input class="search" id="coursSearch" type="search" placeholder="Chercher dans les cours : Arendt, syllogisme, CAF, SQL…" aria-label="Chercher dans tous les cours">
     </section>
     <div id="coursHits" hidden></div>
@@ -1624,6 +1625,7 @@ function vMat() {
       <div class="mat-title"><span class="tabcode">${h(c.code)}</span><h1>${h(c.name)}</h1></div>
       <p class="mat-desc">${h(c.desc)}. ${h(EPTEXT[c.id] || "")}</p>
       <div class="mat-figs"><span><b>${ls.r}/${ls.n}</b> leçons lues</span><span><b>${pct(ms.m, ms.t)} %</b> des quiz et cartes acquis</span><span><b>${validCount(c.id).v}/${validCount(c.id).n}</b> chapitres validés</span><span><b>${QBY[c.id].length}</b> questions de quiz</span></div>
+      ${yrSwitch()}
       <div class="seg" role="tablist" aria-label="Contenu de la matière">${segs.map(([k, l]) => `<button role="tab" class="seg-btn" data-act="seg" data-seg="${k}" aria-selected="${matSeg === k}">${l}</button>`).join("")}</div>
     </section>
     <section class="mat-body" style="${hueStyle(c.id)}">${body}</section>`;
@@ -1633,10 +1635,16 @@ function matLecons(c) {
   const top = nl ? resumeCard(nl) : `<div class="resume" style="${hueStyle(c.id)}"><div><small>Toutes les leçons sont lues</small><b>Passe à l'entraînement pour fixer ce que tu as lu.</b></div><button class="btn primary" data-act="seg" data-seg="train">S'entraîner</button></div>`;
   return top + cids.map(cid => {
     const m = CMETA(cid), secs = SPLIT(cid);
-    const rows = secs.slice(1).map((s, j) => {
-      const k = j + 1, lb = lessonLabel(s.title, k), r = isRead(cid, k);
-      return `<li><button class="lesson-row${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button></li>`;
+    let lastY = null; const grp = y => y === "2" ? "2" : "1", yrs = new Set(secs.slice(1).map((_, j) => grp(lesYr(cid, j + 1))));
+    const order = secs.slice(1).map((s, j) => [s, j]).sort((a, b) => grp(lesYr(cid, a[1] + 1)).localeCompare(grp(lesYr(cid, b[1] + 1))) || a[1] - b[1]);
+    const rows = order.map(([s, j]) => {
+      const k = j + 1, lb = lessonLabel(s.title, k), r = isRead(cid, k), y = lesYr(cid, k);
+      if (!yrOk(y)) return "";
+      const head = YRS() === "all" && yrs.size > 1 && grp(y) !== lastY ? `<li class="yr-h">${YR_LBL[grp(y)]}</li>` : ""; lastY = grp(y);
+      return head + (() => {
+      return `<li><button class="lesson-row${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button></li>`; })();
     }).join("");
+    if (!rows) return "";
     return `<div class="course-block">${multi ? `<h2>${h(m.short)}</h2>` : ""}<div class="md lead">${mdBlocks(secs[0].lines, "lead-" + cid)}</div><ol class="lesson-list">${rows}</ol></div>`;
   }).join("");
 }
@@ -1677,7 +1685,8 @@ function matTrain(c) {
 function vFiches() {
   return `<section class="page-head">
       <h1>Fiches</h1>
-      <p class="muted">${CHAP.length} fiches-chapitres (l'idée clé, l'explication simple, les définitions, un exemple, l'essentiel) et un mémo express de ${FS.filter(x => !x.ch).length} notions. Choisis une matière ou cherche directement.</p>
+      <p class="muted">Des fiches récap pour réviser vite : l'idée clé, l'essentiel, les définitions et les pièges de chaque chapitre (la fiche détaillée reste à un bouton), plus un mémo express de ${FS.filter(x => !x.ch).length} notions.</p>
+      ${yrSwitch()}
       <input class="search" id="ficheSearch" type="search" placeholder="Chercher : CAF, 4196, Akerlof, syllogisme, pourparlers…" aria-label="Chercher dans toutes les fiches">
       <div class="qf-cta"><span>Tu as lu tes fiches ? Teste-toi :</span><button class="btn small primary" data-act="goQuiz">Quiz</button><button class="btn small" data-act="goCards">Flashcards</button><button class="btn small" data-nav="ex">Tout l'entraînement</button></div>
     </section>
@@ -1742,7 +1751,35 @@ function bindView() {
 
 /* ---------- Fusion : fiches-chapitres, exercices guidés, défi, maths, Mon BTS, 3D ---------- */
 const CHID = Object.fromEntries(CHAP.map(c => [c.id, c]));
-const chapYr = ch => { const m = String((ch && ch.src) || "").match(/^cejm([12])$/); return m ? +m[1] : null; }; // année du chapitre quand les supports le disent (CEJM)
+/* ---------- 1re année / 2e année ----------
+   Aucun texte n'impose quel chapitre traiter chaque année : c'est une progression conseillée, d'après la grille horaire
+   officielle (P1 à P4 surtout en 1re année, P5 et P6 surtout en 2e) et la pratique des académies (CEJM thèmes 1 à 3 puis 4 à 6,
+   thème de culture générale en 2e année). "1" = 1re année, "2" = 2e année, "12" = les deux. */
+const YR_LES = { // par cours : valeur par défaut, puis exceptions par numéro de leçon
+  p1: ["1"], p2: ["1", { 1: "12", 5: "2", 8: "2", 9: "2", 11: "2", 12: "2", 13: "2", 14: "2" }], p3: ["1", { 8: "2", 9: "2", 10: "2" }],
+  p4: ["1", { 10: "2", 11: "2" }], p5: ["2", { 1: "1", 2: "1", 5: "1" }], p6: ["2"], p7: ["1", { 5: "2", 6: "2", 7: "2", 9: "2" }],
+  ma: ["1", { 4: "2", 5: "2", 6: "2", 7: "12" }], ce: ["12"], ce1: ["1"], ce2: ["1"], ce3: ["1"], ce4: ["2"], cg: ["2"], an: ["12"], me: ["12"], or: ["2"]
+};
+const YR_CH = { // fiches-chapitres
+  p2c5: "2", p2c6: "2", p3c5: "2", p5c4: "2", p5c5: "2", p7c4: "2", p7c5: "2",
+  m6: "2", m7: "2", m8: "2", m9: "2", m10: "2", v1: "2", v2: "2", v3: "2", v4: "2", "or-e3": "2", "or-e5": "2"
+};
+const YR_CAT = { p1: "1", p2: "1", p3: "1", p4: "1", p5: "1", p6: "2", p7: "1", ma: "1", cg: "12", an: "12", me: "12" };
+function lesYr(cid, k) { const d = YR_LES[cid]; if (!d) return (COURS_META[cid] && COURS_META[cid].perso) ? "12" : "12"; return (d[1] && d[1][k]) || d[0]; }
+function chYrs(id) {
+  const c = CHID[id]; if (!c) return "12";
+  if (YR_CH[id]) return YR_CH[id];
+  const m = String(c.src || "").match(/^cejm([12])$/); if (m) return m[1];
+  return YR_CAT[c.cat] || "12";
+}
+const chapYr = ch => { const y = ch ? chYrs(ch.id) : "12"; return y === "12" ? null : +y; };
+const YRS = () => (S.yr === "1" || S.yr === "2") ? S.yr : "all";
+const yrOk = y => YRS() === "all" || String(y).includes(YRS());
+const yrQ = x => !x.ch || !CHID[x.ch] || yrOk(chYrs(x.ch)); // une question ou une carte est-elle dans l'année choisie ?
+const YR_LBL = { 1: "1re année", 2: "2e année", 12: "1re et 2e année" };
+function yrSwitch(note) {
+  return `<div class="yr-sw" role="group" aria-label="Année"><span class="yr-l">Ton année</span>${[["1", "1re année"], ["2", "2e année"], ["all", "Les deux"]].map(([v, l]) => `<button class="chip" data-act="yrSet" data-y="${v}" aria-pressed="${YRS() === v}">${l}</button>`).join("")}${note ? `<span class="muted small">${note}</span>` : ""}</div>`;
+}
 const CHBY = {}; CHAP.forEach(c => (CHBY[c.cat] = CHBY[c.cat] || []).push(c));
 const THEME = Object.fromEntries(IMP_THEMES.map(t => [t.key, t]));
 const GCBY = {}; GCASES.forEach(k => (GCBY[k.cat] = GCBY[k.cat] || []).push(k));
@@ -2010,11 +2047,11 @@ function matFiche(c) {
   const pills = `<div class="picker" role="tablist">${subs.map(([k, l]) => `<button class="chip" role="tab" data-act="sub" data-sub="${k}" aria-pressed="${matSub === k}">${l}</button>`).join("")}</div>`;
   let body = "";
   if (matSub === "fiches") {
-    const groups = {}; const order = [];
-    chs.forEach(x => { if (!groups[x.th]) { groups[x.th] = []; order.push(x.th); } groups[x.th].push(x); });
+    const groups = {}; const order = [], chsY = chs.filter(x => yrOk(chYrs(x.id)));
+    chsY.forEach(x => { if (!groups[x.th]) { groups[x.th] = []; order.push(x.th); } groups[x.th].push(x); });
     const nr = chs.filter(x => ficheRead(x.id)).length;
     body = `<p class="muted">${chs.length} fiches. Chacune s'ouvre en version récap (l'idée clé, l'essentiel, les définitions, les pièges) ; la fiche détaillée garde les explications et les exemples. Tu en as lu ${nr}.</p>` +
-      order.map(t => `<div class="fiche-group"><h3>${h((THEME[t] || {}).title || "")}</h3><div class="fcards">${groups[t].map(x => fcard(x)).join("")}</div></div>`).join("");
+      (chsY.length ? order.map(t => { const ys = [...new Set(groups[t].map(x => chYrs(x.id)))]; return `<div class="fiche-group"><h3>${h((THEME[t] || {}).title || "")}${ys.length === 1 && ys[0] !== "12" ? ` <span class="pill">${YR_LBL[ys[0]]}</span>` : ""}</h3><div class="fcards">${groups[t].map(x => fcard(x)).join("")}</div></div>`; }).join("") : `<p class="panel muted">Pas de fiche de cette matière en ${YR_LBL[YRS()]}. Choisis « Les deux » pour tout voir.</p>`);
   } else if (matSub === "meth") {
     body = meths.map(m => `<div class="stack"><h3>${h(m.title)}</h3>${m.intro ? `<p class="muted">${h(m.intro)}</p>` : ""}<ol class="meth">${m.steps.map(s => `<li><span class="mk">${h(s.k)}</span><div><b>${h(s.name)}</b><p>${h(s.txt || "")}</p>${s.tip ? `<p class="muted">${h(s.tip)}</p>` : ""}</div></li>`).join("")}</ol>${m.note ? `<p class="muted">${h(m.note)}</p>` : ""}</div>`).join("");
   } else if (matSub === "refs") {
@@ -3636,6 +3673,7 @@ function vExHome() {
       ${(() => { const el = errList(), td = el.filter(e => !e.ok).length, wk = weakChaps(5); return `<button class="wk-cta" data-act="goErr"><span class="wk-ic">${ICON.errbook}</span><span><b>Mes erreurs et points faibles</b><small>${el.length ? `${td} question${td > 1 ? "s" : ""} à revoir${wk.length ? ` · ${wk.length} chapitre${wk.length > 1 ? "s" : ""} faible${wk.length > 1 ? "s" : ""} : ${h(chLabel(wk[0].k))}` : ""}` : "Rien pour l'instant : tes erreurs de quiz arriveront ici."}</small></span><span class="wk-go">Ouvrir ›</span></button>`; })()}
     ${exTabs()}
     ${EXT === "quiz" ? `<section class="stack">
+      ${yrSwitch("Quiz et cartes ne portent que sur les chapitres de cette année.")}
       <div class="sec-head"><h2>Quiz et flashcards</h2><p>Toutes matières mélangées, ou une matière précise juste en dessous.</p></div>
       <div class="modes">
         <button class="mode lead-mode" data-act="today" ${n ? "" : "disabled"}><b>Cartes du jour</b><span>${n ? `${n} cartes à revoir, de 5 à 10 minutes.` : "Rien à revoir aujourd'hui."}</span></button>
@@ -4677,6 +4715,7 @@ document.addEventListener("click", e => {
     case "bbPlan": { const e = EPREUVES.find(x => x.c === b.dataset.e); if (!e) break; const pool = QS.filter(x => e.cats.includes(x.c) && !lockedCat(x.c)), wk = memChaps(e.cats).sort((a, c) => (a.m == null ? .4 : a.m) - (c.m == null ? .4 : c.m)).slice(0, 4).map(x => x.k);
       const a1 = memQuizItems(pool, 10), more = shuffle(pool.filter(x => wk.includes(x.ch) && !a1.includes(x))); const l = a1.concat(more).slice(0, 15); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "fmode": FMODE = b.dataset.m === "full" ? "full" : "recap"; try { localStorage.setItem("gl-fmode", FMODE); } catch (e) {} render(); window.scrollTo(0, 0); break;
+    case "yrSet": S.yr = b.dataset.y === "all" ? "all" : b.dataset.y; touch(); render(); break;
     case "auSit": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, y = b.dataset.yr || "all"; const l = AUSIT.filter(x => y === "all" || x.y.includes(y)); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "auQuiz": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, yr = b.dataset.yr || MDYR, inc = !!b.dataset.inc; const l = shuffle(QS.filter(x => x.t && /^au/.test(x.t) && !inc && (yr === "all" || x.t.includes(yr)))).sort((a, c) => r(a) - r(c)).slice(0, 15);
       if (inc) { const g = {}; QS.filter(x => x.t && x.t.startsWith("ad" + yr + ":")).forEach(x => (g[x.t] = g[x.t] || []).push(x)); const gr = Object.values(g), w = p => Math.min(...p.map(r)); l.length = 0; shuffle(gr).sort((a, c) => w(a) - w(c)).slice(0, 8).forEach(p => l.push(...p)); }
