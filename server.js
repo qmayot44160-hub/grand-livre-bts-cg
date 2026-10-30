@@ -100,8 +100,10 @@ async function currentUser(req) {
   if (!u || u.blocked || (u.sv || 0) !== t.sv) return null;
   return u;
 }
+/* Présence : dernière activité de chaque compte (l'appli ouverte interroge le serveur toutes les quelques secondes). En mémoire seulement. */
+const SEEN = new Map(), ONLINE_MS = 45000;
 function auth(req, res, next) {
-  currentUser(req).then(u => { if (!u) return res.status(401).json({ error: "Connecte-toi d'abord." }); req.user = u; next(); }).catch(next);
+  currentUser(req).then(u => { if (!u) return res.status(401).json({ error: "Connecte-toi d'abord." }); req.user = u; if (!u.guest) SEEN.set(u.id, Date.now()); next(); }).catch(next);
 }
 
 /* ---------- Limitation des tentatives ---------- */
@@ -630,10 +632,10 @@ app.get("/api/friends", auth, async (req, res, next) => {
     for (const f of rows) {
       const oid = f.a === me ? f.b : f.a, u = await store.userById(oid); if (!u || u.blocked) continue;
       const base = { k: fk(oid), name: await duelName(u), since: f.created };
-      if (f.status === "ok") out.friends.push(Object.assign(base, friendStats(await store.getProgress(oid), dn)));
+      if (f.status === "ok") { const t = SEEN.get(oid); out.friends.push(Object.assign(base, friendStats(await store.getProgress(oid), dn), { online: !!t && Date.now() - t < ONLINE_MS, vu: t ? Date.now() - t : null })); }
       else if (f.b === me) out.incoming.push(base); else out.outgoing.push(base);
     }
-    out.friends.sort((a, b) => b.semAcq - a.semAcq || b.xp - a.xp);
+    out.friends.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0) || (a.vu == null ? 1e15 : a.vu) - (b.vu == null ? 1e15 : b.vu) || b.semAcq - a.semAcq || b.xp - a.xp);
     res.json(out);
   } catch (e) { next(e); }
 });

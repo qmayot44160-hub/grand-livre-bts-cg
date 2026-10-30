@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-b-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"><link rel="preload" as="script" href="/c/contenu-94eceec847fa.js"><link rel="preload" as="script" href="/c/moteur-21d5ecc1833f.js"></head><body><div id="glBoot" role="status" aria-live="polite"><style>
+<!doctype html><html lang="fr"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-b-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"><link rel="preload" as="script" href="/c/contenu-94eceec847fa.js"><link rel="preload" as="script" href="/c/moteur-901fdb6f1e2a.js"></head><body><div id="glBoot" role="status" aria-live="polite"><style>
 #glBoot{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#F5F7FA;color:#18202B;font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;transition:opacity .4s ease}
 #glBoot.out{opacity:0;pointer-events:none}
 #glBoot .bt{display:grid;justify-items:center;gap:14px;text-align:center;padding:24px}
@@ -452,6 +452,12 @@ p { margin: 0; }
 /* Barre de tête */
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
 .top-inner { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 10px; display: flex; align-items: center; gap: 18px; }
+.fr-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; flex: none; font: inherit; font-weight: 600; font-size: .9rem; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong, var(--rule)); border-radius: var(--radius); padding: 8px 10px; cursor: pointer; }
+.fr-btn .svg { width: 20px; height: 20px; }
+.fr-btn:hover, .fr-btn[aria-current="page"] { border-color: var(--accent); color: var(--accent); }
+.fr-btn .fr-badge { position: absolute; top: -6px; right: -6px; left: auto; margin: 0; }
+.fr-on { position: absolute; bottom: -3px; right: -3px; width: 11px; height: 11px; border-radius: 50%; background: #1f9d55; border: 2px solid var(--paper, #fff); }
+@media (max-width: 760px) { .fr-btn-t { display: none; } .fr-btn { padding: 7px; } }
 .brand { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; padding: 4px 0; cursor: pointer; }
 .brand-mark { width: 30px; height: 30px; border-radius:var(--radius); background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
 .brand b { font-family: var(--f-display); font-weight:600; font-size: 1.3rem;  white-space: nowrap; }
@@ -970,7 +976,7 @@ mark { background: var(--hl); color: inherit; border-radius:0; padding: 0 1px; }
   .shelf { height: 260px; order: -1; }
 }
 @media (max-width: 760px) {
-  .nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .nav-btn { font-size: .64rem; }
   .hero-text h1 { font-size: 2rem; }
   .shelf { height: 230px; border-radius:var(--radius); }
@@ -1578,6 +1584,19 @@ html, body { overflow-x: hidden; }
 .fr-code { display: grid; gap: 10px; justify-items: center; text-align: center; }
 .fr-code .du-code span { width: 40px; height: 50px; font-size: 1.5rem; }
 .fr-code .du-code i { align-self: center; font:600 1.4rem var(--f-mono); color: var(--muted); font-style: normal; }
+.fr-avw { position: relative; display: inline-grid; }
+.fr-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #9aa4b2; border: 2px solid var(--sheet, #fff); }
+.fr-avw .fr-dot { position: absolute; right: -1px; bottom: -1px; }
+.fr-dot.on { background: #1f9d55; }
+.fr-st.on { color: #1f9d55; font-weight: 700; }
+.fr-card.is-on { border-color: color-mix(in srgb, #1f9d55 40%, var(--rule)); }
+.fr-h { display: flex; align-items: center; gap: 8px; }
+.fr-h .fr-dot { border: 0; width: 10px; height: 10px; }
+.fr-h span { color: var(--muted); font-weight: 600; font-size: .9rem; }
+.fr-h .fr-n { background: #e05561; color: #fff; border-radius: 999px; padding: 0 8px; font-size: .8rem; }
+.fr-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.am-on { color: #1f9d55; font-weight: 700; }
+@media (max-width: 760px) { .am-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible !important; } .am-tabs .ex-tab { flex-direction: column; justify-content: center; gap: 2px; padding: 8px 2px; min-width: 0; text-align: center; } .am-tabs .ex-tab b { font-size: .74rem; white-space: normal; line-height: 1.15; } .am-tabs .ex-tab small, .am-tabs .ex-tab span:not(.ex-tab-ic) { display: none; } }
 .fr-card { background: var(--sheet); border: 1px solid var(--rule); border-radius:var(--radius); padding: 14px; display: grid; gap: 12px; }
 .fr-top { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; width: 100%; }
 .fr-top .du-av { width: 46px; height: 46px; font-size: 1rem; }
@@ -1951,13 +1970,14 @@ select[data-fi] { width: 100%; max-width: 100%; }
 
 <header class="top">
   <div class="top-inner">
+    <button class="fr-btn" data-nav="amis" aria-label="Amis"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg><span class="fr-btn-t">Amis</span><span class="nav-badge fr-badge" id="navAmis" hidden></span><span class="fr-on" id="navOn" hidden></span></button>
     <button class="brand" data-nav="home" aria-label="Grand Livre, retour à l'accueil"><span class="brand-mark"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M12 4v16M8 8.5h2M8 12h2M14 8.5h2M14 12h2"/></svg></span><b>Grand Livre</b></button>
     <nav class="nav" aria-label="Sections">
       <button class="nav-btn" data-nav="home"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h5v-6h4v6h5V9.5"/></svg>Accueil</button>
       <button class="nav-btn" data-nav="cours"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/></svg>Cours</button>
       <button class="nav-btn" data-nav="fiches"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="15" height="12" rx="2"/><path d="M7 4h12a2 2 0 0 1 2 2v9"/><path d="M6.5 11h8M6.5 14.5h5"/></svg>Fiches</button>
       <button class="nav-btn" data-nav="ex"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z"/><path d="M14.5 6.5l3 3"/></svg>S'entraîner</button>
-      <button class="nav-btn" data-nav="amis"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>Amis<span class="nav-badge" id="navAmis" hidden></span></button>
+
       <button class="nav-btn" data-nav="bts"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>Mon BTS</button>
     </nav>
     <button class="gs-btn" data-act="gsOpen" aria-label="Rechercher dans tout le Grand Livre (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
@@ -1969,6 +1989,6 @@ select[data-fi] { width: 100%; max-width: 100%; }
 
 <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onload="window.glThree&&glThree()"></script>
 <script id="gl-content" data-formation="bts-cg" data-src="/c/contenu-94eceec847fa.js"></script>
-<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);q.push("/c/moteur-21d5ecc1833f.js");function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}requestAnimationFrame(function(){setTimeout(run,0)})})()</script>
+<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);q.push("/c/moteur-901fdb6f1e2a.js");function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}requestAnimationFrame(function(){setTimeout(run,0)})})()</script>
 
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML='<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body></html>

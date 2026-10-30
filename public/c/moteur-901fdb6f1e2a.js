@@ -637,6 +637,7 @@ function renderTop() {
   { const t = document.querySelector(".top"); if (t) document.documentElement.style.setProperty("--top-h", getComputedStyle(t).position === "sticky" ? t.offsetHeight + "px" : "0px");
     requestAnimationFrame(() => { const n = document.querySelector(".ex-tabs"), c = n && n.querySelector('[aria-current="page"]'); if (n && c && n.scrollWidth > n.clientWidth) n.scrollLeft = c.offsetLeft - 16; }); }
   const L = levelOf(S.xp);
+  { const fb = document.querySelector(".fr-btn"); if (fb) fb.setAttribute("aria-current", view === "amis" || view === "duel" || view === "room" ? "page" : "false"); }
   $("#lvlName").textContent = L.name;
   { const g = document.querySelector(".gl-out"), w = document.getElementById("whoAv"), a = avMine();
     if (g) { g.setAttribute("aria-current", view === "profil" ? "page" : "false"); if (g.dataset.av !== a) { g.dataset.av = a; g.classList.toggle("has-av", !!a); g.innerHTML = a ? avSvg(a) : g.dataset.ic || g.innerHTML; } }
@@ -3039,6 +3040,7 @@ async function loadFriends(force) {
   FR.busy = true;
   try { FR.data = await N.list(); FR.at = Date.now(); FR.err = ""; } catch (e) { FR.err = (e && e.message) || "Amis indisponibles pour l'instant."; FR.at = Date.now(); }
   FR.busy = false; amisBadge();
+  { const o = document.getElementById("navOn"); if (o) o.hidden = !(FR.data && FR.data.friends && FR.data.friends.some(f => f.online)); }
   if (view === "amis" && AMT === "amis") render();
 }
 function amisHomeCard() {
@@ -3051,7 +3053,15 @@ function vAmis() {
   const T = [["amis", ICON.friends, "Mes amis", FR.data ? `${FR.data.friends.length} ami${FR.data.friends.length > 1 ? "s" : ""}` : "Code ami"], ["duels", ICON.duel, "Duels", DUEL_NET() ? "Défie un ami" : "Contre le Grand Livre"], ["salle", ICON.talk, "Réviser ensemble", "Quiz en direct à plusieurs"], ["classement", ICON.target, "Classement", "Semaine et défi commun"]];
   const tabs = `<nav class="ex-tabs am-tabs" aria-label="Amis">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="amGo" data-t="${k}" aria-current="${AMT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
   const body = AMT === "duels" ? duelHome() : AMT === "salle" ? roomHome() : AMT === "classement" ? vClasse().replace(/^<section class="page-head">[\s\S]*?<\/section>/, "") : friendsPanel();
-  return `<section class="page-head"><h1>Amis</h1><p class="muted">Révise avec tes camarades : compare-toi, défie-les en duel ou faites un quiz ensemble en direct.</p></section>${tabs}${body}`;
+  const on = FR.data ? FR.data.friends.filter(f => f.online).length : 0;
+  return `<section class="page-head am-head"><h1>Amis</h1><p class="muted">${FR.data ? `${FR.data.friends.length} ami${FR.data.friends.length > 1 ? "s" : ""}${on ? ` · <span class="am-on">${on} en ligne</span>` : ""}` : "Révise avec tes camarades : compare-toi, défie-les en duel ou faites un quiz ensemble en direct."}</p></section>${tabs}${body}`;
+}
+/* « En ligne », sinon depuis quand on ne l'a pas vu */
+function frSeen(f) {
+  if (f.online) return "En ligne";
+  const m = f.vu != null ? Math.floor(f.vu / 60000) : null;
+  if (m != null) return m < 60 ? `Vu il y a ${Math.max(1, m)} min` : m < 24 * 60 ? `Vu il y a ${Math.floor(m / 60)} h` : `Vu il y a ${Math.floor(m / 1440)} j`;
+  return f.dernier === 0 ? "A révisé aujourd'hui" : f.dernier === 1 ? "A révisé hier" : f.dernier != null ? `Vu il y a ${f.dernier} j` : "Hors ligne";
 }
 function frBars(me, him) { const mx = Math.max(me, him, 1); return `<div class="fr-duo"><div><i style="width:${Math.round(me / mx * 100)}%"></i></div><div><i style="width:${Math.round(him / mx * 100)}%"></i></div></div>`; }
 function friendsPanel() {
@@ -3063,7 +3073,7 @@ function friendsPanel() {
   const mine = d.mine || {}, me = P().name || window.GL_NAME || "Moi";
   const card = f => {
     const open = FRX === f.k, mx = Math.max(1, ...f.activite);
-    return `<div class="fr-card"><button class="fr-top" data-act="frOpen" data-k="${h(f.k)}" aria-expanded="${open}">${duAv(f.name)}<span><b>${h(f.name)}</b>${f.serie >= 2 ? ` <span class="du-tag w">Série ${f.serie} j</span>` : ""}<br><small>${f.niveau} · ${f.semAcq} acquise${f.semAcq > 1 ? "s" : ""} et ${f.semJours} jour${f.semJours > 1 ? "s" : ""} cette semaine${f.dernier === 0 ? " · a révisé aujourd'hui" : f.dernier != null ? ` · vu il y a ${f.dernier} j` : ""}</small></span>
+    return `<div class="fr-card${f.online ? " is-on" : ""}"><button class="fr-top" data-act="frOpen" data-k="${h(f.k)}" aria-expanded="${open}"><span class="fr-avw">${duAv(f.name)}<i class="fr-dot${f.online ? " on" : ""}" aria-hidden="true"></i></span><span><b>${h(f.name)}</b>${f.serie >= 2 ? ` <span class="du-tag w">Série ${f.serie} j</span>` : ""}<br><small><span class="fr-st${f.online ? " on" : ""}">${frSeen(f)}</span> · ${f.niveau} · ${f.semAcq} acquise${f.semAcq > 1 ? "s" : ""} cette semaine</small></span>
         <span class="fr-week" aria-hidden="true">${f.activite.map(v => `<i class="${v ? "on" : ""}" style="height:${Math.max(3, v / mx * 26)}px"></i>`).join("")}</span></button>
       ${open ? `<div class="fr-cmp"><div class="fr-legend"><span>Toi</span><span>${h(f.name)}</span></div>
         ${[["Acquises cette semaine", mine.semAcq, f.semAcq], ["Jours de révision cette semaine", mine.semJours, f.semJours], ["Série en cours", mine.serie, f.serie], ["Questions acquises au total", mine.acquises, f.acquises], ["XP", mine.xp, f.xp]].map(([l, a, b]) => `<div class="fr-row"><div class="lbl">${l}<span>${(a || 0).toLocaleString("fr-FR")} · ${(b || 0).toLocaleString("fr-FR")}</span></div>${frBars(a || 0, b || 0)}</div>`).join("")}
@@ -3073,19 +3083,21 @@ function friendsPanel() {
     </div>`;
   };
   return `<section class="stack">
+    ${d.incoming.length ? `<div class="stack" style="gap:8px"><h3 class="fr-h">Demandes reçues <span class="fr-n">${d.incoming.length}</span></h3>${d.incoming.map(r => `<div class="du-card du-inv" style="cursor:default">${duAv(r.name)}<span><b>${h(r.name)}</b><br><small class="muted">veut t'ajouter en ami</small></span><span class="row" style="gap:6px"><button class="btn small" data-act="frNo" data-k="${h(r.k)}">Refuser</button><button class="btn small primary" data-act="frYes" data-k="${h(r.k)}">Accepter</button></span></div>`).join("")}</div>` : ""}
+    ${d.friends.length ? (() => { const on = d.friends.filter(f => f.online), off = d.friends.filter(f => !f.online); return (on.length ? `<div class="stack" style="gap:10px"><h3 class="fr-h"><i class="fr-dot on" aria-hidden="true"></i>En ligne <span>${on.length}</span></h3>${on.map(card).join("")}</div>` : "") + (off.length ? `<div class="stack" style="gap:10px"><h3 class="fr-h"><i class="fr-dot" aria-hidden="true"></i>${on.length ? "Hors ligne" : "Mes amis"} <span>${off.length}</span></h3>${off.map(card).join("")}</div>` : ""); })()
+      : `<div class="pf-set am-empty"><span class="big"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span><b>Pas encore d'amis ici</b><span>Échange ton code avec tes camarades de classe. Une fois acceptés, vous comparez vos semaines, vous vous défiez en duel et vous révisez ensemble.</span></div>`}
+    <div class="fr-add">
+    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Ajouter un ami</h3><p class="muted small" style="margin:0">Demande son code ami à ton camarade (il le trouve en bas de sa page Amis).</p>
+      <div class="row"><input id="frCode" class="pf-in du-code-in" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="ABC-123" aria-label="Code ami de ton camarade"><button class="btn primary" data-act="frAdd">Ajouter</button></div>
+      ${d.outgoing.length ? `<p class="muted small" style="margin:0">En attente de réponse : ${d.outgoing.map(o => h(o.name)).join(", ")}.</p>` : ""}</div>
     <div class="pf-set fr-code" style="padding:16px">
       <span class="eyebrow">Ton code ami</span>
       <div class="du-code" aria-label="Code ami ${h(d.code)}">${d.code.split("").map(c => c === "-" ? `<i>–</i>` : `<span>${h(c)}</span>`).join("")}</div>
       <p class="muted small" style="margin:0">Donne-le à tes camarades : ils pourront t'ajouter, et tu choisis d'accepter.</p>
       <div class="row" style="justify-content:center">${navigator.share ? `<button class="btn small" data-act="frShare">Partager</button>` : ""}<button class="btn small" data-act="frCopy">Copier</button></div>
     </div>
-    <div class="pf-set" style="padding:16px;display:grid;gap:10px"><h3>Ajouter un ami</h3>
-      <div class="row"><input id="frCode" class="pf-in du-code-in" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="ABC-123" aria-label="Code ami de ton camarade"><button class="btn primary" data-act="frAdd">Ajouter</button></div>
-      ${d.outgoing.length ? `<p class="muted small" style="margin:0">En attente de réponse : ${d.outgoing.map(o => h(o.name)).join(", ")}.</p>` : ""}</div>
-    ${d.incoming.length ? `<div class="stack" style="gap:8px"><h3>Demandes reçues</h3>${d.incoming.map(r => `<div class="du-card du-inv" style="cursor:default">${duAv(r.name)}<span><b>${h(r.name)}</b><br><small class="muted">veut t'ajouter en ami</small></span><span class="row" style="gap:6px"><button class="btn small" data-act="frNo" data-k="${h(r.k)}">Refuser</button><button class="btn small primary" data-act="frYes" data-k="${h(r.k)}">Accepter</button></span></div>`).join("")}</div>` : ""}
-    ${d.friends.length ? `<div class="stack" style="gap:10px"><h3>Mes amis</h3>${d.friends.map(card).join("")}</div>`
-      : `<div class="pf-set am-empty"><span class="big"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span><b>Pas encore d'amis ici</b><span>Échange ton code avec tes camarades de classe. Une fois acceptés, vous comparez vos semaines, vous vous défiez en duel et vous révisez ensemble.</span></div>`}
-    <p class="muted small" style="margin:0">Tes amis voient ton niveau, tes XP, ta série, tes questions acquises, tes jours de révision et tes matières fortes et faibles. Jamais tes erreurs ni tes réponses. Retire un ami à tout moment.</p>
+    </div>
+    <p class="muted small" style="margin:0">Tes amis voient quand tu es en ligne, ton niveau, tes XP, ta série, tes questions acquises, tes jours de révision et tes matières fortes et faibles. Jamais tes erreurs ni tes réponses. Retire un ami à tout moment.</p>
   </section>`;
 }
 
@@ -3262,6 +3274,9 @@ function ibNext() {
   setTimeout(close, 15000);
 }
 setInterval(inboxPoll, 6000);
+setInterval(() => { if (view === "amis" && AMT === "amis" && !document.hidden) loadFriends(true); }, 20000);
+setInterval(() => { if (!document.hidden && view !== "amis" && typeof FRN === "function" && FRN()) loadFriends(); }, 60000);
+setTimeout(() => { if (typeof FRN === "function" && FRN()) loadFriends(); }, 4000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) inboxPoll(); });
 
 /* ---------- Simulateur d'oral ---------- */
