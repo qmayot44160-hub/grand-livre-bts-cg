@@ -763,6 +763,7 @@ function vHome() {
     </div>
     <div class="shelf" id="shelf3d"><p class="shelf-label" id="shelfLabel">${shelfHint()}</p></div>
   </section>
+  <button class="gs-entry" data-act="gsOpen">${I2.search}<span>Cherche un cours, une fiche, un quiz : « TVA », « quiz amortissement »…</span></button>
   <section class="plan" aria-labelledby="planTitle">
     <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3 · tirée de <button class="linkbtn" data-act="plSee">ton plan de la semaine</button></span></div>
     <ol class="steps">${steps.map((s, i) => `<li class="step${s.done ? " done" : ""}"><span class="num">${s.done ? ICON.check : i + 1}</span><div><b>${s.title}</b><p>${s.text}</p></div>${s.btn}</li>`).join("")}</ol>
@@ -1642,7 +1643,7 @@ function matLecons(c) {
       if (!yrOk(y)) return "";
       const head = YRS() === "all" && yrs.size > 1 && grp(y) !== lastY ? `<li class="yr-h">${YR_LBL[grp(y)]}</li>` : ""; lastY = grp(y);
       return head + (() => {
-      return `<li><button class="lesson-row${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button></li>`; })();
+      return `<li><button class="lesson-row${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button>${lesLinks(cid, k)}</li>`; })();
     }).join("");
     if (!rows) return "";
     return `<div class="course-block">${multi ? `<h2>${h(m.short)}</h2>` : ""}<div class="md lead">${mdBlocks(secs[0].lines, "lead-" + cid)}</div><ol class="lesson-list">${rows}</ol></div>`;
@@ -1727,7 +1728,7 @@ function vLesson() {
       <div class="lprog" role="presentation"><i style="width:${pct(k, n)}%"></i></div>
       <h1>${inl(lb.t)}</h1>
       <div class="md">${mdBlocks(s.lines, "l-" + cid + "-" + k)}</div>
-      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row">${m.script ? `<button class="btn small primary" data-act="reciteHome" data-cid="${cid}">Apprendre mon oral par cœur</button>` : ""}${m.chs ? (() => { const lc = (m.lch || [])[k - 1], one = lc ? [lc] : null, nq = L => QS.filter(x => L.includes(x.ch)).length, nf = L => FS.filter(x => L.includes(x.ch)).length; return (one ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${lc}">Quiz de cette leçon (${nq(one)})</button><button class="btn small" data-act="chsCards" data-chs="${lc}">Flashcards de cette leçon (${nf(one)})</button>` : "") + `<button class="btn small${one ? "" : " primary"}" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz de tout le cours (${nq(m.chs)})</button><button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards de tout le cours (${nf(m.chs)})</button>`; })() : `<button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button>`}</div></div>
+      <div class="lesson-test"><div><b>Teste-toi maintenant</b><span>Quelques questions juste après la lecture, c'est ce qui fait le plus retenir.</span></div><div class="row">${m.script ? `<button class="btn small primary" data-act="reciteHome" data-cid="${cid}">Apprendre mon oral par cœur</button>` : ""}${m.chs ? (() => { const lc = (m.lch || [])[k - 1], one = lc ? [lc] : null, nq = L => QS.filter(x => L.includes(x.ch)).length, nf = L => FS.filter(x => L.includes(x.ch)).length; return (one ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${lc}">Quiz de cette leçon (${nq(one)})</button><button class="btn small" data-act="chsCards" data-chs="${lc}">Flashcards de cette leçon (${nf(one)})</button>` : "") + `<button class="btn small${one ? "" : " primary"}" data-act="chsQuiz" data-chs="${m.chs.join(",")}">Quiz de tout le cours (${nq(m.chs)})</button><button class="btn small" data-act="chsCards" data-chs="${m.chs.join(",")}">Flashcards de tout le cours (${nf(m.chs)})</button>`; })() : lesTrain(cid, k, cat)}</div></div>
       <p class="rep-row"><button class="rep-btn" data-act="report" data-t="l" data-id="${h(cid + ":" + k)}" data-l="${h(String(lb.t).slice(0, 140))}">Signaler une erreur</button></p>
       <footer class="lesson-foot">${pv ? `<button class="btn" data-act="lessonPrev">Leçon précédente</button>` : `<button class="btn" data-act="mat" data-cat="${cat}" data-seg="lecons">Retour à la matière</button>`}${nextBtn}</footer>
     </article>
@@ -1768,6 +1769,43 @@ const YR_CH = { // fiches-chapitres
   m6: "2", m7: "2", m8: "2", m9: "2", m10: "2", v1: "2", v2: "2", v3: "2", v4: "2", "or-e3": "2", "or-e5": "2"
 };
 const YR_CAT = { p1: "1", p2: "1", p3: "1", p4: "1", p5: "1", p6: "2", p7: "1", ma: "1", cg: "12", an: "12", me: "12" };
+/* ---------- Leçon, fiche et quiz : chaque leçon renvoie à sa fiche et à ses questions, et inversement ---------- */
+const LES_CH_RAW = {
+  p1: [["p1c1"], ["p1c2"], ["p1c4", "p1c2"], ["p1c3"], ["p1c4"], ["p1c7"], ["p1c5"], ["p1c6"], ["p1c8"], ["p1c9"], ["p1c10"], []],
+  p2: [["p2c5"], ["p2c5"], ["p2c1"], ["p2c2"], ["p2c7"], ["p2c3"], ["p2c3"], ["p2c3"], ["p2c8"], ["p2c4"], ["p2c6"], ["p2c5"], ["p2c9"], []],
+  p3: [["p3c1"], ["p3c1"], ["p3c6"], ["p3c7"], ["p3c8"], ["p3c2", "p3c3"], ["p3c4"], ["p3c9"], ["p3c5"], ["p3c10"], ["p3c11"], []],
+  p4: [["p4c5"], ["p4c1"], ["p4c2"], ["p4c6"], ["p4c3"], ["p4c7"], ["p4c4"], ["p4c5"], ["p4c8"], ["p4c9"], ["p4c10"], []],
+  p5: [["p5c1"], ["p5c1"], ["p5c6"], ["p5c7"], ["p5c3"], ["p5c4"], ["p5c5"], ["p5c8"], ["p5c5"], ["p5c9"], ["p5c5", "p5c2"], ["p5c10"]],
+  p6: [["p6c1"], ["p6c1"], ["p6c2"], ["p6c6"], ["p6c3"], ["p6c4"], ["p6c5"], ["p6c7"], ["p6c8"], ["p6c9"], ["p6c10"], []],
+  p7: [["p7c1"], ["p7c6", "p7c2"], ["p7c2"], ["p7c3"], ["p7c4"], ["p7c4"], ["p7c7", "p7c5"], ["p7c2"], ["p7c8"]],
+  ma: [["m1", "m2"], ["m3"], ["m4", "m5"], ["m7", "m8"], ["m9", "m10"], ["m6"], []],
+  cg: [["v1", "g1"], ["v1"], ["v2"], ["v3"], ["v2", "v4"], ["v3", "v4"], ["g3"], ["g3"]],
+  an: [["a6"], ["a2"], ["a5"], ["a3"], ["a6"]],
+  ce1: [["t1c1"], ["t1c2"], ["t1c3"], ["t1c4"], ["t1c5"], ["t1c6"]],
+  ce2: [["t2c1"], ["t2c2"], ["t2c3"], ["t2c4"], ["t2c5"]],
+  ce3: [["t3c1"], ["t3c2"], ["t3c3"], ["t3c4"], ["t3c5"], ["t3c6"]],
+  ce4: [["t4c1"], ["t4c2"], ["t4c3"], ["t4c4"], ["t5c1"], ["t5c2"], ["t5c3"], ["t5c4"], ["t6c1"], ["t6c2"], ["t6c3"]]
+};
+function lesChs(cid, k) { const r = LES_CH_RAW[cid]; return ((r && r[k - 1]) || []).filter(id => CHID[id]); }
+let CH_LES = null;
+function chLes(id) {
+  if (!CH_LES) { CH_LES = {}; Object.keys(LES_CH_RAW).forEach(cid => LES_CH_RAW[cid].forEach((L, j) => L.forEach(x => (CH_LES[x] = CH_LES[x] || []).push([cid, j + 1])))); }
+  return (CH_LES[id] || []).filter(([cid, k]) => COURS[cid] && k < SPLIT(cid).length);
+}
+const nQch = L => QS.filter(x => L.includes(x.ch)).length, nFch = L => FS.filter(x => L.includes(x.ch)).length;
+function lesTrain(cid, k, cat) {
+  const L = lesChs(cid, k), nq = nQch(L), nf = nFch(L);
+  if (!L.length) return `<button class="btn small primary" data-act="quickQuiz" data-cat="${cat}">Quiz ${h(CAT[cat].code)}</button><button class="btn small" data-act="flashCat" data-cat="${cat}">Flashcards</button>`;
+  return (nq ? `<button class="btn small primary" data-act="chsQuiz" data-chs="${L.join(",")}">Quiz de cette leçon (${nq > 15 ? "15 sur " + nq : nq})</button>` : "")
+    + (nf ? `<button class="btn small" data-act="chsCards" data-chs="${L.join(",")}">Flashcards de cette leçon (${nf})</button>` : "")
+    + L.map(id => `<button class="btn small" data-act="fiche" data-id="${id}">Fiche : ${h(CHID[id].title)}</button>`).join("")
+    + `<button class="btn small" data-act="quickQuiz" data-cat="${cat}">Quiz de toute la matière</button>`;
+}
+function lesLinks(cid, k) {
+  const L = lesChs(cid, k); if (!L.length) return "";
+  const nq = nQch(L);
+  return `<span class="lr-acts">${L.length === 1 ? `<button class="lr-a" data-act="fiche" data-id="${L[0]}" aria-label="Fiche : ${h(CHID[L[0]].title)}">Fiche</button>` : L.map((id, i) => `<button class="lr-a" data-act="fiche" data-id="${id}" aria-label="Fiche : ${h(CHID[id].title)}">Fiche ${i + 1}</button>`).join("")}${nq ? `<button class="lr-a" data-act="chsQuiz" data-chs="${L.join(",")}" aria-label="Quiz de cette leçon, ${nq} questions">Quiz</button>` : ""}</span>`;
+}
 function lesYr(cid, k) { const d = YR_LES[cid]; if (!d) return (COURS_META[cid] && COURS_META[cid].perso) ? "12" : "12"; return (d[1] && d[1][k]) || d[0]; }
 function chYrs(id) {
   const c = CHID[id]; if (!c) return "12";
@@ -2027,6 +2065,7 @@ function vFiche() {
       <p class="lesson-meta"><span class="tabcode">${h(CAT[c.cat].code)}</span><span>Fiche ${i + 1} sur ${list.length}</span>${th ? `<span>${h(th.title)}</span>` : ""}</p>
       <div class="lprog" role="presentation"><i style="width:${pct(i + 1, list.length)}%"></i></div>
       <h1>${h(c.title)}</h1>
+      ${(() => { const L = chLes(c.id); return L.length ? `<p class="fi-les"><span class="muted">Lire la leçon :</span> ${L.map(([cid, k]) => `<button class="linkbtn" data-act="lesson" data-cid="${cid}" data-k="${k}">${inl(lessonLabel(SPLIT(cid)[k].title, k).t)}</button>`).join(" · ")}</p>` : ""; })()}
       ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
       <div class="picker fmode" role="tablist" aria-label="Version de la fiche"><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Récap</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Fiche détaillée</button></div>
       ${FMODE === "recap" ? ficheRecap(c) : `<div class="md">
@@ -2481,8 +2520,28 @@ const I2 = {
   close: SVG2('<path d="M6 6l12 12M18 6 6 18"/>'),
   enter: SVG2('<path d="M20 5v7a3 3 0 0 1-3 3H5"/><path d="m9 11-4 4 4 4"/>'),
 };
-const GS_TYPES = [["lesson", "Leçons"], ["fiche", "Fiches"], ["annale", "Annales"], ["ref", "Repères"], ["case", "Exercices guidés"], ["memo", "Mémo express"]];
-const GS_W = { lesson: 4, fiche: 4, annale: 3, ref: 3, case: 2, memo: 1 };
+const GS_TYPES = [["page", "Rubriques de l'appli"], ["lesson", "Leçons"], ["fiche", "Fiches"], ["quiz", "Quiz et flashcards"], ["annale", "Annales"], ["ref", "Repères"], ["case", "Exercices guidés"], ["memo", "Mémo express"]];
+const GS_W = { page: 5, lesson: 4, fiche: 4, quiz: 3, annale: 3, ref: 3, case: 2, memo: 1 };
+/* Rubriques : [titre, mots qui la font trouver, action] */
+const GS_PAGES = [
+  ["Ma mémoire", "memoire oubli retenir s'efface seance memoire revoir", () => go("memo")],
+  ["Mes erreurs et points faibles", "erreurs fautes rate points faibles revoir", () => go("erreurs")],
+  ["Mes BTS blancs : noter mes résultats", "bts blanc blancs notes resultats examen blanc", () => { go("bts"); setTimeout(() => { const e = document.getElementById("bbSec"); if (e) e.scrollIntoView(); }, 60); }],
+  ["Mon plan de la semaine", "plan semaine planning programme organisation rythme", () => go("bts")],
+  ["Compte à rebours, épreuves et coefficients", "bts epreuves coefficients date examen compte a rebours", () => go("bts")],
+  ["Annales officielles et sujets corrigés", "annales sujets corriges examen e5 e4 e3 e1", () => go("ex")],
+  ["Préparer les oraux E6, E7, E8", "oral oraux e6 e7 e8 jury passeport", () => go("oral")],
+  ["Défi 60 secondes", "defi chrono minute rapide jeu", () => go("defi")],
+  ["Quiz des auteurs de CEJM", "auteurs cejm quiz incontournables definitions notions economistes", () => openMat("ce", "train")],
+  ["Flashcards du jour", "cartes flashcards revoir aujourd'hui repetition", () => go("cards")],
+  ["Tous les cours", "cours lecons matieres programme", () => go("cours")],
+  ["Toutes les fiches", "fiches recap revision resume", () => go("fiches")],
+  ["S'entraîner : quiz, exercices, dossiers", "entrainer entrainement quiz exercices dossiers calculs schemas", () => go("ex")],
+  ["Amis, duels et classement", "amis duel classement classe defi semaine", () => go("amis")],
+  ["Mon profil et mes réglages", "profil reglages compte mot de passe nom notifications rappel avatar", () => go("profil")],
+  ["Donner mon avis ou signaler un problème", "avis suggestion probleme bug retour idee", () => go("profil")]
+];
+const GS_HINT = { quiz: "quiz", quizz: "quiz", qcm: "quiz", flashcard: "quiz", flashcards: "quiz", cartes: "quiz", fiche: "fiche", fiches: "fiche", cours: "lesson", lecon: "lesson", lecons: "lesson", annale: "annale", annales: "annale" };
 const GS_SUGG = ["TVA", "amortissement", "CAF", "seuil de rentabilité", "rupture conventionnelle", "syllogisme", "SQL", "provision"];
 let GSI = null, GS = { open: false, q: "", cat: "", act: 0, hits: [] }, gsTimer = null;
 function gsIndex() {
@@ -2495,11 +2554,19 @@ function gsIndex() {
   GCASES.forEach(k => add("case", k.cat, k.title, k.enonce + " " + (k.question || ""), { id: k.id }));
   ANNEX.forEach(x => add("annale", annCat(x), x.t, `${x.a.ep} ${EPREUVE_INFO[x.a.ep].name} ${x.a.year} ${x.a.place} ${x.a.cas} annale ${x.w.join(" ")} ${x.tags.map(t => NOTIONS[t][0]).join(" ")}`, { id: x.id }, { where: `${x.a.ep} ${x.a.year} : ${x.a.cas}`, lead: x.w.join(" ; ") }));
   FS.forEach(x => { if (!x.ch) add("memo", x.c, x.f, x.b + " " + (x.m || ""), { cat: x.c }, { lead: x.b }); });
+  GS_PAGES.forEach(([t, w, fn]) => add("page", "", t, w, { fn }, { where: "Rubrique de l'appli" }));
+  Object.keys(LES_CH_RAW).forEach(cid => { if (!COURS[cid]) return; SPLIT(cid).slice(1).forEach((sec, j) => {
+    const L = lesChs(cid, j + 1), nq = nQch(L), nf = nFch(L); if (!nq && !nf) return;
+    const lb = lessonLabel(sec.title, j + 1), cat = CMETA(cid).cat;
+    add("quiz", cat, "Quiz : " + String(lb.t).replace(/[*_`]/g, ""), L.map(id => CHID[id].title).join(" ") + " quiz flashcards", { chs: L }, { where: `${CMETA(cid).short} · ${nq} questions, ${nf} cartes`, lead: L.map(id => CHID[id].title).join(" ; ") });
+  }); });
   return GSI;
 }
 function gsTerms(q) { return nrm(q).split(/[\s,;:'’()«»"?!.]+/).filter(t => t.length > 1 || /\d/.test(t)); }
 function gsSearch(q, cat) {
-  const terms = gsTerms(q); if (!terms.length) return [];
+  let terms = gsTerms(q); if (!terms.length) return [];
+  const hint = terms.map(t => GS_HINT[t]).find(Boolean), rest = terms.filter(t => !GS_HINT[t]);
+  if (hint && rest.length) terms = rest;
   const out = [];
   for (const e of gsIndex()) {
     if (cat && e.cat !== cat) continue;
@@ -2512,7 +2579,7 @@ function gsSearch(q, cat) {
     }
     if (!ok) continue;
     const full = nrm(q).trim(); if (full.length > 3 && (e.nt + " " + e.nx).includes(full)) sc += 6;
-    out.push({ e, sc: sc + GS_W[e.type] });
+    out.push({ e, sc: sc + GS_W[e.type] + (hint && e.type === hint ? 25 : 0) });
   }
   return out.sort((a, b) => b.sc - a.sc).slice(0, 60).map(x => { x.e._sc = x.sc; return x.e; });
 }
@@ -2567,7 +2634,7 @@ function gsRender() {
     list.innerHTML = `<div class="gs-empty">
       ${rec.length ? `<p class="eyebrow">Tes dernières recherches</p><div class="gs-sugg">${rec.map(r => `<button class="chip" data-act="gsSugg" data-q="${h(r)}">${h(r)}</button>`).join("")}</div>` : ""}
       <p class="eyebrow">Essaie par exemple</p><div class="gs-sugg">${GS_SUGG.map(r => `<button class="chip" data-act="gsSugg" data-q="${h(r)}">${h(r)}</button>`).join("")}</div>
-      <p class="muted">La recherche fouille les ${totalLessons().n} leçons, les ${CHAP.length} fiches, les repères, les exercices guidés et le mémo express. Plusieurs mots : seuls les résultats qui les contiennent tous s'affichent.</p></div>`;
+      <p class="muted">La recherche fouille les ${totalLessons().n} leçons, les ${CHAP.length} fiches, les quiz de chaque leçon, les rubriques de l'appli, les repères, les exercices guidés et le mémo express. Ajoute « quiz », « fiche » ou « cours » pour aller droit au bon format. Plusieurs mots : seuls les résultats qui les contiennent tous s'affichent.</p></div>`;
     return;
   }
   if (!GS.hits.length) { list.innerHTML = `<div class="gs-empty"><p><b>Rien pour « ${h(q)} »${GS.cat ? " dans " + h(CAT[GS.cat].name) : ""}.</b></p><p class="muted">Vérifie l'orthographe, enlève un mot ou essaie un synonyme (par exemple « amortissement » plutôt que « amortir »).</p></div>`; return; }
@@ -2577,9 +2644,9 @@ function gsRender() {
     const hs = GS.hits.filter(e => e.type === t); if (!hs.length) return "";
     return `<div class="gs-group"><p class="gs-gh">${lab} <span>${hs.length}</span></p>${hs.slice(0, t === "memo" ? 8 : 12).map(e => {
       const k = GS.hits.indexOf(e); i++;
-      const where = e.where ? e.where : (e.type === "case" || e.type === "ref") && e.go.ch && CHID[e.go.ch] ? CHID[e.go.ch].title : CAT[e.cat].name;
-      return `<button class="gs-hit${k === GS.act ? " is-act" : ""}" role="option" aria-selected="${k === GS.act}" id="gsh${k}" style="${hueStyle(e.cat)}" data-act="gsGo" data-i="${k}">
-        <span class="gs-code">${h(CAT[e.cat].code)}</span>
+      const where = e.where ? e.where : (e.type === "case" || e.type === "ref") && e.go.ch && CHID[e.go.ch] ? CHID[e.go.ch].title : e.cat ? CAT[e.cat].name : "";
+      return `<button class="gs-hit${k === GS.act ? " is-act" : ""}" role="option" aria-selected="${k === GS.act}" id="gsh${k}" style="${e.cat ? hueStyle(e.cat) : ""}" data-act="gsGo" data-i="${k}">
+        <span class="gs-code">${e.cat ? h(CAT[e.cat].code) : "GL"}</span>
         <span class="gs-main"><b>${gsMark(e.title, terms)}</b><small>${h(where || "")}</small><span class="gs-snip">${gsSnip(e, terms)}</span></span>
         <span class="gs-go">${I2.enter}</span></button>`;
     }).join("")}</div>`;
@@ -2601,7 +2668,9 @@ function gsKey(ev) {
 function gsGo(i) {
   const e = GS.hits[i]; if (!e) return;
   const q = GS.q.trim(), terms = gsTerms(q); gsRemember(q); gsClose();
-  if (e.type === "lesson") { openLesson(e.go.cid, e.go.k); gsFlash(terms); }
+  if (e.type === "page") { ORIG = null; e.go.fn(); }
+  else if (e.type === "quiz") { const L = e.go.chs, r = x => { const v = S.q[x.id]; return !v ? 1 : v[2] === 0 ? 0 : 2; }, l = shuffle(QS.filter(x => L.includes(x.ch))).sort((a, c) => r(a) - r(c)).slice(0, 15); if (l.length) startRun(l, "quiz"); else startCards(shuffle(FS.filter(x => L.includes(x.ch))).slice(0, 30)); }
+  else if (e.type === "lesson") { openLesson(e.go.cid, e.go.k); gsFlash(terms); }
   else if (e.type === "fiche") { openFiche(e.go.ch); gsFlash(terms); }
   else if (e.type === "case") openCase(e.go.id);
   else if (e.type === "annale") openAnn(e.go.id);
@@ -3675,6 +3744,7 @@ function vExHome() {
       <h1>S'entraîner</h1>
       <p class="muted">Choisis le type d'entraînement : chaque onglet regroupe un format.</p>
     </section>
+    <button class="gs-entry" data-act="gsOpen">${I2.search}<span>Cherche un cours, une fiche, un quiz : « TVA », « quiz amortissement »…</span></button>
       ${(() => { const el = errList(), td = el.filter(e => !e.ok).length, wk = weakChaps(5); return `<button class="wk-cta" data-act="goErr"><span class="wk-ic">${ICON.errbook}</span><span><b>Mes erreurs et points faibles</b><small>${el.length ? `${td} question${td > 1 ? "s" : ""} à revoir${wk.length ? ` · ${wk.length} chapitre${wk.length > 1 ? "s" : ""} faible${wk.length > 1 ? "s" : ""} : ${h(chLabel(wk[0].k))}` : ""}` : "Rien pour l'instant : tes erreurs de quiz arriveront ici."}</small></span><span class="wk-go">Ouvrir ›</span></button>`; })()}
     ${exTabs()}
     ${EXT === "quiz" ? `<section class="stack">
