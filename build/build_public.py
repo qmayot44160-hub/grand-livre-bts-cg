@@ -79,7 +79,7 @@ assert T3 in s
 s = s.replace(T3, '<script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onload="window.glThree&&glThree()"></script>', 1)
 
 # 4. Service worker (mise à jour automatique + hors ligne)
-s = s.replace("</body>", '<script>(function(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})})()</script><script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML=\'<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>\';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body>', 1)
+s = s.replace("</body>", '<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML=\'<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>\';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body>', 1)
 
 # 4 bis. Les gros blocs (contenu des cours, moteur de l'appli) passent dans des fichiers à part, nommés d'après leur empreinte :
 # la page reste légère (elle arrive vite même en 4G) et le téléphone garde ces fichiers tant qu'ils ne changent pas.
@@ -96,6 +96,21 @@ def split_script(s, match_attrs, name):
     return s[:m.start()] + '<script%s src="/c/%s"></script>' % (m.group(1), fn) + s[m.end():]
 s = split_script(s, lambda a, b: 'id="gl-content"' in a, "contenu")
 s = split_script(s, lambda a, b: "src=" not in a and len(b) > 200000, "moteur")
+
+# 4 ter. Chargement après le premier affichage : le téléphone montre d'abord l'écran de lancement (sinon le navigateur
+# exécute contenu et moteur avant de peindre quoi que ce soit, et l'écran système reste seul jusqu'à l'accueil).
+# Les fichiers se téléchargent tout de suite (preload), puis s'exécutent dans l'ordre : contenu, contenu personnel, moteur.
+mc = re.search(r'<script id="gl-content"([^>]*) src="(/c/contenu-[0-9a-f]{12}\.js)"></script>', s)
+mm = re.search(r'<script src="(/c/moteur-[0-9a-f]{12}\.js)"></script>', s)
+assert mc and mm and mc.end() < mm.start()
+s = s[:mc.start()] + '<script id="gl-content"%s data-src="%s"></script>' % (mc.group(1), mc.group(2)) + s[mc.end():mm.start()] + (
+    '<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);q.push("%s");'
+    'function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}'
+    'function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}'
+    'function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}'
+    'requestAnimationFrame(function(){setTimeout(run,0)})})()</script>') % mm.group(1) + s[mm.end():]
+pre = '<link rel="preload" as="script" href="%s"><link rel="preload" as="script" href="%s">' % (mc.group(2), mm.group(1))
+s = s.replace("</head>", pre + "</head>", 1)
 
 out = os.path.join(HERE, "..", "public", "app.html")
 open(out, "w", encoding="utf-8").write(s)

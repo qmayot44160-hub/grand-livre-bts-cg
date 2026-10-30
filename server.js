@@ -53,7 +53,8 @@ function appFor(u, perso) {
   const me = u.guest ? { id: "guest", name: "", ai: false, guest: true } : { id: u.id, name: u.name, ai: !!AI_KEY }, key = JSON.stringify(me) + (perso ? "|" + crypto.createHash("sha1").update(perso).digest("hex") : "");
   let c = appCache.get(u.id);
   if (c && c.key === key) { appCache.delete(u.id); appCache.set(u.id, c); return c; }
-  const base = perso ? APP_HTML.slice(0, CONTENT_END) + "\n<script>/* contenu personnel */\n" + perso.replace(/<\/script/gi, "<\\/script") + "\n</script>" + APP_HTML.slice(CONTENT_END) : APP_HTML;
+  /* contenu personnel : passé au chargeur de la page sous forme de script Blob, exécuté entre le contenu et le moteur */
+  const base = perso ? APP_HTML.slice(0, CONTENT_END) + "\n<script>/* contenu personnel */window.glPerso=URL.createObjectURL(new Blob([" + JSON.stringify(perso).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029") + "],{type:\"text/javascript\"}));</script>" + APP_HTML.slice(CONTENT_END) : APP_HTML;
   const build = () => Buffer.from(base
     .replace("__GL_ME__", JSON.stringify(me).replace(/</g, "\\u003c"))
     .split("grand-livre-btscg-v1").join("grand-livre-btscg-v1-" + u.id)
