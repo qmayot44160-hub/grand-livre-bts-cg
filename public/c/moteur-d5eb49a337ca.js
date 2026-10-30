@@ -1761,6 +1761,7 @@ const YR_LES = { // par cours : valeur par défaut, puis exceptions par numéro 
   ma: ["1", { 4: "2", 5: "2", 6: "2", 7: "12" }], ce: ["12"], ce1: ["1"], ce2: ["1"], ce3: ["1"], ce4: ["2"], cg: ["2"], an: ["12"], me: ["12"], or: ["2"]
 };
 const YR_CH = { // fiches-chapitres
+  p5c6: "2", p5c7: "2", p5c8: "2", p5c9: "2", p5c10: "2", p6c6: "2", p6c7: "2", p6c8: "2", p6c9: "2", p6c10: "2", p7c7: "2", p7c8: "2",
   p4c9: "2", p4c10: "2",
   p2c7: "2", p2c8: "2", p2c9: "2", p3c9: "2", p3c10: "2",
   p2c5: "2", p2c6: "2", p3c5: "2", p5c4: "2", p5c5: "2", p7c4: "2", p7c5: "2",
