@@ -2469,6 +2469,8 @@ function mountShelf() {
     if (!SHELF.running) { SHELF.running = true; requestAnimationFrame(shelfFrame); }
   } catch (e) { SHELF.ok = false; host.classList.add("no3d"); }
 }
+/* three.js arrive après le premier affichage (chargement non bloquant) : on monte alors l'étagère en 3D */
+window.glThree = () => { if (SHELF.ok !== false || SHELF.r || !window.THREE) return; SHELF.ok = null; const h = document.getElementById("shelf3d"); if (h) { h.classList.remove("no3d"); mountShelf(); } };
 
 
 /* ---------- Recherche globale : tout le contenu en un seul endroit ---------- */

@@ -1,7 +1,7 @@
 /* Service worker du Grand Livre : la dernière version en ligne quand le réseau répond vite,
    sinon la copie gardée sur l'appareil (réseau lent ou hors connexion). */
-const CACHE = "grand-livre-v4"; // sw 2026-10-26 : avertit la page quand une version plus récente est arrivée
-const SHELL = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/install.js"];
+const CACHE = "grand-livre-v5"; // sw 2026-10-30 : manifeste toujours relu en ligne (icône de l'appli à jour)
+const SHELL = ["/manifest.webmanifest", "/icon-b-192.png", "/icon-b-512.png", "/install.js"];
 const SLOW_MS = 3500;
 
 self.addEventListener("install", e => {
@@ -52,6 +52,9 @@ self.addEventListener("fetch", e => {
     return;
   }
 
+  /* Manifeste : toujours la version en ligne quand le réseau répond, pour que le téléphone voie la nouvelle icône. */
+  if (url.pathname === "/manifest.webmanifest") { e.respondWith(fetch(req).then(res => save(req, res)).catch(() => caches.match(req))); return; }
+
   /* Icônes et fichiers fixes : la copie locale tout de suite, mise à jour en arrière-plan. */
   e.respondWith(caches.match(req).then(cached => {
     const net = fetch(req).then(res => save(req, res));
@@ -65,7 +68,7 @@ self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || "Grand Livre", {
     body: d.body || "Ta séance du jour t'attend.", tag: d.tag || "gl-daily", renotify: false,
-    icon: "/icon-192.png", badge: "/icon-192.png", data: { url: d.url || "/" }, lang: "fr"
+    icon: "/icon-b-192.png", badge: "/icon-b-192.png", data: { url: d.url || "/" }, lang: "fr"
   }));
 });
 self.addEventListener("notificationclick", e => {

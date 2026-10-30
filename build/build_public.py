@@ -57,7 +57,7 @@ for a, b in [
 
 # 2. Tête de page : manifeste et icônes pour l'installation
 head_add = ('<meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest">'
-            '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
+            '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-b-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
             '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre">')
 assert "</head>" in s
 s = s.replace("</head>", head_add + "</head>", 1)
@@ -67,8 +67,19 @@ shim = open(os.path.join(HERE, "shim.js"), encoding="utf-8").read()
 i = s.index("<body>") + len("<body>")
 s = s[:i] + "<script>" + shim + "</script>" + s[i:]
 
+# 3 bis. Écran de lancement : prend le relais de l'écran du téléphone (même fond, même icône au centre)
+# pendant que le contenu et le moteur se chargent, puis s'efface dès le premier affichage.
+boot = open(os.path.join(HERE, "boot.html"), encoding="utf-8").read().strip()
+i = s.index("<body>") + len("<body>")
+s = s[:i] + boot + s[i:]
+
+# 3 ter. three.js (étagère 3D) ne bloque plus l'affichage : chargé à part, l'étagère passe en 3D quand il arrive
+T3 = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
+assert T3 in s
+s = s.replace(T3, '<script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onload="window.glThree&&glThree()"></script>', 1)
+
 # 4. Service worker (mise à jour automatique + hors ligne)
-s = s.replace("</body>", '<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML=\'<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>\';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body>', 1)
+s = s.replace("</body>", '<script>(function(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})})()</script><script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML=\'<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>\';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body>', 1)
 
 # 4 bis. Les gros blocs (contenu des cours, moteur de l'appli) passent dans des fichiers à part, nommés d'après leur empreinte :
 # la page reste légère (elle arrive vite même en 4G) et le téléphone garde ces fichiers tant qu'ils ne changent pas.
