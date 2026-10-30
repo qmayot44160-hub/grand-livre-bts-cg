@@ -2029,7 +2029,7 @@ function ficheTrain(c, compact) {
   const exBtn = k => exBtnHTML(k, c.cat);
   return `<section class="fiche-train${compact ? " compact" : ""}" style="${hueStyle(c.cat)}"><p class="eyebrow">S'entraîner sur cette fiche</p>
     <div class="ft-main">${dwBtn(c)}${nq ? `<button class="btn primary" data-act="chQuiz" data-ch="${c.id}">Quiz de la fiche (${nq})</button>` : ""}${nf ? `<button class="btn" data-act="chCards" data-ch="${c.id}">Cartes (${nf})</button>` : ""}${ctl ? `<button class="btn" data-act="ctlStart" data-k="${c.id}">Contrôle du chapitre</button>` : ""}</div>
-    ${all.length ? `<div class="ft-grid">${all.map(exBtn).join("")}</div>` : ""}
+    ${all.length ? `<details class="ft-more"><summary>Exercices sur cette fiche (${all.length})</summary><div class="ft-grid">${all.map(exBtn).join("")}</div></details>` : ""}
   </section>`;
 }
 /* Fiche récap : l'idée, l'essentiel, les définitions, les tableaux et les pièges, sans les explications ni les exemples (qui restent dans la fiche détaillée) */
@@ -2038,16 +2038,30 @@ const firstSent = t => { const m = String(t).match(/^.{25,}?[.!?](?=\s+[A-ZÀÂ�
 function ficheRecap(c) {
   const all = (c.sections || []).flatMap(s => s.b || []), tabs = all.filter(b => b[0] === "t"), traps = all.filter(b => b[0] === "trap" || b[0] === "w");
   /* Définitions : celles du cours (pas les versions « En clair » pour débuter), sans doublon */
-  const nk2 = t => String(t).toLowerCase().replace(/\(.*?\)/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).map(w => w.replace(/s$/, "")).join(" ");
+  const nk2 = t => String(t).toLowerCase().replace(/\(.*?\)/g, "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).map(w => w.replace(/s$/, "")).join(" ");
   const seen = new Set(), defs = [];
   (c.sections || []).filter(s => !/^en clair/i.test(s.h)).concat((c.sections || []).filter(s => /^en clair/i.test(s.h))).forEach(s => (s.b || []).forEach(b => { if (b[0] !== "d") return; const k = nk2(b[1]); if (seen.has(k)) return; seen.add(k); defs.push(b); }));
-  return `<div class="md fiche-recap">
-    <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
-    ${c.points && c.points.length ? `<h4>L'essentiel</h4><ul class="recap-pts">${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul>` : ""}
-    ${defs.length ? `<h4>Les mots à savoir définir</h4><dl class="recap-defs">${defs.map(b => `<div><dt>${h(b[1])}</dt><dd>${h(firstSent(b[2]))}</dd></div>`).join("")}</dl>` : ""}
+  const cut = (t, n) => { t = String(t).replace(/\s+/g, " ").trim(); if (t.length <= n) return t; const k = t.lastIndexOf(" ", n); return t.slice(0, k > n * .6 ? k : n).replace(/[,;:]$/, "") + "…"; };
+  const txt = b => String(b[1] || "").replace(/^(Important|Attention|Piège|À noter)\s*:\s*/i, "");
+  /* Un point « A → B → C » devient une chaîne, un point « X = … » une formule, le reste une ligne courte */
+  const viz = p => {
+    const t = String(p).replace(/\.$/, "");
+    if (/ → /.test(t) && t.split(" → ").length >= 3 && t.length < 160) return `<li class="rv-flow">${t.split(" → ").map(x => `<span>${h(x)}</span>`).join('<i aria-hidden="true">›</i>')}</li>`;
+    const m = t.match(/^([^=]{1,48}?)\s=\s(.+)$/);
+    if (m && !/[.;]\s/.test(m[1])) return `<li class="rv-f"><b>${h(m[1])}</b><span>= ${h(m[2])}</span></li>`;
+    const kv = t.match(/^([^:]{2,42}?)\s:\s(.+)$/);
+    if (kv) return `<li class="rv-p"><b class="rv-k">${h(kv[1])}</b> ${h(cut(kv[2], 150))}</li>`;
+    return `<li class="rv-p">${h(cut(t, 170))}</li>`;
+  };
+  const pts = (c.points || []).slice(0, 5), D = defs.slice(0, 4), more = defs.slice(4);
+  const idee = firstSent(c.idee);
+  return `<div class="fiche-recap rv" style="${hueStyle(c.cat)}">
+    <p class="rv-key">${h(idee)}</p>
+    ${pts.length ? `<section class="rv-sec"><h4 class="rv-h"><span>1</span>L'essentiel</h4><ul class="rv-pts">${pts.map(viz).join("")}</ul></section>` : ""}
+    ${D.length ? `<section class="rv-sec"><h4 class="rv-h"><span>${pts.length ? 2 : 1}</span>Les mots clés</h4><dl class="rv-defs">${D.map(b => `<div><dt>${h(b[1])}</dt><dd>${h(cut(firstSent(b[2]), 120))}</dd></div>`).join("")}</dl>
+      ${more.length ? `<details class="rv-more"><summary>${more.length} autre${more.length > 1 ? "s" : ""} mot${more.length > 1 ? "s" : ""}</summary><dl class="rv-defs">${more.map(b => `<div><dt>${h(b[1])}</dt><dd>${h(cut(firstSent(b[2]), 120))}</dd></div>`).join("")}</dl></details>` : ""}</section>` : ""}
+    ${traps.length ? `<section class="rv-sec"><h4 class="rv-h rv-hw"><span>!</span>Les pièges</h4><ul class="rv-traps">${traps.slice(0, 3).map(b => `<li>${h(cut(txt(b), 150))}</li>`).join("")}</ul></section>` : ""}
     ${tabs.length ? `<details class="recap-tabs"><summary>${tabs.length > 1 ? `Les ${tabs.length} tableaux` : "Le tableau"} de la fiche</summary>${blocksHTML(tabs)}</details>` : ""}
-    ${traps.length ? `<h4>Les pièges</h4>${blocksHTML(traps)}` : ""}
-    <p class="recap-more"><button class="btn small" data-act="fmode" data-m="full">Lire la fiche détaillée</button><span class="muted small">explications, exemples et exercices</span></p>
   </div>`;
 }
 function vFiche() {
@@ -2067,7 +2081,7 @@ function vFiche() {
       <h1>${h(c.title)}</h1>
       ${(() => { const L = chLes(c.id); return L.length ? `<p class="fi-les"><span class="muted">Lire la leçon :</span> ${L.map(([cid, k]) => `<button class="linkbtn" data-act="lesson" data-cid="${cid}" data-k="${k}">${inl(lessonLabel(SPLIT(cid)[k].title, k).t)}</button>`).join(" · ")}</p>` : ""; })()}
       ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
-      <div class="picker fmode" role="tablist" aria-label="Version de la fiche"><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Récap</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Fiche détaillée</button></div>
+      <div class="picker fmode" role="tablist" aria-label="Version de la fiche"><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Résumé</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Version longue</button></div>
       ${FMODE === "recap" ? ficheRecap(c) : `<div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
         ${(c.sections || []).map((s, si) => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}${ficheInlineEx(c, si)}`).join("")}
