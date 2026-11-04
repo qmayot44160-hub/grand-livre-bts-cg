@@ -507,7 +507,8 @@ function levelUpFx(L) {
 const TOUR = [
   [".plan", "Ta séance du jour", "Trois étapes, environ 20 minutes. Le bouton « Commencer la séance » les enchaîne pour toi."],
   ['[data-nav="ex"]', "S'entraîner", "Quiz, exercices chiffrés, cas guidés, annales et rédactions, rangés par onglet. Ton cahier des erreurs est là aussi."],
-  ['[data-nav="amis"]', "Amis", "Ajoute tes camarades avec leur code ami, compare vos semaines, défie-les en duel ou révisez ensemble en direct."],
+  [".gs-entry", "Tout retrouver", "Tape un mot (« TVA », « quiz amortissement », « mémoire ») : leçons, fiches, quiz et pages de l'appli s'affichent."],
+  ['[data-nav="amis"]', "Amis", "En haut à gauche : tes camarades, qui est en ligne, les duels et les quiz à plusieurs. Ajoute-les avec leur code ami."],
   ['[data-nav="bts"]', "Mon BTS", "Le compte à rebours, le poids de chaque épreuve et ton équilibre de révision."],
   [".who", "Ton niveau", "Tu gagnes des XP en répondant juste. Une question réussie deux jours différents devient acquise : tampon !"]
 ];
@@ -751,7 +752,7 @@ function vHome() {
   const known = Object.values(S.c).filter(r => r[0] >= 3).length;
   const st = streakNow();
   return `
-  <section class="hero3d">
+  <section class="hero3d hero-flat">
     <div class="hero-text">
       <p class="date">${h(todayLabel())}</p>
       <h1>${greet()}, on avance ?</h1>
@@ -762,14 +763,13 @@ function vHome() {
         <span class="pill">Fiches lues : <b>${Object.keys(S.fr || {}).length} sur ${CHAP.length}</b></span>
       </div>
     </div>
-    <div class="shelf" id="shelf3d"><p class="shelf-label" id="shelfLabel">${shelfHint()}</p></div>
   </section>
-  <button class="gs-entry" data-act="gsOpen">${I2.search}<span>Cherche un cours, une fiche, un quiz : « TVA », « quiz amortissement »…</span></button>
   <section class="plan" aria-labelledby="planTitle">
     <div class="plan-head"><h2 id="planTitle">Ta séance du jour</h2><span>${nDone} étape${nDone > 1 ? "s" : ""} sur 3 · tirée de <button class="linkbtn" data-act="plSee">ton plan de la semaine</button></span></div>
     <ol class="steps">${steps.map((s, i) => `<li class="step${s.done ? " done" : ""}"><span class="num">${s.done ? ICON.check : i + 1}</span><div><b>${s.title}</b><p>${s.text}</p></div>${s.btn}</li>`).join("")}</ol>
     ${nDone === 3 ? `<p class="plan-done">Séance terminée. Tout ce que tu fais en plus aujourd'hui, c'est de l'avance.</p>` : `<button class="btn primary plan-go" data-act="planGo">${nDone ? "Continuer la séance" : "Commencer la séance"}</button>`}
   </section>
+  <button class="gs-entry" data-act="gsOpen">${I2.search}<span>Cherche un cours, une fiche, un quiz : « TVA », « quiz amortissement »…</span></button>
   ${rxHomeCard()}
   ${bbHomeCard()}
   ${memoHomeCard()}
@@ -782,35 +782,10 @@ function vHome() {
     <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
     ${groupsOf(dividerCours)}
   </section>
-  <section class="stack">
-    <h2>Raccourcis</h2>
-    <div class="shortcuts">
-      <button class="shortcut" data-act="defi"><span class="ic">${ICON.clock}</span><span><b>Défi 60 secondes</b><span>Un maximum de bonnes réponses en une minute, sans calculs.</span></span></button>
-      <button class="shortcut" data-nav="fiches"><span class="ic">${ICON.cards}</span><span><b>Toutes les fiches</b><span>${CHAP.length} fiches-chapitres et le mémo express, avec une recherche.</span></span></button>
-      <button class="shortcut" data-nav="ex"><span class="ic">${ICON.pen}</span><span><b>Annales officielles</b><span>${ANN.length} sujets de 2021 à 2026, avec leurs corrigés.</span></span></button>
-      <button class="shortcut" data-act="lesson" data-cid="or" data-k="1"><span class="ic">${ICON.talk}</span><span><b>Préparer les oraux</b><span>E6, E7 et E8 : quoi préparer, et quand.</span></span></button>
-    </div>
-  </section>
-  <section class="progress-box">
-    <div class="stack">
-      <span class="eyebrow">Ton niveau</span>
-      <span class="lvl-big">${h(L.name)}</span>
-      <div class="bar gold"><i style="width:${prog}%"></i></div>
-      <p class="muted">${L.next ? `${S.xp} XP. Encore ${L.next - S.xp} XP pour devenir ${h(L.nextName.toLowerCase())}.` : `${S.xp} XP. Niveau maximum atteint.`}</p>
-      ${weekAcq().soon ? `<p class="muted small">${weekAcq().soon} question${weekAcq().soon > 1 ? "s" : ""} en bonne voie : réussis-les encore dans quelques jours pour qu'elles deviennent acquises.</p>` : ""}
-      <button class="btn small" data-nav="profil">Mon profil et réglages</button>
-    </div>
-    <div class="stack">
-      <div class="figs">
-        <div class="fig"><b>${tl.r}<small class="muted">/${tl.n}</small></b><span>leçons lues</span></div>
-        <div class="fig"><b>${known}</b><span>cartes bien sues</span></div>
-        <div class="fig"><b>+${weekAcq().n}</b><span>questions acquises cette semaine</span></div>
-        <div class="fig"><b>${exCount()}</b><span>exercices pratiqués</span></div>
-      </div>
-      <div class="row fb-row"><button class="btn small" data-act="feedback">Une idée ou un souci ? Donne ton avis</button></div>
-      <div class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></div>
-    </div>
-  </section>`;
+  <footer class="home-foot">
+    <button class="btn small" data-act="feedback">Une idée ou un souci ? Donne ton avis</button>
+    <p class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></p>
+`;
 }
 
 
