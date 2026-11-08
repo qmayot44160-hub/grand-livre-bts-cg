@@ -1208,7 +1208,27 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         el("button", { cls: "btn small danger", text: "Retirer le contenu", onclick: function () { pSend(""); } })
       ])
     ]);
-    setView([prof, el("p", { cls: "eyebrow", text: "Contenu personnel" }), perso, el("p", { cls: "eyebrow", text: "Apparence" }), look, el("p", { cls: "eyebrow", text: "Utilisation" }), use, el("p", { cls: "eyebrow", text: "Compte" }), more, el("p", { cls: "muted small", style: "text-align:center", text: "GL Admin · Grand Livre BTS CG" })]);
+    /* Accès au DCG : les comptes cochés voient la formation DCG (fiches et quiz des Geeks des Chiffres) */
+    var dcgList = el("div", { style: "display:grid;gap:6px" }, [el("p", { cls: "muted small", text: "Chargement…" })]), dcgQ = "";
+    var dcgFind = el("input", { type: "search", placeholder: "Chercher un compte", "aria-label": "Chercher un compte", style: "width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border:1px solid var(--rule, #d0d7e2);border-radius:8px;background:transparent;color:inherit" });
+    var dcgDraw = function (users) {
+      dcgList.innerHTML = "";
+      var on = users.filter(function (u) { return u.dcg || u.admin; }).length;
+      dcgList.append(el("p", { cls: "muted small", style: "margin:0", text: on + " compte" + (on > 1 ? "s ont" : " a") + " accès au DCG (les administrateurs l'ont toujours)." }));
+      users.filter(function (u) { return !dcgQ || u.name.toLowerCase().indexOf(dcgQ) >= 0; }).forEach(function (u) {
+        var b = el("button", { cls: "sw", role: "switch", "aria-checked": String(!!(u.dcg || u.admin)), "aria-label": "Accès au DCG pour " + u.name, disabled: u.admin ? "" : null, onclick: async function () {
+          b.disabled = true;
+          try { var r = await call("/api/admin/dcg", { id: u.id, allow: !u.dcg }); CACHE.dcg = r.users; dcgDraw(r.users); toast(!u.dcg ? "DCG ouvert à " + u.name : "DCG fermé pour " + u.name); }
+          catch (x) { toast(x.message); b.disabled = false; }
+        } });
+        if (!u.admin) b.removeAttribute("disabled");
+        dcgList.append(setRow(u.name, u.admin ? "Administrateur" : (u.dcg ? "A accès au DCG" : "BTS seulement"), b));
+      });
+    };
+    dcgFind.addEventListener("input", function () { dcgQ = dcgFind.value.trim().toLowerCase(); if (CACHE.dcg) dcgDraw(CACHE.dcg); });
+    var dcg = el("div", { cls: "card set", style: "display:grid;gap:10px;min-width:0" }, [el("p", { cls: "muted small", style: "margin:0", text: "Seuls les comptes cochés voient la formation DCG (fiches et quiz des Geeks des Chiffres). Les autres ne voient que le BTS. Le changement s'applique au prochain chargement de leur appli." }), dcgFind, dcgList]);
+    call("/api/admin/dcg", {}).then(function (r) { CACHE.dcg = r.users; dcgDraw(r.users); }).catch(function (x) { dcgList.innerHTML = ""; dcgList.append(el("p", { cls: "muted small", text: x.message })); });
+    setView([prof, el("p", { cls: "eyebrow", text: "Accès au DCG" }), dcg, el("p", { cls: "eyebrow", text: "Contenu personnel" }), perso, el("p", { cls: "eyebrow", text: "Apparence" }), look, el("p", { cls: "eyebrow", text: "Utilisation" }), use, el("p", { cls: "eyebrow", text: "Compte" }), more, el("p", { cls: "muted small", style: "text-align:center", text: "GL Admin · Grand Livre BTS CG" })]);
   }
 
   /* ---------- Visite guidée ---------- */

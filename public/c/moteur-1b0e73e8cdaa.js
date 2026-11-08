@@ -3,6 +3,9 @@
 const CAT = Object.fromEntries(CATS.concat(FORMATION.hiddenCats || []).map(c => [c.id, c]));
 const IS_DCG = FORMATION.id === "dcg", FORM_CUR = IS_DCG ? "dcg" : "bts";
 document.documentElement.classList.toggle("form-dcg", IS_DCG);
+/* Le DCG n'est ouvert qu'aux comptes choisis par l'administrateur (le serveur le dit à la page) */
+const DCG_OK = IS_DCG || (window.GL_DCG !== false && !window.GL_DCG_NO);
+if (!IS_DCG && !DCG_OK) { try { if (localStorage.getItem("gl-form") === "dcg") localStorage.setItem("gl-form", "bts"); } catch (e) {} }
 /* Changer de formation : on garde le choix sur l'appareil (le chargeur de la page lit « gl-form ») et dans la progression, puis on recharge */
 function setForm(f, noReload) {
   try { localStorage.setItem("gl-form", f); } catch (e) {}
@@ -557,7 +560,7 @@ function formPick(first) {
   document.body.appendChild(d);
   d.addEventListener("click", e => {
     const b = e.target.closest(".fp-card");
-    if (b) { const f = b.dataset.f; S.form = f; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} d.remove(); if (f !== FORM_CUR) { setForm(f); } else { setForm(f, true); if (view === "home" && !S.tour && tourI < 0) setTimeout(tourStart, 500); } return; }
+    if (b) { const f = b.dataset.f; S.form = f; S.formAsk = 1; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} d.remove(); if (f !== FORM_CUR) { setForm(f); } else { setForm(f, true); if (view === "home" && !S.tour && tourI < 0) setTimeout(tourStart, 500); } return; }
     if (e.target.closest(".fp-close") || (!first && e.target === d)) d.remove();
   });
   const f0 = d.querySelector(".fp-card"); if (f0) f0.focus();
@@ -701,8 +704,11 @@ function render() {
   v.dataset.view = view;
   renderTop();
   bindView();
-  if (S.form && S.form !== FORM_CUR) setForm(S.form);
-  if (view === "home" && !S.form) setTimeout(() => { if (view === "home" && !S.form && !document.querySelector(".gl-auth, .form-pick")) formPick(true); }, 600);
+  if (S.form === "dcg" && !DCG_OK) { S.form = "bts"; touch(); setForm("bts", true); }
+  else if (S.form && S.form !== FORM_CUR) setForm(S.form);
+  if (!S.form && !DCG_OK) { S.form = "bts"; touch(); }
+  const askF = () => !S.form || (DCG_OK && !S.formAsk && !isGuest());
+  if (view === "home" && askF()) setTimeout(() => { if (view === "home" && askF() && !document.querySelector(".gl-auth, .form-pick")) formPick(true); }, 600);
   else if (view === "home" && !S.tour && tourI < 0) setTimeout(() => { if (view === "home" && !S.tour && tourI < 0 && !document.querySelector(".gl-auth, .fx-lvl")) tourStart(); }, 900);
   bindFusion();
   bindAnn();
@@ -1322,7 +1328,7 @@ function vProfil() {
     </section>` : ""}
     ${PFT.t === "set" ? `<section class="stack pf-prefs">
       <div class="pf-set">
-        <div class="pf-row"><div><b>Ma formation</b><span>L'appli n'affiche que les matières de ta formation. Ta progression est gardée pour les deux.</span></div><div class="seg-sm" role="group" aria-label="Ma formation">${[["bts", "BTS CG"], ["dcg", "DCG"]].map(([k, l]) => `<button class="chip" data-act="formSet" data-f="${k}" aria-pressed="${FORM_CUR === k}">${l}</button>`).join("")}</div></div>
+        ${DCG_OK ? "" : "<!--"}<div class="pf-row"><div><b>Ma formation</b><span>L'appli n'affiche que les matières de ta formation. Ta progression est gardée pour les deux.</span></div><div class="seg-sm" role="group" aria-label="Ma formation">${[["bts", "BTS CG"], ["dcg", "DCG"]].map(([k, l]) => `<button class="chip" data-act="formSet" data-f="${k}" aria-pressed="${FORM_CUR === k}">${l}</button>`).join("")}</div></div>${DCG_OK ? "" : "-->"}
         <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "Jour"], ["dark", "Nuit"]])}</div>
         <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
@@ -5021,7 +5027,7 @@ document.addEventListener("click", e => {
     case "lvlClose": document.querySelectorAll(".fx-lvl").forEach(x => x.remove()); break;
     case "tourNext": tourI++; if (tourI >= TOUR.length) tourEnd(); else tourShow(); break;
     case "tourEnd": tourEnd(); break;
-    case "formSet": { const f = b.dataset.f; if (f === FORM_CUR) break; S.form = f; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} setForm(f); break; }
+    case "formSet": { const f = b.dataset.f; if (f === FORM_CUR || (f === "dcg" && !DCG_OK)) break; S.form = f; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} setForm(f); break; }
     case "formPick": formPick(false); break;
     case "tourAgain": S.tour = 0; go("home"); setTimeout(tourStart, 400); break;
     case "planGo": { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); break; }

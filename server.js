@@ -48,9 +48,14 @@ async function persoFor(u) {
   PERSO.set(u.id, js); if (PERSO.size > 200) PERSO.delete(PERSO.keys().next().value);
   return js;
 }
+/* Accès au DCG : seuls les comptes choisis dans GL Admin (et les administrateurs) voient le DCG. Réglage « dcg:allow » = { id: nom }. */
+let DCG_ALLOW = {};
+async function loadDcgAllow() { try { DCG_ALLOW = JSON.parse((await store.getSetting("dcg:allow")) || "{}") || {}; } catch (e) { DCG_ALLOW = {}; } }
+const isAdminAccount = u => !!(u && !u.guest && ADMIN_USERS.includes(u.name_key || nameKey(u.name)));
+const dcgOk = u => !!(u && !u.guest && (DCG_ALLOW[u.id] || isAdminAccount(u)));
 function appFor(u, perso) {
   perso = CONTENT_END > 0 ? (perso || "") : "";
-  const me = u.guest ? { id: "guest", name: "", ai: false, guest: true } : { id: u.id, name: u.name, ai: !!AI_KEY }, key = JSON.stringify(me) + (perso ? "|" + crypto.createHash("sha1").update(perso).digest("hex") : "");
+  const me = u.guest ? { id: "guest", name: "", ai: false, guest: true } : { id: u.id, name: u.name, ai: !!AI_KEY, dcg: dcgOk(u) }, key = JSON.stringify(me) + (perso ? "|" + crypto.createHash("sha1").update(perso).digest("hex") : "");
   let c = appCache.get(u.id);
   if (c && c.key === key) { appCache.delete(u.id); appCache.set(u.id, c); return c; }
   /* contenu personnel : passé au chargeur de la page sous forme de script Blob, exécuté entre le contenu et le moteur */
@@ -202,13 +207,25 @@ app.get("/c/:f", (req, res) => {
   if (/\bgzip\b/.test(ae)) { c.gz = c.gz || zlib.gzipSync(c.raw, { level: 7 }); res.setHeader("Content-Encoding", "gzip"); return res.end(c.gz); }
   res.end(c.raw);
 });
+/* Contenu DCG (fiches et quiz) : servi seulement aux comptes autorisés ; sinon un script vide qui le signale à l'appli */
+const DCG_JS_PATH = path.join(__dirname, "private", "dcg_content.js");
+let DCG_JS = null;
+app.get("/api/dcg-content.js", async (req, res) => {
+  let usr = null; try { usr = await currentUser(req); } catch (e) {}
+  res.type("application/javascript"); res.setHeader("Cache-Control", "private, no-cache");
+  if (!dcgOk(usr)) return res.send("window.GL_DCG_NO=1;");
+  if (!DCG_JS) { try { DCG_JS = fs.readFileSync(DCG_JS_PATH); } catch (e) { return res.send("window.GL_DCG_NO=1;"); } }
+  const tag = '"dcg-' + crypto.createHash("sha1").update(DCG_JS).digest("hex").slice(0, 12) + '"';
+  if (req.headers["if-none-match"] === tag) return res.status(304).end();
+  res.setHeader("ETag", tag); res.send(DCG_JS);
+});
 /* Fiches DCG (Les Geeks des Chiffres, intégrées avec leur accord pour la classe) : réservées aux comptes connectés */
 const DCG_DIR = path.join(__dirname, "private", "dcg");
 app.get("/dcg/:u/:f", async (req, res) => {
   const { u, f } = req.params;
   if (!/^u\d{1,2}$/.test(u) || !/^f\d{1,3}-\d{1,2}\.webp$/.test(f)) return res.status(404).end();
   let usr = null; try { usr = await currentUser(req); } catch (e) {}
-  if (!usr || usr.guest) return res.status(401).end();
+  if (!dcgOk(usr)) return res.status(usr && !usr.guest ? 403 : 401).end();
   const p = path.join(DCG_DIR, u, f); if (!fs.existsSync(p)) return res.status(404).end();
   res.setHeader("Cache-Control", "private, max-age=2592000"); res.type("image/webp"); fs.createReadStream(p).pipe(res);
 });
@@ -883,6 +900,20 @@ app.post("/api/admin/perso", async (req, res, next) => {
     res.json({ ok: true, name: u.name, size: js.length });
   } catch (e) { next(e); }
 });
+/* Accès au DCG : liste des comptes avec leur accès ; { id, allow } pour l'ouvrir ou le fermer */
+app.post("/api/admin/dcg", async (req, res, next) => {
+  try {
+    if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
+    if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
+    const users = await store.listUsers();
+    if (req.body.id) {
+      const u = users.find(x => x.id === req.body.id); if (!u) return res.status(404).json({ error: "Compte introuvable." });
+      if (req.body.allow) DCG_ALLOW[u.id] = u.name; else delete DCG_ALLOW[u.id];
+      await store.setSetting("dcg:allow", JSON.stringify(DCG_ALLOW)); appCache.delete(u.id);
+    }
+    res.json({ users: users.map(x => ({ id: x.id, name: x.name, dcg: !!DCG_ALLOW[x.id], admin: ADMIN_USERS.includes(nameKey(x.name)) })) });
+  } catch (e) { next(e); }
+});
 app.post("/api/admin/errors", (req, res) => {
   if (adBlocked(req)) return res.status(429).json({ error: "Trop d'essais." });
   if (!adminOk(req)) return res.status(403).json({ error: "Clé d'administration incorrecte (ou ADMIN_KEY non définie)." });
@@ -1220,7 +1251,8 @@ async function applyPersoEnv() {
   PERSO.delete(u.id); appCache.delete(u.id);
   console.log("Contenu personnel appliqué au compte " + u.name + " (" + js.length + " caractères)");
 }
-store.init().then(() => {
+store.init().then(async () => {
+  await loadDcgAllow();
   applyPersoEnv().catch(e => console.error("Contenu personnel :", e.message));
   setInterval(pushTick, 5 * 60e3).unref(); setTimeout(pushTick, 20e3).unref();
   setInterval(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60 * 60e3).unref(); setTimeout(() => dailyBackup(false).catch(e => console.error("Sauvegarde", e)), 60e3).unref();

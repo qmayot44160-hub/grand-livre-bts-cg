@@ -100,10 +100,11 @@ s = split_script(s, lambda a, b: "src=" not in a and len(b) > 200000, "moteur")
 # 4 ter. Chargement après le premier affichage : le téléphone montre d'abord l'écran de lancement (sinon le navigateur
 # exécute contenu et moteur avant de peindre quoi que ce soit, et l'écran système reste seul jusqu'à l'accueil).
 # Les fichiers se téléchargent tout de suite (preload), puis s'exécutent dans l'ordre : contenu, contenu personnel, moteur.
-# Contenu DCG : appliqué par-dessus le contenu BTS quand l'élève a choisi le DCG (fichier chargé seulement dans ce cas)
+# Contenu DCG : appliqué par-dessus le contenu BTS quand l'élève a choisi le DCG et que son compte y a accès
 dcg = open(os.path.join(HERE, "dcg_overlay.js"), encoding="utf-8").read()
-DCG_URL = "/c/dcg-%s.js" % hashlib.sha1(dcg.encode("utf-8")).hexdigest()[:12]
-open(os.path.join(cdir, DCG_URL[3:]), "w", encoding="utf-8").write(dcg)
+# servi par le serveur aux seuls comptes autorisés (jamais dans public/)
+DCG_URL = "/api/dcg-content.js?v=%s" % hashlib.sha1(dcg.encode("utf-8")).hexdigest()[:12]
+open(os.path.join(HERE, "..", "private", "dcg_content.js"), "w", encoding="utf-8").write(dcg)
 mc = re.search(r'<script id="gl-content"([^>]*) src="(/c/contenu-[0-9a-f]{12}\.js)"></script>', s)
 mm = re.search(r'<script src="(/c/moteur-[0-9a-f]{12}\.js)"></script>', s)
 assert mc and mm and mc.end() < mm.start()

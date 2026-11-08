@@ -2,7 +2,7 @@
    par celles du serveur du site. Injecté avant le code de l'appli. */
 (function () {
   var ME = __GL_ME__, GUEST = !!ME.guest;
-  window.GL_NAME = ME.name; window.GL_GUEST = GUEST;
+  window.GL_NAME = ME.name; window.GL_GUEST = GUEST; window.GL_DCG = !!ME.dcg;
   /* Clés du stockage local : celle de ce compte (réécrite par le serveur) et celle de l'essai sans compte. */
   var UK = "grand-livre-btscg-v1", GK = "grand-livre-btscg-" + "v1-guest";
   /* Essai : sur un appareil partagé, un essai abandonné depuis plus de 2 jours repart de zéro */
