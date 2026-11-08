@@ -1,6 +1,15 @@
 
 /* ---------- Préparation des données ---------- */
-const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const CAT = Object.fromEntries(CATS.concat(FORMATION.hiddenCats || []).map(c => [c.id, c]));
+const IS_DCG = FORMATION.id === "dcg", FORM_CUR = IS_DCG ? "dcg" : "bts";
+document.documentElement.classList.toggle("form-dcg", IS_DCG);
+/* Changer de formation : on garde le choix sur l'appareil (le chargeur de la page lit « gl-form ») et dans la progression, puis on recharge */
+function setForm(f, noReload) {
+  try { localStorage.setItem("gl-form", f); } catch (e) {}
+  if (f === FORM_CUR || noReload) return;
+  try { const n = +(sessionStorage.getItem("gl-form-rl") || 0); if (n > 2) return; sessionStorage.setItem("gl-form-rl", n + 1); } catch (e) {}
+  setTimeout(() => location.reload(), 350);
+}
 
 const QS = [], FS = [];
 (() => {
@@ -37,6 +46,8 @@ const $ = s => document.querySelector(s);
 const h = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const dayNum = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 const shuffle = a => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+/* Positions des réponses d'une question : 2 à 4 (vrai/faux, QCM) */
+const oIdx = it => (it && Array.isArray(it.o) ? it.o.map((x, i) => i).filter(i => it.o[i] != null && (it.o[i] !== "" || i < 2)) : [0, 1, 2, 3]);
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 
 /* ---------- Progression (base de données privée, sinon cet appareil) ---------- */
@@ -535,6 +546,22 @@ function tourShow() {
   tip.style.top = (below + th < innerHeight - 8 && !big ? below : Math.max(12, r.top - th - 16)) + "px";
   const nb = tip.querySelector(".primary"); if (nb) nb.focus({ preventScroll: true });
 }
+/* Fenêtre « Ta formation » : BTS CG ou DCG */
+function formPick(first) {
+  document.querySelectorAll(".form-pick").forEach(x => x.remove());
+  const d = document.createElement("div"); d.className = "form-pick"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "fpT");
+  const card = (k, t, sub, li) => `<button class="fp-card${FORM_CUR === k && !first ? " is-cur" : ""}" data-f="${k}"><b>${t}</b><span>${sub}</span><small>${li}</small></button>`;
+  d.innerHTML = `<div class="fp-box"><h2 id="fpT">Ta formation</h2><p class="muted">L'appli n'affiche que les cours de ta formation. Tu pourras en changer dans ton profil, ta progression est gardée.</p>
+    <div class="fp-grid">${card("bts", "BTS CG", "BTS Comptabilité et Gestion", "Leçons, fiches, quiz, annales, oraux E4 à E8")}${card("dcg", "DCG", "Diplôme de comptabilité et de gestion", "Les 13 UE : fiches illustrées et quiz")}</div>
+    ${first ? "" : `<button class="btn small fp-close" type="button">Fermer</button>`}</div>`;
+  document.body.appendChild(d);
+  d.addEventListener("click", e => {
+    const b = e.target.closest(".fp-card");
+    if (b) { const f = b.dataset.f; S.form = f; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} d.remove(); if (f !== FORM_CUR) { setForm(f); } else { setForm(f, true); if (view === "home" && !S.tour && tourI < 0) setTimeout(tourStart, 500); } return; }
+    if (e.target.closest(".fp-close") || (!first && e.target === d)) d.remove();
+  });
+  const f0 = d.querySelector(".fp-card"); if (f0) f0.focus();
+}
 function tourStart() { if (tourI >= 0) return; tourI = 0; tourShow(); }
 function tourEnd() { tourI = -1; document.querySelectorAll(".tour").forEach(x => x.remove()); S.tour = 1; touch(); }
 window.addEventListener("resize", () => { if (tourI >= 0) tourShow(); });
@@ -548,7 +575,7 @@ function applyPrefs() {
 }
 let prefSeenQ = null;
 let chapSel = [];   // chapitres choisis (quiz et flashcards) ; vide pour une matière = toute la matière
-let cibleCat = "p1";
+let cibleCat = CATS[0].id;
 const chKey = x => (x.ch && CHID[x.ch] ? x.ch : x.c + ":g");
 const chCat = k => (CHID[k] ? CHID[k].cat : k.split(":")[0]);
 function chapOk(x) { return yrQ(x) && (!chapSel.some(k => chCat(k) === x.c) || chapSel.includes(chKey(x))); }
@@ -596,8 +623,9 @@ const ICON = {
 };
 const HUE = { p1: [220, 64], p2: [170, 62], p3: [265, 50], p4: [335, 58], p5: [28, 78], p6: [132, 46], p7: [228, 20], ma: [5, 62], ce: [194, 70], cg: [300, 38], an: [42, 78], me: [214, 24] };
 const LD = { p2: 10, p6: 7, ce: 7, an: 8, p5: 3 };
+Object.assign(HUE, FORMATION.hue || {});
 const hueStyle = cat => { const x = HUE[cat] || [228, 40]; return `--ld:${LD[cat] || 0}%;--h:${x[0]};--s:${x[1]}%`; };
-let matCat = "p1", matSeg = "lecons", LS = null, ficheQuery = "", matFicheQuery = "", coursQuery = "";
+let matCat = CATS[0].id, matSeg = IS_DCG ? "fiche" : "lecons", LS = null, ficheQuery = "", matFicheQuery = "", coursQuery = "";
 
 function normS() { S.q = S.q || {}; S.c = S.c || {}; S.l = S.l || {}; S.x = S.x || {}; S.st = S.st || { d: 0, n: 0 };  migL(S); }
 /* Leçons insérées ou réordonnées : les leçons lues suivent leur nouveau numéro (LES_MIG, par cours et par version) */
@@ -673,7 +701,9 @@ function render() {
   v.dataset.view = view;
   renderTop();
   bindView();
-  if (view === "home" && !S.tour && tourI < 0) setTimeout(() => { if (view === "home" && !S.tour && tourI < 0 && !document.querySelector(".gl-auth, .fx-lvl")) tourStart(); }, 900);
+  if (S.form && S.form !== FORM_CUR) setForm(S.form);
+  if (view === "home" && !S.form) setTimeout(() => { if (view === "home" && !S.form && !document.querySelector(".gl-auth, .form-pick")) formPick(true); }, 600);
+  else if (view === "home" && !S.tour && tourI < 0) setTimeout(() => { if (view === "home" && !S.tour && tourI < 0 && !document.querySelector(".gl-auth, .fx-lvl")) tourStart(); }, 900);
   bindFusion();
   bindAnn();
   fx3d();
@@ -681,7 +711,7 @@ function render() {
 }
 
 /* Intercalaires de matière */
-const GROUPS = [["pro", "Bloc professionnel", "P1 à P7 : écrit E5 et oraux E6, E7, E8. 23 coefficients sur 39."], ["gen", "Matières générales", "Culture générale, anglais, maths et CEJM. 16 coefficients sur 39."], ["met", "Méthodes", "Ce que les correcteurs attendent, épreuve par épreuve, et la préparation des oraux."]];
+const GROUPS = FORMATION.groups || [["pro", "Bloc professionnel", "P1 à P7 : écrit E5 et oraux E6, E7, E8. 23 coefficients sur 39."], ["gen", "Matières générales", "Culture générale, anglais, maths et CEJM. 16 coefficients sur 39."], ["met", "Méthodes", "Ce que les correcteurs attendent, épreuve par épreuve, et la préparation des oraux."]];
 function divider(c, meta, ratio, act, seg) {
   return `<button class="divider" style="${hueStyle(c.id)}" data-act="${act}" data-cat="${c.id}"${seg ? ` data-seg="${seg}"` : ""}>
     <span class="tabcode">${h(c.code)}</span>
@@ -697,7 +727,7 @@ function groupsOf(fn) {
       <div class="dividers">${CATS.filter(c => c.grp === g).map(fn).join("")}</div>
     </div>`).join("");
 }
-const dividerCours = c => { const ls = lessonStats(c.id); if (!ls.n && YRS() !== "all") return divider(c, `Pas de leçon en ${YR_LBL[YRS()]}`, 0, "mat", "lecons"); return divider(c, `${ls.r} leçon${ls.r > 1 ? "s" : ""} lue${ls.r > 1 ? "s" : ""} sur ${ls.n}`, pct(ls.r, ls.n), "mat", "lecons"); };
+const dividerCours = c => { const ls = lessonStats(c.id); if (!ls.n && IS_DCG) return dividerFiche(c); if (!ls.n && YRS() !== "all") return divider(c, `Pas de leçon en ${YR_LBL[YRS()]}`, 0, "mat", "lecons"); return divider(c, `${ls.r} leçon${ls.r > 1 ? "s" : ""} lue${ls.r > 1 ? "s" : ""} sur ${ls.n}`, pct(ls.r, ls.n), "mat", "lecons"); };
 const dividerFiche = c => { const chs = (CHBY[c.id] || []).filter(x => yrOk(chYrs(x.id))), r = chs.filter(x => ficheRead(x.id)).length; return divider(c, `${chs.length} fiches, ${r} lue${r > 1 ? "s" : ""}`, pct(r, chs.length), "mat", "fiche"); };
 
 /* Accueil */
@@ -725,10 +755,14 @@ function weekAcq() {
 }
 function vHome() {
   const dy = dayLog(), nl = nextLesson(), todayN = todayCount();
-  const lcat = nl ? CMETA(nl.cid).cat : "p1", g = suggestAnn(lcat);
+  const lcat = nl ? CMETA(nl.cid).cat : CATS[0].id, g = suggestAnn(lcat);
+  const nf = IS_DCG ? (() => { const r = CHAP.filter(x => !ficheRead(x.id) && !lockedCat(x.cat)); const ls = S.lastF && CHID[S.lastF] ? CHBY[CHID[S.lastF].cat].find(x => !ficheRead(x.id)) : null; return ls || r[0] || null; })() : null;
   const nlT = nl ? lessonLabel(SPLIT(nl.cid)[nl.k].title, nl.k) : null;
   const dqN = dueQs().length, wk0 = weakChaps(1)[0];
   const steps = [
+    IS_DCG ? { done: (dy.f || 0) > 0, title: "Lire une fiche",
+      text: nf ? `${h(CAT[nf.cat].code)} ${h(CAT[nf.cat].name)} : ${h(nf.title)}` : "Tu as lu toutes les fiches. Relis celles qui te posent problème.",
+      btn: nf ? `<button class="btn primary" data-act="fiche" data-id="${nf.id}">Lire</button>` : `<button class="btn" data-nav="fiches">Voir les fiches</button>` } :
     { done: dy.l > 0, title: "Lire une leçon",
       text: nl ? `${h(CAT[lcat].name)}, ${h(nlT.lab.toLowerCase())} : ${inl(nlT.t)}` : "Tu as lu toutes les leçons. Relis celles qui te posent problème.",
       btn: nl ? `<button class="btn primary" data-act="lesson" data-cid="${nl.cid}" data-k="${nl.k}">${S.last ? "Continuer" : "Commencer"}</button>` : `<button class="btn" data-nav="cours">Voir les cours</button>` },
@@ -756,10 +790,10 @@ function vHome() {
     <div class="hero-text">
       <p class="date">${h(todayLabel())}</p>
       <h1>${greet()}, on avance ?</h1>
-      <button class="countdown" data-nav="bts"><b>${flap(daysLeft())}</b><span>avant les premiers écrits du BTS</span></button>
+      ${IS_DCG ? `<button class="countdown" data-act="formPick"><b>DCG</b><span>13 UE · ${CHAP.length} fiches · ${QS.length} questions</span></button>` : `<button class="countdown" data-nav="bts"><b>${flap(daysLeft())}</b><span>avant les premiers écrits du BTS</span></button>`}
       <div class="hello-side">
         <span class="pill">Série : <b>${st} jour${st > 1 ? "s" : ""}</b></span>
-        <span class="pill">Leçons lues : <b>${tl.r} sur ${tl.n}</b></span>
+        ${tl.n ? `<span class="pill">Leçons lues : <b>${tl.r} sur ${tl.n}</b></span>` : ""}
         <span class="pill">Fiches lues : <b>${Object.keys(S.fr || {}).length} sur ${CHAP.length}</b></span>
       </div>
     </div>
@@ -779,12 +813,12 @@ function vHome() {
   ${amisHomeCard()}
   ${classeCard()}
   <section class="stack">
-    <div class="sec-head"><h2>Tes matières</h2><p>Chaque matière a ses leçons, ses fiches et ses exercices.</p></div>
+    <div class="sec-head"><h2>Tes matières</h2><p>${IS_DCG ? "Chaque UE a ses fiches illustrées et ses quiz." : "Chaque matière a ses leçons, ses fiches et ses exercices."}</p></div>
     ${groupsOf(dividerCours)}
   </section>
   <footer class="home-foot">
     <button class="btn small" data-act="feedback">Une idée ou un souci ? Donne ton avis</button>
-    <p class="notes"><span class="sync" id="syncNote"></span><span>Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves.</span></p>
+    <p class="notes"><span class="sync" id="syncNote"></span><span>${IS_DCG ? "Fiches et quiz du DCG : Les Geeks des Chiffres, avec leur accord." : "Chiffres et règles à jour au 13 octobre 2026. À revérifier en avril 2027, avant les épreuves."}</span></p>
 `;
 }
 
@@ -839,7 +873,7 @@ function startRun(items, mode) {
   markOrig();
   if (isGuest()) { items = items.filter(x => !lockedCat(x.c)); if (!items.length) { R = null; lockSheet(); return; } }
   if (examTick) { clearInterval(examTick); examTick = null; }
-  R = { mode, list: items.map(it => ({ it, order: shuffle([0, 1, 2, 3]), pick: null })), i: 0, start: Date.now(), xp0: S.xp, title: RUN_T }; RUN_T = null;
+  R = { mode, list: items.map(it => ({ it, order: shuffle(oIdx(it)), pick: null })), i: 0, start: Date.now(), xp0: S.xp, title: RUN_T }; RUN_T = null;
   if (mode === "exam") {
     R.end = Date.now() + 20 * 60 * 1000;
     examTick = setInterval(() => {
@@ -1288,6 +1322,7 @@ function vProfil() {
     </section>` : ""}
     ${PFT.t === "set" ? `<section class="stack pf-prefs">
       <div class="pf-set">
+        <div class="pf-row"><div><b>Ma formation</b><span>L'appli n'affiche que les matières de ta formation. Ta progression est gardée pour les deux.</span></div><div class="seg-sm" role="group" aria-label="Ma formation">${[["bts", "BTS CG"], ["dcg", "DCG"]].map(([k, l]) => `<button class="chip" data-act="formSet" data-f="${k}" aria-pressed="${FORM_CUR === k}">${l}</button>`).join("")}</div></div>
         <div class="pf-row"><div><b>Apparence</b><span>Mode jour, mode nuit, ou comme ton appareil.</span></div>${seg("theme", [["auto", "Automatique"], ["light", "Jour"], ["dark", "Nuit"]])}</div>
         <div class="pf-row"><div><b>Taille du texte</b><span>Pour lire plus confortablement.</span></div>${seg("fs", [["m", "Normale"], ["l", "Grande"], ["xl", "Très grande"]])}</div>
         <div class="pf-row"><div><b>Animations</b><span>Coupe les mouvements si tu préfères une appli plus calme.</span></div>${seg("motion", [["on", "Activées"], ["off", "Réduites"]])}</div>
@@ -1329,7 +1364,7 @@ function ctlSection(cat) {
       return `<div class="ctl-row${st.ok ? " is-ok" : ""}"><div class="ctl-t"><b>${h(ch.title)}</b>${badge}</div>${btn}</div>`; }).join("")}</div></section>`;
 }
 function vCible() {
-  const c = CAT[cibleCat] || CAT.p1, q = QS.filter(x => x.c === c.id && chapOk(x)), f = FS.filter(x => x.c === c.id && chapOk(x)), n = chapCount(c.id);
+  const c = (CATS.includes(CAT[cibleCat]) && CAT[cibleCat]) || CATS[0], q = QS.filter(x => x.c === c.id && chapOk(x)), f = FS.filter(x => x.c === c.id && chapOk(x)), n = chapCount(c.id);
   return `<section class="setup" style="${hueStyle(c.id)}">
     <button class="crumb" data-nav="ex">${ICON.back}S'entraîner</button>
     <div><span class="eyebrow"><span class="tabcode">${h(c.code)}</span> ${h(c.name)}</span><h1>Choisis tes chapitres</h1></div>
@@ -1452,7 +1487,7 @@ const SPLITC = {};
 function splitCourse(cid) {
   if (SPLITC[cid]) return SPLITC[cid];
   const secs = [{ title: "", lines: [] }];
-  COURS[cid].split("\n").forEach(l => { if (/^## /.test(l)) secs.push({ title: l.slice(3).trim(), lines: [] }); else secs[secs.length - 1].lines.push(l); });
+  String(COURS[cid] || "").split("\n").forEach(l => { if (/^## /.test(l)) secs.push({ title: l.slice(3).trim(), lines: [] }); else secs[secs.length - 1].lines.push(l); });
   return (SPLITC[cid] = secs);
 }
 const SPLIT = splitCourse;
@@ -1555,7 +1590,7 @@ function vCoursList() {
   const nl = nextLesson(), tl = totalLessons();
   return `<section class="page-head">
       <h1>Cours</h1>
-      <p class="muted">Chaque matière est découpée en leçons courtes, à lire dans l'ordre. Quand tu passes à la leçon suivante, celle que tu viens de lire est cochée. Tu en as lu ${tl.r} sur ${tl.n}.</p>
+      <p class="muted">${IS_DCG ? `Chaque UE est découpée en fiches illustrées, à lire dans l'ordre, chacune avec son quiz. Tu en as lu ${Object.keys(S.fr || {}).filter(id => CHID[id] && CATS.includes(CAT[CHID[id].cat])).length} sur ${CHAP.length}.` : `Chaque matière est découpée en leçons courtes, à lire dans l'ordre. Quand tu passes à la leçon suivante, celle que tu viens de lire est cochée. Tu en as lu ${tl.r} sur ${tl.n}.`}</p>
       ${yrSwitch()}
       <input class="search" id="coursSearch" type="search" placeholder="Chercher dans les cours : Arendt, syllogisme, CAF, SQL…" aria-label="Chercher dans tous les cours">
     </section>
@@ -1592,8 +1627,9 @@ function renderHits() {
 
 /* Page d'une matière */
 function vMat() {
-  const c = CAT[matCat] || CAT.p1, ls = lessonStats(c.id), ms = mastery(c.id);
-  const segs = [["lecons", `Leçons (${ls.n})`], ["fiche", `Fiches (${(CHBY[c.id] || []).length})`], ["train", "S'entraîner"]];
+  const c = (CATS.includes(CAT[matCat]) && CAT[matCat]) || CATS[0], ls = lessonStats(c.id), ms = mastery(c.id);
+  if (!ls.n && matSeg === "lecons") matSeg = "fiche";
+  const segs = [ls.n ? ["lecons", `Leçons (${ls.n})`] : null, ["fiche", `Fiches (${(CHBY[c.id] || []).length})`], ["train", "S'entraîner"]].filter(Boolean);
   const back = { lecons: ["cours", "Tous les cours"], fiche: ["fiches", "Toutes les fiches"], train: ["ex", "S'entraîner"] }[matSeg] || ["cours", "Tous les cours"];
   const body = matSeg === "fiche" ? matFiche(c) : matSeg === "train" ? matTrain(c) : matLecons(c);
   return `<section class="mat-head" style="${hueStyle(c.id)}">
@@ -1601,7 +1637,7 @@ function vMat() {
       ${binder3d(c)}
       <div class="mat-title"><span class="tabcode">${h(c.code)}</span><h1>${h(c.name)}</h1></div>
       <p class="mat-desc">${h(c.desc)}. ${h(EPTEXT[c.id] || "")}</p>
-      <div class="mat-figs"><span><b>${ls.r}/${ls.n}</b> leçons lues</span><span><b>${pct(ms.m, ms.t)} %</b> des quiz et cartes acquis</span><span><b>${validCount(c.id).v}/${validCount(c.id).n}</b> chapitres validés</span><span><b>${QBY[c.id].length}</b> questions de quiz</span></div>
+      <div class="mat-figs">${ls.n ? `<span><b>${ls.r}/${ls.n}</b> leçons lues</span>` : `<span><b>${(CHBY[c.id] || []).filter(x => ficheRead(x.id)).length}/${(CHBY[c.id] || []).length}</b> fiches lues</span>`}<span><b>${pct(ms.m, ms.t)} %</b> des quiz et cartes acquis</span><span><b>${validCount(c.id).v}/${validCount(c.id).n}</b> chapitres validés</span><span><b>${QBY[c.id].length}</b> questions de quiz</span></div>
       ${yrSwitch()}
       <div class="seg" role="tablist" aria-label="Contenu de la matière">${segs.map(([k, l]) => `<button role="tab" class="seg-btn" data-act="seg" data-seg="${k}" aria-selected="${matSeg === k}">${l}</button>`).join("")}</div>
     </section>
@@ -1790,11 +1826,12 @@ function chYrs(id) {
   return YR_CAT[c.cat] || "12";
 }
 const chapYr = ch => { const y = ch ? chYrs(ch.id) : "12"; return y === "12" ? null : +y; };
-const YRS = () => (S.yr === "1" || S.yr === "2") ? S.yr : "all";
+const YRS = () => !IS_DCG && (S.yr === "1" || S.yr === "2") ? S.yr : "all";
 const yrOk = y => YRS() === "all" || String(y).includes(YRS());
 const yrQ = x => !x.ch || !CHID[x.ch] || yrOk(chYrs(x.ch)); // une question ou une carte est-elle dans l'année choisie ?
 const YR_LBL = { 1: "1re année", 2: "2e année", 12: "1re et 2e année" };
 function yrSwitch(note) {
+  if (IS_DCG) return "";
   return `<div class="yr-sw" role="group" aria-label="Année"><span class="yr-l">Ton année</span>${[["1", "1re année"], ["2", "2e année"], ["all", "Les deux"]].map(([v, l]) => `<button class="chip" data-act="yrSet" data-y="${v}" aria-pressed="${YRS() === v}">${l}</button>`).join("")}${note ? `<span class="muted small">${note}</span>` : ""}</div>`;
 }
 const CHBY = {}; CHAP.forEach(c => (CHBY[c.cat] = CHBY[c.cat] || []).push(c));
@@ -1843,8 +1880,8 @@ function blocksHTML(list) {
 function openFiche(id) {
   if (!CHID[id]) return;
   if (lockedCat(CHID[id].cat)) return lockSheet(CHID[id].cat);
-  FC = { id }; S.fr = S.fr || {};
-  if (!S.fr[id]) { S.fr[id] = 1; bumpStreak(); }
+  FC = { id }; S.fr = S.fr || {}; S.lastF = id;
+  if (!S.fr[id]) { S.fr[id] = 1; bumpStreak(); wlog("f", CHID[id].cat); dayLog().f = (dayLog().f || 0) + 1; }
   clearTimeout(openFiche.t);
   if (!(S.frx || {})[id]) openFiche.t = setTimeout(() => { if (view === "fiche" && FC && FC.id === id) { S.frx = S.frx || {}; if (!S.frx[id]) { S.frx[id] = 1; S.xp += 4; touch(); renderTop(); toast("Fiche lue : +4 XP"); } } }, 30000);
   touch(); go("fiche");
@@ -2057,8 +2094,8 @@ function vFiche() {
       <h1>${h(c.title)}</h1>
       ${(() => { const L = chLes(c.id); return L.length ? `<p class="fi-les"><span class="muted">Lire la leçon :</span> ${L.map(([cid, k]) => `<button class="linkbtn" data-act="lesson" data-cid="${cid}" data-k="${k}">${inl(lessonLabel(SPLIT(cid)[k].title, k).t)}</button>`).join(" · ")}</p>` : ""; })()}
       ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
-      <div class="picker fmode" role="tablist" aria-label="Version de la fiche"><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Résumé</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Version longue</button></div>
-      ${FMODE === "recap" ? ficheRecap(c) : `<div class="md">
+      <div class="picker fmode" role="tablist" aria-label="Version de la fiche"${c.imgs ? " hidden" : ""}><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Résumé</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Version longue</button></div>
+      ${c.imgs ? ficheImgs(c) : FMODE === "recap" ? ficheRecap(c) : `<div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
         ${(c.sections || []).map((s, si) => `<h4>${h(s.h)}</h4>${blocksHTML(s.b)}${ficheInlineEx(c, si)}`).join("")}
         ${c.points && c.points.length ? `<blockquote class="callout retain"><p class="md-label"><strong>L'essentiel</strong></p><ul>${c.points.map(p => `<li>${h(p)}</li>`).join("")}</ul></blockquote>` : ""}
@@ -2071,10 +2108,15 @@ function vFiche() {
   </div>`;
 }
 
+function ficheImgs(c) {
+  if (isGuest()) return `<p class="panel">Les fiches illustrées du DCG sont réservées aux comptes de la classe. Crée ton compte (gratuit) pour les lire ; le quiz de la fiche reste ouvert juste en dessous.</p>`;
+  return `<p class="muted small fi-zoom">Touche une page pour l'ouvrir en grand et zoomer.</p><div class="fi-imgs">${c.imgs.map((u, i) => `<a href="${h(u)}" target="_blank" rel="noopener"><img src="${h(u)}" alt="${h(c.title)}, page ${i + 1} sur ${c.imgs.length}" loading="${i ? "lazy" : "eager"}" decoding="async" width="1000" height="1415"></a>`).join("")}</div>
+    <p class="fi-credit muted small">${h(c.credit || "")} · <a href="https://lesgeeksdeschiffres.com" target="_blank" rel="noopener noreferrer">lesgeeksdeschiffres.com</a>. Intégrée avec leur accord, pour la classe.</p>`;
+}
 /* Onglet « Fiches » d'une matière : fiches, méthode, repères, mémo */
 function matFiche(c) {
   const chs = CHBY[c.id] || [], refs = REFBY[c.id] || [], meths = Object.values(METH).filter(m => m.cat === c.id), memo = FBY[c.id].filter(x => !x.ch);
-  const subs = [["fiches", `Fiches (${chs.length})`], meths.length ? ["meth", "Méthode"] : null, refs.length ? ["refs", `Repères (${refs.length})`] : null, ["memo", `Mémo express (${memo.length})`]].filter(Boolean);
+  const subs = [["fiches", `Fiches (${chs.length})`], meths.length ? ["meth", "Méthode"] : null, refs.length ? ["refs", `Repères (${refs.length})`] : null, memo.length || !IS_DCG ? ["memo", `Mémo express (${memo.length})`] : null].filter(Boolean);
   if (!subs.find(s => s[0] === matSub)) matSub = subs[0][0];
   const pills = `<div class="picker" role="tablist">${subs.map(([k, l]) => `<button class="chip" role="tab" data-act="sub" data-sub="${k}" aria-pressed="${matSub === k}">${l}</button>`).join("")}</div>`;
   let body = "";
@@ -2082,7 +2124,7 @@ function matFiche(c) {
     const groups = {}; const order = [], chsY = chs.filter(x => yrOk(chYrs(x.id)));
     chsY.forEach(x => { if (!groups[x.th]) { groups[x.th] = []; order.push(x.th); } groups[x.th].push(x); });
     const nr = chs.filter(x => ficheRead(x.id)).length;
-    body = `<p class="muted">${chs.length} fiches. Chacune s'ouvre en version récap (l'idée clé, l'essentiel, les définitions, les pièges) ; la fiche détaillée garde les explications et les exemples. Tu en as lu ${nr}.</p>` +
+    body = `<p class="muted">${IS_DCG ? `${chs.length} fiches illustrées des Geeks des Chiffres, chacune avec son quiz. Tu en as lu ${nr}.` : `${chs.length} fiches. Chacune s'ouvre en version récap (l'idée clé, l'essentiel, les définitions, les pièges) ; la fiche détaillée garde les explications et les exemples. Tu en as lu ${nr}.`}</p>` +
       (chsY.length ? order.map(t => { const ys = [...new Set(groups[t].map(x => chYrs(x.id)))]; return `<div class="fiche-group"><h3>${h((THEME[t] || {}).title || "")}${ys.length === 1 && ys[0] !== "12" ? ` <span class="pill">${YR_LBL[ys[0]]}</span>` : ""}</h3><div class="fcards">${groups[t].map(x => fcard(x)).join("")}</div></div>`; }).join("") : `<p class="panel muted">Pas de fiche de cette matière en ${YR_LBL[YRS()]}. Choisis « Les deux » pour tout voir.</p>`);
   } else if (matSub === "meth") {
     body = meths.map(m => `<div class="stack"><h3>${h(m.title)}</h3>${m.intro ? `<p class="muted">${h(m.intro)}</p>` : ""}<ol class="meth">${m.steps.map(s => `<li><span class="mk">${h(s.k)}</span><div><b>${h(s.name)}</b><p>${h(s.txt || "")}</p>${s.tip ? `<p class="muted">${h(s.tip)}</p>` : ""}</div></li>`).join("")}</ol>${m.note ? `<p class="muted">${h(m.note)}</p>` : ""}</div>`).join("");
@@ -2154,7 +2196,7 @@ function gcCard(k) { const st = (S.gc || {})[k.id]; const done = st && st.step >
 function startDefi(cats) {
   if (defiTick) clearInterval(defiTick);
   const pool = shuffle(QS.filter(x => (!cats || cats.includes(x.c)) && !qCalc(x)));
-  DF = { pool, i: 0, ok: 0, ko: 0, miss: [], end: Date.now() + 60000, last: null, cats, order: shuffle([0, 1, 2, 3]), done: false };
+  DF = { pool, i: 0, ok: 0, ko: 0, miss: [], end: Date.now() + 60000, last: null, cats, order: shuffle(oIdx(pool[0])), done: false };
   defiTick = setInterval(() => {
     const t = document.getElementById("defiTimer"), left = Math.max(0, DF.end - Date.now());
     if (t) { t.textContent = Math.ceil(left / 1000) + " s"; t.classList.toggle("low", left < 10000); const b = document.getElementById("defiBar"); if (b) b.style.width = (left / 600) + "%"; } secTick(left, "df");
@@ -2168,7 +2210,7 @@ function defiPick(pos) {
   recordQ(it, ok, it.o[DF.order[pos]]);
   if (ok) DF.ok++; else { DF.ko++; DF.miss.push(it); }
   DF.last = { ok, good: it.o[0] };
-  DF.i = (DF.i + 1) % DF.pool.length; DF.order = shuffle([0, 1, 2, 3]);
+  DF.i = (DF.i + 1) % DF.pool.length; DF.order = shuffle(oIdx(DF.pool[DF.i]));
   render();
 }
 function finishDefi() {
@@ -2778,14 +2820,16 @@ let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; r
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
   const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["justif", ICON.list, "Décider et justifier", `${Object.keys(DWFX).filter(k => CTLX[k] && !lockedCat(CHID[k] && CHID[k].cat)).length} entraînements · décision puis pourquoi`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
-  return `<nav class="ex-tabs" aria-label="Types d'entraînement">${T.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
+  const TT = IS_DCG ? T.filter(t => t[0] === "ctl" || t[0] === "quiz") : T;
+  if (!TT.some(t => t[0] === EXT)) EXT = "quiz";
+  return `<nav class="ex-tabs" aria-label="Types d'entraînement">${TT.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
 /* ---------- Duels : deux élèves, les mêmes questions, le plus juste et le plus rapide gagne ---------- */
 const DUEL_NET = () => (typeof window.GL_DUEL === "object" && window.GL_DUEL) || null;
 const DUEL_T = 20;
 let DU = null, duTick = null, duPoll = null;
 let DH = { list: null, mates: [], at: 0, busy: false, err: "", inv: 0 };
-const duelCfg = () => { S.duf = S.duf || { cats: ["p1", "p2", "p3"], n: 10 }; return S.duf; };
+const duelCfg = () => { S.duf = S.duf || { cats: CATS.slice(0, 3).map(c => c.id), n: 10 }; S.duf.cats = (S.duf.cats || []).filter(c => CATS.some(x => x.id === c)); if (!S.duf.cats.length) S.duf.cats = CATS.slice(0, 3).map(c => c.id); return S.duf; };
 const duScore = (ans, t) => ans.reduce((s, ok, i) => s + (ok ? 100 + Math.max(0, 50 - Math.floor((t[i] || 0) / 1000) * 3) : 0), 0);
 const duHue = s => { let x = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) % 360; return x; };
 const duIni = n => String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -2795,8 +2839,8 @@ function duelPool(cats) { return QS.filter(x => cats.includes(x.c) && !lockedCat
 function duelPick(cats, n) { const p = shuffle(duelPool(cats)); return p.slice(0, n).map(x => x.id); }
 function duelItems(ids, seed) {
   const by = {}; QS.forEach(x => { by[x.id] = x; });
-  return ids.map((id, i) => { const it = by[id]; if (!it) return null; const r = rng((seed >>> 0) + i * 7919), o = [0, 1, 2, 3];
-    for (let k = 3; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [o[k], o[j]] = [o[j], o[k]]; } return { it, order: o }; });
+  return ids.map((id, i) => { const it = by[id]; if (!it) return null; const r = rng((seed >>> 0) + i * 7919), o = oIdx(it);
+    for (let k = o.length - 1; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [o[k], o[j]] = [o[j], o[k]]; } return { it, order: o }; });
 }
 async function loadDuels(force) {
   const N = DUEL_NET(); if (!N || DH.busy) return;
@@ -4504,6 +4548,7 @@ function plPickFocus(prev) {
 function plTasksFor(c, phase, B, info) {
   const T = [], pro = /^p[1-6]$/.test(c), p = plProg(c), cn = CAT[c].name;
   const lessonsN = phase === "learn" && p.left ? Math.max(1, Math.min(p.left, Math.round(B * .5 / 12), Math.ceil(p.left / Math.max(1, info.learnLeft) * 2.2))) : 0;
+  if (!lessonStats(c).n && (CHBY[c] || []).length) { const left = (CHBY[c] || []).filter(x => !ficheRead(x.id)).length; if (left && phase !== "sprint") { const n = Math.max(2, Math.min(left, Math.round(B * .5 / 8))); T.push({ k: "f", c, n, t: `Lire ${n} fiche${n > 1 ? "s" : ""} de l'${CAT[c].code} (${cn})`, m: 8 * n, act: `data-act="plFiche" data-cat="${c}"` }); } }
   if (lessonsN) T.push({ k: "l", c, n: lessonsN, t: `Lire ${lessonsN} leçon${lessonsN > 1 ? "s" : ""} ${/^[AEIOUÉÈÂ]/i.test(cn) ? "d'" : "de "}${cn}`, m: 12 * lessonsN, act: `data-act="plLesson" data-cat="${c}"` });
   const qn = B >= 50 ? 20 : 10;
   T.push({ k: "q", c, n: qn, t: `Répondre à ${qn} questions de quiz en ${cn}`, m: qn / 2, act: `data-act="quickQuiz" data-cat="${c}"` });
@@ -4517,7 +4562,7 @@ function plTasksFor(c, phase, B, info) {
 }
 function plBuild(w, prev) {
   const cfg = plCfg(), info = plInfo(), budget = cfg.days * cfg.min, nf = budget >= 200 ? 3 : 2;
-  const order = plPickFocus(prev), pro = order.filter(c => /^p/.test(c)), gen = order.filter(c => !/^p/.test(c)); // une matière professionnelle + une générale, puis la meilleure suivante
+  const order = plPickFocus(prev), pro = order.filter(c => IS_DCG ? ["d6", "d9", "d10", "d11"].includes(c) : /^p/.test(c)), gen = order.filter(c => !pro.includes(c)); // une matière professionnelle + une générale, puis la meilleure suivante
   const focus = [pro[0], gen[0]].filter(Boolean); for (const c of order) if (focus.length < nf && !focus.includes(c)) focus.push(c);
   const B = (budget - cfg.days * 5) / focus.length;
   let tasks = [{ k: "cd", c: "*", n: Math.min(cfg.days, info.phase === "sprint" ? 7 : cfg.days), t: "Cartes du jour", m: 5, act: `data-act="today"` }];
@@ -4527,13 +4572,13 @@ function plBuild(w, prev) {
   }
   focus.forEach(c => { tasks = tasks.concat(plTasksFor(c, info.phase, B, info)); });
   const idx = (dayNum() + 3) % 7, left = 7 - idx, f = Math.min(1, left / cfg.days); // plan commencé en cours de semaine : objectifs réduits d'autant
-  if (f < 1) tasks.forEach(t => { t.n = t.k === "cd" ? Math.min(t.n, left) : Math.max(1, Math.round(t.n * f)); t.m = t.m * f; t.t = t.t.replace(/\d+/, String(t.n)).replace(/leçons (de|d')/, t.n > 1 ? "leçons $1" : "leçon $1"); });
+  if (f < 1) tasks.forEach(t => { t.n = t.k === "cd" ? Math.min(t.n, left) : Math.max(1, Math.round(t.n * f)); t.m = t.m * f; t.t = t.t.replace(/\d+/, String(t.n)).replace(/leçons (de|d')/, t.n > 1 ? "leçons $1" : "leçon $1").replace(/ fiches? de l'/, t.n > 1 ? " fiches de l'" : " fiche de l'"); });
   tasks.forEach((t, i) => t.id = i);
-  return { w, d0: dayNum(), v: Date.now(), focus, tasks, phase: info.phase, days: cfg.days, min: cfg.min };
+  return { w, d0: dayNum(), v: Date.now(), focus, tasks, phase: info.phase, days: cfg.days, min: cfg.min, form: FORM_CUR };
 }
 function plWeek() {
   const cfg = plCfg(), w = weekId(); waRoll();
-  if (!cfg.cur || cfg.cur.w !== w) { const pf = cfg.cur ? cfg.cur.focus : []; cfg.cur = Object.assign(plBuild(w, pf), { prevFocus: pf }); saveLocal(); }
+  if (!cfg.cur || cfg.cur.w !== w || (cfg.cur.form || "bts") !== FORM_CUR) { const pf = cfg.cur ? cfg.cur.focus : []; cfg.cur = Object.assign(plBuild(w, pf), { prevFocus: pf }); saveLocal(); }
   return cfg.cur;
 }
 function plDoneIn(t, wa) {
@@ -4837,6 +4882,7 @@ document.addEventListener("click", e => {
     case "pvRestore": { const id = b.dataset.id; askConfirm("Restaurer cette version ?", `Ta progression passera à ${b.dataset.xp} XP, sur tous tes appareils. La version actuelle (${S.xp} XP) est gardée de côté.`, "Restaurer").then(ok => { if (!ok) return; window.GL_PV.restore(id).then(j => { keepCopy(S); S = JSON.parse(JSON.stringify(j.data)); normS(); if (syncUid) S.uid = syncUid; dirty = false; saveLocal(); PV.list = null; renderTop.xp = S.xp; render(); toast("Progression restaurée"); confettiBurst(30); }).catch(e => toast((e && e.message) || "Restauration impossible")); }); break; }
     case "plCfg": { PLSET = true; const p = plCfg(); p[b.dataset.k] = +b.dataset.v; touch(); render(); break; }
     case "plRebuild": { const p = plCfg(), prev = p.cur && p.cur.prevFocus || []; p.cur = Object.assign(plBuild(weekId(), prev), { prevFocus: prev }); touch(); render(); toast("Plan de la semaine recalculé"); break; }
+    case "plFiche": { const c = b.dataset.cat, x = (CHBY[c] || []).find(y => !ficheRead(y.id)) || (CHBY[c] || [])[0]; if (x) openFiche(x.id); break; }
     case "plLesson": { const c = b.dataset.cat; let t = null; for (const cid of coursesOf(c)) { for (let k = 1; k <= nLessons(cid); k++) if (!isRead(cid, k)) { t = { cid, k }; break; } if (t) break; } if (t) openLesson(t.cid, t.k); else toast("Toutes les leçons de cette matière sont lues"); break; }
     case "plSchema": { scFrom = "ex"; setExTab("schemas"); go("ex"); break; }
     case "plRedac": { setExTab("redac"); go("ex"); break; }
@@ -4975,6 +5021,8 @@ document.addEventListener("click", e => {
     case "lvlClose": document.querySelectorAll(".fx-lvl").forEach(x => x.remove()); break;
     case "tourNext": tourI++; if (tourI >= TOUR.length) tourEnd(); else tourShow(); break;
     case "tourEnd": tourEnd(); break;
+    case "formSet": { const f = b.dataset.f; if (f === FORM_CUR) break; S.form = f; touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {} setForm(f); break; }
+    case "formPick": formPick(false); break;
     case "tourAgain": S.tour = 0; go("home"); setTimeout(tourStart, 400); break;
     case "planGo": { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); break; }
     case "planNext": { go("home"); setTimeout(() => { const nb = document.querySelector(".steps .step:not(.done) .btn:not([disabled])"); if (nb) nb.click(); }, 30); break; }

@@ -202,6 +202,16 @@ app.get("/c/:f", (req, res) => {
   if (/\bgzip\b/.test(ae)) { c.gz = c.gz || zlib.gzipSync(c.raw, { level: 7 }); res.setHeader("Content-Encoding", "gzip"); return res.end(c.gz); }
   res.end(c.raw);
 });
+/* Fiches DCG (Les Geeks des Chiffres, intégrées avec leur accord pour la classe) : réservées aux comptes connectés */
+const DCG_DIR = path.join(__dirname, "private", "dcg");
+app.get("/dcg/:u/:f", async (req, res) => {
+  const { u, f } = req.params;
+  if (!/^u\d{1,2}$/.test(u) || !/^f\d{1,3}-\d{1,2}\.webp$/.test(f)) return res.status(404).end();
+  let usr = null; try { usr = await currentUser(req); } catch (e) {}
+  if (!usr || usr.guest) return res.status(401).end();
+  const p = path.join(DCG_DIR, u, f); if (!fs.existsSync(p)) return res.status(404).end();
+  res.setHeader("Cache-Control", "private, max-age=2592000"); res.type("image/webp"); fs.createReadStream(p).pipe(res);
+});
 app.use(express.static(PUB, { index: false, extensions: [], setHeaders: (res, p) => { if (/sw\.js$/.test(p)) res.setHeader("Cache-Control", "no-cache"); } }));
 
 /* ---------- Comptes ---------- */

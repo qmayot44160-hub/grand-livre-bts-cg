@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-b-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"><link rel="preload" as="script" href="/c/contenu-94eceec847fa.js"><link rel="preload" as="script" href="/c/moteur-5f1a782024d3.js"></head><body><div id="glBoot" role="status" aria-live="polite"><style>
+<!doctype html><html lang="fr"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="theme-color" content="#1E3A5F"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon-b-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Grand Livre"><link rel="preload" as="script" href="/c/contenu-94eceec847fa.js"><link rel="preload" as="script" href="/c/moteur-0b45d57411aa.js"></head><body><div id="glBoot" role="status" aria-live="polite"><style>
 #glBoot{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#F5F7FA;color:#18202B;font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;transition:opacity .4s ease}
 #glBoot.out{opacity:0;pointer-events:none}
 #glBoot .bt{display:grid;justify-items:center;gap:14px;text-align:center;padding:24px}
@@ -981,6 +981,7 @@ mark { background: var(--hl); color: inherit; border-radius:0; padding: 0 1px; }
 }
 @media (max-width: 760px) {
   .nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .form-dcg .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .nav-btn { font-size: .64rem; }
   .hero-text h1 { font-size: 2rem; }
   .shelf { height: 230px; border-radius:var(--radius); }
@@ -1144,6 +1145,21 @@ html.gs-on, html.gs-on body { overflow: hidden; }
 
 .fmode { margin: 6px 0 4px; }
 .recap-pts { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.fi-imgs { display: grid; gap: 12px; margin: 8px 0 4px; }
+.fi-imgs img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: var(--radius); background: #fff; box-shadow: var(--lift, none); }
+.fi-credit a { color: inherit; }
+.form-pick { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: rgba(15, 23, 35, .55); }
+.fp-box { width: min(560px, 100%); background: var(--sheet); color: var(--ink); border-radius: var(--radius); padding: 22px; display: grid; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.fp-box h2 { margin: 0; }
+.fp-box p { margin: 0; }
+.fp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.fp-card { display: grid; gap: 4px; text-align: left; font: inherit; color: var(--ink); background: var(--paper, var(--sheet)); border: 2px solid var(--rule); border-radius: var(--radius); padding: 16px; cursor: pointer; }
+.fp-card b { font-size: 1.4rem; font-family: var(--f-display, inherit); }
+.fp-card small { color: var(--muted); }
+.fp-card:hover, .fp-card:focus-visible, .fp-card.is-cur { border-color: var(--accent); }
+.fp-close { justify-self: end; }
+:root[data-theme="dark"] .fi-imgs img, .dark .fi-imgs img { filter: brightness(.92); }
+.form-dcg [data-nav="bts"] { display: none !important; }
 .rv { display: grid; gap: 18px; margin-top: 4px; }
 .rv-key { margin: 0; padding: 16px 18px; border-radius: var(--radius); background: var(--c-soft, var(--accent-soft)); border-left: 5px solid var(--c, var(--accent)); font: 600 1.12rem/1.45 var(--f-display); color: var(--ink); }
 .rv-sec { display: grid; gap: 10px; }
@@ -1992,6 +2008,6 @@ select[data-fi] { width: 100%; max-width: 100%; }
 
 
 <script id="gl-content" data-formation="bts-cg" data-src="/c/contenu-94eceec847fa.js"></script>
-<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);q.push("/c/moteur-5f1a782024d3.js");function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}requestAnimationFrame(function(){setTimeout(run,0)})})()</script>
+<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);try{if(localStorage.getItem("gl-form")==="dcg")q.push("/c/dcg-842d8e5d4762.js")}catch(e){}q.push("/c/moteur-0b45d57411aa.js");function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}requestAnimationFrame(function(){setTimeout(run,0)})})()</script>
 
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(function(){});navigator.serviceWorker.addEventListener("message",function(e){if(!e.data||e.data.type!=="gl-update"||document.getElementById("glUpd"))return;var d=document.createElement("div");d.id="glUpd";d.setAttribute("role","status");d.style.cssText="position:fixed;left:16px;right:16px;margin:0 auto;max-width:520px;justify-content:space-between;bottom:calc(84px + env(safe-area-inset-bottom));z-index:200;display:flex;gap:10px;align-items:center;background:var(--ink,#18202B);color:var(--sheet,#fff);padding:10px 12px 10px 16px;border-radius:var(--radius,8px);box-shadow:0 4px 16px rgba(0,0,0,.25);font:600 .92rem system-ui,sans-serif";d.innerHTML='<span>Une nouvelle version du Grand Livre est prête.</span><button type="button" style="font:inherit;border:0;border-radius:var(--radius,8px);padding:8px 12px;background:var(--accent,#1E3A5F);color:#fff;cursor:pointer;flex:none">Mettre à jour</button>';d.querySelector("button").addEventListener("click",function(){location.reload()});document.body.appendChild(d)});}</script><script src="/install.js"></script></body></html>

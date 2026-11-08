@@ -100,15 +100,19 @@ s = split_script(s, lambda a, b: "src=" not in a and len(b) > 200000, "moteur")
 # 4 ter. Chargement après le premier affichage : le téléphone montre d'abord l'écran de lancement (sinon le navigateur
 # exécute contenu et moteur avant de peindre quoi que ce soit, et l'écran système reste seul jusqu'à l'accueil).
 # Les fichiers se téléchargent tout de suite (preload), puis s'exécutent dans l'ordre : contenu, contenu personnel, moteur.
+# Contenu DCG : appliqué par-dessus le contenu BTS quand l'élève a choisi le DCG (fichier chargé seulement dans ce cas)
+dcg = open(os.path.join(HERE, "dcg_overlay.js"), encoding="utf-8").read()
+DCG_URL = "/c/dcg-%s.js" % hashlib.sha1(dcg.encode("utf-8")).hexdigest()[:12]
+open(os.path.join(cdir, DCG_URL[3:]), "w", encoding="utf-8").write(dcg)
 mc = re.search(r'<script id="gl-content"([^>]*) src="(/c/contenu-[0-9a-f]{12}\.js)"></script>', s)
 mm = re.search(r'<script src="(/c/moteur-[0-9a-f]{12}\.js)"></script>', s)
 assert mc and mm and mc.end() < mm.start()
 s = s[:mc.start()] + '<script id="gl-content"%s data-src="%s"></script>' % (mc.group(1), mc.group(2)) + s[mc.end():mm.start()] + (
-    '<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);q.push("%s");'
+    '<script>(function(){var q=[document.getElementById("gl-content").dataset.src];if(window.glPerso)q.push(window.glPerso);try{if(localStorage.getItem("gl-form")==="dcg")q.push("%s")}catch(e){}q.push("%s");'
     'function hide(){var b=document.getElementById("glBoot");if(!b)return;clearTimeout(window.glBootT);requestAnimationFrame(function(){b.classList.add("out");setTimeout(function(){b.remove()},420)})}'
     'function fail(){var b=document.getElementById("glBoot");if(b)b.classList.add("slow")}'
     'function run(){q.forEach(function(u,i){var x=document.createElement("script");x.src=u;x.async=false;x.onerror=fail;if(i===q.length-1)x.onload=hide;document.body.appendChild(x)})}'
-    'requestAnimationFrame(function(){setTimeout(run,0)})})()</script>') % mm.group(1) + s[mm.end():]
+    'requestAnimationFrame(function(){setTimeout(run,0)})})()</script>') % (DCG_URL, mm.group(1)) + s[mm.end():]
 pre = '<link rel="preload" as="script" href="%s"><link rel="preload" as="script" href="%s">' % (mc.group(2), mm.group(1))
 s = s.replace("</head>", pre + "</head>", 1)
 
