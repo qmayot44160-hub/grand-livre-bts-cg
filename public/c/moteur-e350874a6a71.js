@@ -1,5 +1,23 @@
 
 /* ---------- Préparation des données ---------- */
+/* DCG : les UE que tu n'as pas à passer (dispensées, par exemple grâce au BTS CG) disparaissent de toute l'appli.
+   La liste est gardée sur l'appareil (« gl-dcg-skip ») et dans la progression ; la page Mon DCG la modifie. */
+const DCG_SKIP_CUR = (() => {
+  if (FORMATION.id !== "dcg") return "";
+  FORMATION.allCats = CATS.slice();
+  let sk = []; try { sk = JSON.parse(localStorage.getItem("gl-dcg-skip") || "[]"); } catch (e) {}
+  sk = (Array.isArray(sk) ? sk : []).filter(id => CATS.some(c => c.id === id));
+  if (sk.length >= CATS.length) sk = [];
+  if (!sk.length) return "";
+  const out = id => sk.includes(id), keep = (a, f) => { const k = a.filter(x => !f(x)); a.splice(0, a.length, ...k); };
+  FORMATION.hiddenCats = (FORMATION.hiddenCats || []).concat(CATS.filter(c => out(c.id)));
+  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
+  sk.forEach(id => { delete COURS[id]; delete COURS_META[id]; delete EXAM_PLAN[id]; delete EPTEXT[id]; if (FORMATION.lesCh) delete FORMATION.lesCh[id]; });
+  ["lessonPath", "coursOrder"].forEach(k => { if (FORMATION[k]) FORMATION[k] = FORMATION[k].filter(id => !out(id)); });
+  if (FORMATION.groups) FORMATION.groups = FORMATION.groups.map(([g, t, sub]) => { const L = CATS.filter(c => c.grp === g); if (!L.length) return null;
+    const codes = L.map(c => c.code.replace("UE ", "")); return [g, t, "UE " + (codes.length > 1 ? codes.slice(0, -1).join(", ") + " et " + codes[codes.length - 1] : codes[0]) + " : " + L.map(c => c.name.toLowerCase()).join(", ") + "."]; }).filter(Boolean);
+  return sk.slice().sort().join(",");
+})();
 const CAT = Object.fromEntries(CATS.concat(FORMATION.hiddenCats || []).map(c => [c.id, c]));
 const IS_DCG = FORMATION.id === "dcg", FORM_CUR = IS_DCG ? "dcg" : "bts";
 document.documentElement.classList.toggle("form-dcg", IS_DCG);
@@ -94,7 +112,7 @@ function mergeS(a, b) {
   if (A.df || B.df) M.df = Object.assign({}, older.df, newer.df, { best: Math.max((A.df || {}).best || 0, (B.df || {}).best || 0) });
   if (A.dus || B.dus) { const da = A.dus || {}, db = B.dus || {}; M.dus = (da.w || 0) + (da.l || 0) + (da.d || 0) >= (db.w || 0) + (db.l || 0) + (db.d || 0) ? da : db; }
   ["rp", "sit", "packs"].forEach(k => { if (!(M[k] || []).length && (o[k] || []).length) M[k] = o[k]; });
-  ["av", "cl", "bts", "pl", "last", "tour", "dcgBts"].forEach(k => { if (M[k] == null && o[k] != null) M[k] = o[k]; });
+  ["av", "cl", "bts", "pl", "last", "tour", "dcgBts", "dcgSkipSet"].forEach(k => { if (M[k] == null && o[k] != null) M[k] = o[k]; });
   M.v = 1; M.u = Math.max(A.u || 0, B.u || 0);
   return M;
 }
@@ -708,6 +726,7 @@ function render() {
   bindView();
   if (S.form === "dcg" && !DCG_OK) { S.form = "bts"; touch(); setForm("bts", true); }
   else if (S.form && S.form !== FORM_CUR) setForm(S.form);
+  else if (IS_DCG && S.dcgSkipSet && dcgSkipList().join(",") !== DCG_SKIP_CUR) dcgSkipApply();
   if (!S.form && !DCG_OK) { S.form = "bts"; touch(); }
   const askF = () => !S.form || (DCG_OK && !S.formAsk && !isGuest());
   if (view === "home" && askF()) setTimeout(() => { if (view === "home" && askF() && !document.querySelector(".gl-auth, .form-pick")) formPick(true); }, 600);
@@ -798,7 +817,7 @@ function vHome() {
     <div class="hero-text">
       <p class="date">${h(todayLabel())}</p>
       <h1>${greet()}, on avance ?</h1>
-      ${IS_DCG ? `<button class="countdown" data-act="formPick"><b>DCG</b><span>13 UE · ${CHAP.length} fiches · ${QS.length} questions</span></button>` : `<button class="countdown" data-nav="bts"><b>${flap(daysLeft())}</b><span>avant les premiers écrits du BTS</span></button>`}
+      ${IS_DCG ? `<button class="countdown" data-act="formPick"><b>DCG</b><span>${CATS.length} UE · ${CHAP.length} fiches · ${QS.length} questions</span></button>` : `<button class="countdown" data-nav="bts"><b>${flap(daysLeft())}</b><span>avant les premiers écrits du BTS</span></button>`}
       <div class="hello-side">
         <span class="pill">Série : <b>${st} jour${st > 1 ? "s" : ""}</b></span>
         ${tl.n ? `<span class="pill">Leçons lues : <b>${tl.r} sur ${tl.n}</b></span>` : ""}
@@ -2302,8 +2321,19 @@ const dcgStore = () => { S.dcgN = S.dcgN || {}; return S.dcgN; };
 const dcgDisp = id => (S.dcgBts && DCG_BTS_DISP.includes(id)) || !!(dcgStore()[id] && dcgStore()[id].disp);
 const dcgNote = id => { const x = dcgStore()[id]; return x && x.n != null && x.n !== "" && !isNaN(+x.n) ? +x.n : null; };
 const fmtN = n => (Math.round(n * 100) / 100).toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+/* UE à ne plus afficher : dispensées par le BTS CG (si la case est cochée) ou marquées « Dispensée » */
+function dcgSkipList() { return (FORMATION.allCats || CATS).map(c => c.id).filter(id => dcgDisp(id)).sort(); }
+function dcgSkipApply() {
+  S.dcgSkipSet = 1;
+  const v = dcgSkipList(); try { localStorage.setItem("gl-dcg-skip", JSON.stringify(v)); } catch (e) {}
+  if (v.join(",") === DCG_SKIP_CUR) return false;
+  touch(); clearTimeout(saveTimer); try { flush(); } catch (er) {}
+  try { const n = +(sessionStorage.getItem("gl-form-rl") || 0); if (n > 4) return false; sessionStorage.setItem("gl-form-rl", n + 1); } catch (e) {}
+  toast(v.length ? "Les UE dispensées sont retirées de l'appli" : "Toutes les UE sont de nouveau affichées");
+  setTimeout(() => location.reload(), 500); return true;
+}
 function dcgCalc() {
-  const L = CATS.map(c => { const disp = dcgDisp(c.id), n = disp ? null : dcgNote(c.id), ms = memSum([c.id]);
+  const L = (FORMATION.allCats || CATS).map(c => { const disp = dcgDisp(c.id), n = disp ? null : dcgNote(c.id), ms = memSum([c.id]);
     return { c, disp, n, m: ms.m, w: ms.w.length, st: disp ? "disp" : n == null ? "todo" : n >= 10 ? "ok" : n >= 6 ? "mid" : "ko" }; });
   const act = L.filter(x => !x.disp), noted = act.filter(x => x.n != null), todo = act.filter(x => x.n == null);
   const sum = noted.reduce((a, x) => a + x.n, 0), avg = noted.length ? sum / noted.length : null;
@@ -2346,7 +2376,7 @@ function vDcg() {
     </section>
     <section class="stack panel dcg-st"><h2>Où tu en es</h2>${verdict}</section>
     <section class="stack" id="dcgNotes"><h2>Mes notes par UE</h2>
-      <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" style="margin-top:4px;flex:none" data-dcgbts ${S.dcgBts ? "checked" : ""}><span><b>J'ai le BTS CG</b> : dispense des UE 1, 5, 8, 9, 12 et 13, qui ne comptent plus dans la moyenne.</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" style="margin-top:4px;flex:none" data-dcgbts ${S.dcgBts ? "checked" : ""}><span><b>J'ai le BTS CG</b> : dispense des UE 1, 5, 8, 9, 12 et 13. Elles ne comptent plus dans la moyenne et disparaissent de l'appli (cours, fiches, quiz). Pareil pour une UE que tu coches « Dispensée ».</span></label>
       <div class="dcg-ue">${r.L.map(x => { const bts = S.dcgBts && DCG_BTS_DISP.includes(x.c.id), own = !!(st[x.c.id] && st[x.c.id].disp);
         return `<div class="dcg-f ${x.st}" style="${hueStyle(x.c.id)}"><span><b>${h(x.c.code)}</b> ${h(x.c.name)} <span class="muted">· ${DCG_YEAR[x.c.id]}${DCG_YEAR[x.c.id] === 1 ? "re" : "e"} année</span></span>
           <div class="row"><input type="number" min="0" max="20" step="0.25" inputmode="decimal" placeholder="Note" aria-label="Note ${h(x.c.code)}" data-dcgn="${x.c.id}" value="${x.disp ? "" : h(dcgNote(x.c.id) != null ? dcgNote(x.c.id) : "")}"${x.disp ? " disabled" : ""}>
@@ -2403,8 +2433,8 @@ function bindFusion() {
   const dcgRe = () => { touch(); const y = window.scrollY; render(); window.scrollTo(0, y); };
   document.querySelectorAll("[data-dcgn]").forEach(inp => inp.addEventListener("change", () => { const st = dcgStore(), id = inp.dataset.dcgn, v = inp.value.trim().replace(",", "."), n = v === "" ? null : Math.max(0, Math.min(20, +v));
     st[id] = Object.assign(st[id] || {}, { n: n != null && !isNaN(n) ? n : null, d: dayNum() }); dcgRe(); }));
-  document.querySelectorAll("[data-dcgd]").forEach(inp => inp.addEventListener("change", () => { const st = dcgStore(), id = inp.dataset.dcgd; st[id] = Object.assign(st[id] || {}, { disp: inp.checked }); dcgRe(); }));
-  document.querySelectorAll("[data-dcgbts]").forEach(inp => inp.addEventListener("change", () => { S.dcgBts = inp.checked; dcgRe(); }));
+  document.querySelectorAll("[data-dcgd]").forEach(inp => inp.addEventListener("change", () => { const st = dcgStore(), id = inp.dataset.dcgd; st[id] = Object.assign(st[id] || {}, { disp: inp.checked, d: dayNum() }); if (!dcgSkipApply()) dcgRe(); }));
+  document.querySelectorAll("[data-dcgbts]").forEach(inp => inp.addEventListener("change", () => { S.dcgBts = inp.checked; if (!dcgSkipApply()) dcgRe(); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
   document.querySelectorAll("[data-sit], [data-sitf]").forEach(inp => inp.addEventListener(inp.tagName === "SELECT" ? "change" : "input", () => {
