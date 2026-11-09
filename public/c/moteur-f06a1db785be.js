@@ -11,7 +11,7 @@ const DCG_SKIP_CUR = (() => {
   if (!sk.length) return "";
   const out = id => sk.includes(id), keep = (a, f) => { const k = a.filter(x => !f(x)); a.splice(0, a.length, ...k); };
   FORMATION.hiddenCats = (FORMATION.hiddenCats || []).concat(CATS.filter(c => out(c.id)));
-  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(F, f => out(f[0])); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
+  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(F, f => out(f[0])); keep(GCASES, k => out(k.cat)); keep(SCH, x => out(x.cat)); keep(REFS, r => out(r[1])); if (window.GL_QMUL) window.GL_QMUL = window.GL_QMUL.filter(x => !out(x.c)); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
   sk.forEach(id => { delete COURS[id]; delete COURS_META[id]; delete EXAM_PLAN[id]; delete EPTEXT[id]; if (FORMATION.lesCh) delete FORMATION.lesCh[id]; });
   ["lessonPath", "coursOrder"].forEach(k => { if (FORMATION[k]) FORMATION[k] = FORMATION[k].filter(id => !out(id)); });
   if (FORMATION.groups) FORMATION.groups = FORMATION.groups.map(([g, t, sub]) => { const L = CATS.filter(c => c.grp === g); if (!L.length) return null;
@@ -54,6 +54,8 @@ const QS = [], FS = [];
   for (let i = QS.length - 1; i >= 0; i--) if (HQ.has(QS[i].id)) QS.splice(i, 1);
   for (let i = FS.length - 1; i >= 0; i--) if (HF.has(FS[i].id)) FS.splice(i, 1);
 })();
+/* Quiz à plusieurs réponses (DCG) : les premières options sont justes (mul = leur nombre), il faut toutes les cocher */
+const QMUL = (window.GL_QMUL || []).map((x, i) => ({ id: x.c + "m" + (i + 1), c: x.c, q: x.q, o: x.ok.concat(x.ko), mul: x.ok.length, e: x.e, ch: x.ch }));
 const isGuest = () => !!window.GL_GUEST;
 const lockedCat = c => isGuest() && !!c && !GUEST_CATS.includes(c);
 if (isGuest()) { for (let i = QS.length - 1; i >= 0; i--) if (lockedCat(QS[i].c)) QS.splice(i, 1); for (let i = FS.length - 1; i >= 0; i--) if (lockedCat(FS[i].c)) FS.splice(i, 1); }
@@ -918,6 +920,28 @@ function timeLeft() {
   const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
   return m + ":" + String(s).padStart(2, "0");
 }
+function mulOpts(cur) {
+  const B = cur.base || cur.it, done = cur.pick !== null && R.mode === "quiz", sel = cur.sel || [];
+  if (!cur.mo) cur.mo = shuffle(B.o.map((_, i) => i));
+  return `<p class="tw-k">Coche toutes les bonnes réponses (il peut y en avoir plusieurs)</p><div class="options mul-opts">${cur.mo.map(i => { const on = sel.includes(i); let cls = "opt mul";
+    if (done) { if (i < B.mul) cls += on ? " right" : " right missed"; else if (on) cls += " wrong"; } else if (on) cls += " picked";
+    return `<button class="${cls}" data-act="mtog" data-i="${i}" aria-pressed="${on}" ${done ? "disabled" : ""}><span class="k mul-box" aria-hidden="true">${on ? "✓" : ""}</span><span>${h(B.o[i])}</span></button>`; }).join("")}</div>
+    ${done ? "" : `<button class="btn primary" data-act="mval" ${sel.length ? "" : "disabled"}>Valider</button>`}`;
+}
+function mulTog(i) {
+  const cur = R && R.list[R.i]; if (!cur || !(cur.base || cur.it).mul) return;
+  if (R.mode === "quiz" && cur.pick !== null) return;
+  const s = new Set(cur.sel || []); if (s.has(i)) s.delete(i); else s.add(i); cur.sel = [...s];
+  if (R.mode === "exam") cur.pick = null;
+  render();
+}
+function mulVal() {
+  const cur = R && R.list[R.i]; if (!cur) return; const B = cur.base || cur.it; if (!B.mul || !(cur.sel || []).length) return;
+  const sel = cur.sel, ok = sel.length === B.mul && sel.every(i => i < B.mul);
+  const good = B.o.slice(0, B.mul).join(" ; "), mine = sel.slice().sort((a, b) => a - b).map(i => B.o[i]).join(" ; ");
+  cur.base = B; cur.it = Object.assign({}, B, { o: [good, ok ? good : mine, "", ""] }); cur.order = [0, 1, 2, 3];
+  if (R.mode === "quiz") pick(ok ? 0 : 1); else { cur.pick = ok ? 0 : 1; render(); }
+}
 /* Questions en deux temps : la décision, puis la raison. Juste seulement si les deux le sont. */
 function twoOpts(cur) {
   const T = cur.it.two, L = ["A", "B", "C", "D"]; if (!cur.o2) cur.o2 = shuffle(T.w.map((_, i) => i));
@@ -973,14 +997,14 @@ function vRun() {
         ${last ? `<button class="btn primary" data-act="finishExam">Rendre la copie</button>` : `<button class="btn primary" data-act="next">Suivante</button>`}
         <span class="kbd">${R.list.filter(x => x.pick !== null).length}/${R.list.length} répondues</span>
       </div>`
-    : (answered ? `<div class="row"><button class="btn primary" data-act="next" id="nextBtn">${last ? "Voir le bilan" : "Question suivante"}</button><span class="kbd">Entrée</span></div>` : `<span class="kbd">Touches 1 à 4 pour répondre</span>`);
+    : (answered ? `<div class="row"><button class="btn primary" data-act="next" id="nextBtn">${last ? "Voir le bilan" : "Question suivante"}</button><span class="kbd">Entrée</span></div>` : it.mul ? "" : `<span class="kbd">Touches 1 à 4 pour répondre</span>`);
   return `<section class="runner">
     ${R.title ? `<p class="run-title">${h(R.title)}</p>` : ""}<div class="runner-top"><span class="progress-text">${R.mode === "quiz" ? `<button class="quit" data-act="quitRun" aria-label="Quitter le quiz">✕</button>` : ""}Question ${R.i + 1} / ${R.list.length}</span>${head}</div>
     <div class="bar"><i style="width:${pct(R.i + (answered ? 1 : 0), R.list.length)}%"></i></div>
     <div class="qcard">
       ${R.mode === "exam" ? `<span class="ep" style="align-self:flex-start">${h(c.code)} · ${h(c.name)}</span>` : ""}
       <p class="qtext">${h(it.q)}</p>
-      ${it.two ? twoOpts(cur) : `<div class="options">${opts}</div>`}
+      ${it.mul ? mulOpts(cur) : it.two ? twoOpts(cur) : `<div class="options">${opts}</div>`}
       ${fb}
     </div>
     ${nav}
@@ -1428,7 +1452,7 @@ function vCardsSetup() {
   const n = Math.min(30, due.reviews.length + Math.min(15, due.fresh.length));
   const poolN = FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)).length;
   return `<section class="setup">
-    <div><span class="eyebrow">Cartes à répétition espacée</span><h1>${IS_DCG ? "Lexique du DCG" : "Tes fiches bristol"}</h1>${IS_DCG ? `<p class="muted">Chaque carte : un terme technique et sa définition, copiés des fiches. Apprends-les dans les deux sens.</p>` : ""}</div>
+    <div><span class="eyebrow">Cartes à répétition espacée</span><h1>${IS_DCG ? "Lexique du DCG" : "Tes fiches bristol"}</h1>${IS_DCG ? `<p class="muted">Chaque carte : un terme technique et sa définition, ou un piège à éviter, copiés des fiches. Apprends les définitions dans les deux sens.</p>` : ""}</div>
     <p class="muted">Retourne la carte, puis réponds honnêtement. « Je savais » : la carte revient plus tard (1, 3, 7, 15 puis 30 jours). « Difficile » : tu l'avais à moitié, elle revient demain sans monter de niveau. « À revoir » : elle revient dans la session et repart au début. Ne coche « Je savais » que si tu avais toute la réponse.</p>
     <div><div class="label">Sens des cartes</div><div class="picker" role="group" aria-label="Sens des cartes"><button class="chip" data-act="cinv" data-v="0" aria-pressed="${!CINV}">Terme → définition</button><button class="chip" data-act="cinv" data-v="1" aria-pressed="${CINV}">Définition → terme, à écrire</button></div></div>
     <div><div class="label">Matières</div><div class="picker">${catChips(cardSel, "toggleCards")}</div></div>
@@ -2957,7 +2981,8 @@ let EXT = (() => { try { const t = localStorage.getItem("gl-extab") || "quiz"; r
 function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } catch (e) {} }
 function exTabs() {
   const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["justif", ICON.list, "Décider et justifier", `${Object.keys(DWFX).filter(k => CTLX[k] && !lockedCat(CHID[k] && CHID[k].cat)).length} entraînements · décision puis pourquoi`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
-  const TT = IS_DCG ? T.filter(t => t[0] === "ctl" || t[0] === "quiz") : T;
+  if (IS_DCG && QMUL.length) T.splice(2, 0, ["multi", ICON.list, "Plusieurs réponses", `${QMUL.length} questions · tout cocher`]);
+  const TT = IS_DCG ? T.filter(t => t[0] === "ctl" || t[0] === "quiz" || t[0] === "multi" || (t[0] === "guides" && GCASES.length) || (t[0] === "schemas" && SCH.length)) : T;
   if (!TT.some(t => t[0] === EXT)) EXT = "quiz";
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${TT.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
@@ -3979,6 +4004,11 @@ function vExHome() {
       ${body}
     </section>
     <p class="muted small">Sujets officiels de l'Éducation nationale, liens vers les sites qui les publient (Comprendre la compta gestion, Compta Online, académie de Lille, Réviser BTS CG). Les corrigés marqués « non officiel » sont rédigés par ces sites.</p>` : ""}
+    ${EXT === "multi" ? `<section class="stack">
+      <div class="sec-head"><h2>Quiz à plusieurs réponses</h2><p>Une seule question, plusieurs bonnes réponses : coche-les toutes. Juste seulement si tu n'en oublies aucune et n'en coches aucune de trop.</p></div>
+      <div class="row"><button class="btn primary" data-act="mulGo">Toutes les UE (${QMUL.filter(x => !lockedCat(x.c)).length})</button></div>
+      <div class="ex-grid">${CATS.filter(c => QMUL.some(x => x.c === c.id)).map(c => `<button class="ex-card" data-act="mulGo" data-c="${c.id}" style="${hueStyle(c.id)}"><span class="tabcode">${h(c.code)}</span><b>${h(c.name)}</b><small>${QMUL.filter(x => x.c === c.id).length} questions</small></button>`).join("")}</div>
+    </section>` : ""}
     ${EXT === "guides" ? `<section class="stack">
       <div class="sec-head"><h2>Exercices guidés</h2><p>${GCASES.length} exercices type examen, découpés en étapes avec un corrigé pour chacune.</p></div>
       ${CATS.filter(c => (GCBY[c.id] || []).length).map(c => `<details class="ex-group ann-more gc-more" data-ann="gc-${c.id}"${ANN_OPEN.has("gc-" + c.id) ? " open" : ""} style="${hueStyle(c.id)}"><summary><h3><span class="tabcode">${h(c.code)}</span>${h(c.name)} <span class="muted small">${GCBY[c.id].length} exercice${GCBY[c.id].length > 1 ? "s" : ""}</span></h3></summary><div class="ex-grid">${GCBY[c.id].map(gcCard).join("")}</div></details>`).join("")}
@@ -5112,6 +5142,9 @@ document.addEventListener("click", e => {
     case "startWrong": { const w = QS.filter(x => S.q[x.id] && S.q[x.id][2] === 0); startRun(shuffle(w).slice(0, 40), "quiz"); break; }
     case "redoErrors": { const w = R.list.filter(x => !(x.pick !== null && x.order[x.pick] === 0)).map(x => x.it); startRun(shuffle(w), "quiz"); break; }
     case "pick": pick(+b.dataset.pos); break;
+    case "mtog": mulTog(+b.dataset.i); break;
+    case "mval": mulVal(); break;
+    case "mulGo": { const c = b.dataset.c, l = QMUL.filter(x => (!c || x.c === c) && !lockedCat(x.c)); if (!l.length) break; RUN_T = c ? `Plusieurs réponses · ${CAT[c].code}` : "Plusieurs réponses · toutes les UE"; startRun(shuffle(l), "quiz"); break; }
     case "tw1": tw1(+b.dataset.i); break;
     case "tw2": tw2(+b.dataset.pos); break;
     case "pkDw": { const p = S.packs[PK], L = dwFor(p.cat, p.chs, 10, p.kw); if (L.length) startRun(L, "quiz"); break; }
@@ -5268,7 +5301,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); gsOpen(); return; }
   if (view === "run" && R) {
     const cur = R.list[R.i];
-    if (["1", "2", "3", "4"].includes(e.key) && (R.mode === "exam" || cur.pick === null)) { e.preventDefault(); if (cur.it.two) { if (cur.p1 == null) tw1(+e.key - 1); else tw2(+e.key - 1); } else pick(+e.key - 1); }
+    if ((cur.base || cur.it).mul) { if (e.key === "Enter" && cur.pick !== null && R.mode === "quiz") { e.preventDefault(); next(); } }
+    else if (["1", "2", "3", "4"].includes(e.key) && (R.mode === "exam" || cur.pick === null)) { e.preventDefault(); if (cur.it.two) { if (cur.p1 == null) tw1(+e.key - 1); else tw2(+e.key - 1); } else pick(+e.key - 1); }
     else if (e.key === "Enter" && (R.mode === "exam" ? cur.pick !== null : cur.pick !== null)) { e.preventDefault(); if (R.mode === "exam" && R.i === R.list.length - 1) finishExam(); else next(); }
   } else if (view === "card" && C) {
     if (e.key === " " || e.key === "Enter") { e.preventDefault(); flipCard(); }

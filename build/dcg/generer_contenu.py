@@ -84,7 +84,29 @@ for x in LX:
                "« %s » : %s (lexique de la fiche n°%d, Les Geeks des Chiffres)." % (x["f"], x["b"][:1].lower() + x["b"][1:], num.get(x["ch"], 0)), x["ch"]])
 Q += QI
 print("lexique : cartes", len(FL), "questions inversées", len(QI))
-data = dict(f=FL, cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
+# Axe théorique : auteurs (REFS + questions « quel auteur ? »), pièges (cartes), quiz à plusieurs réponses, mini-cas, schémas
+AP = json.load(open("/tmp/claude-0/dcg/auteurs_pieges.json"))
+TH = json.load(open("/tmp/claude-0/dcg/theorique.json"))
+DROP = {("d5", "Joseph Schumpeter"), ("d5", "Richard Musgrave"), ("d5", "Nicholas Kaldor"), ("d7", "Wilson"), ("d11", "Wilson")}
+refs = []
+for name, cat, ch, theme, idea, pat in AP["refs"]:
+    if (cat, name) in DROP: continue
+    idea = re.sub(r"^\d+(\.\d+)+\s+", "", idea); idea = re.sub(r"^Hayek : l’information est dispersée ", "", idea)
+    refs.append([name, cat, ch, theme, idea, pat])
+QA = []
+for name, cat, ch, theme, idea, pat in refs:
+    masked = re.sub(pat, "…", idea)
+    for w in re.findall(r"[A-ZÉ][a-zéèïô]{2,}", name): masked = masked.replace(w, "…")
+    masked = re.sub(r"…(?:\s*(?:,|et|&)?\s*…)+", "…", masked)
+    if "…" not in masked or re.search(r"[A-Z][a-z]+ (?:et|&) …|… (?:et|&) [A-Z]", masked): continue
+    others = [r[0] for r in refs if r[1] == cat and r[0] != name]
+    if len(others) < 3: others = [r[0] for r in refs if r[0] != name]
+    rnd.shuffle(others)
+    QA.append([cat, "Quel auteur ? « %s »" % masked, [name] + others[:3], "%s : %s (fiche n°%d, Les Geeks des Chiffres)." % (name, idea, num.get(ch, 0)), ch])
+Q += QA
+FL += AP["pieges"]
+print("auteurs", len(refs), "questions auteurs", len(QA), "pièges", len(AP["pieges"]), "· théorique", len(TH["mq"]), len(TH["gc"]), len(TH["sch"]))
+data = dict(f=FL, refs=[r[:5] for r in refs], mq=TH["mq"], gc=TH["gc"], sch=TH["sch"], cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
 js = """/* =====================================================================
    CONTENU DE LA FORMATION : DCG (diplôme de comptabilité et de gestion)
    Appliqué après le bloc de contenu BTS : on vide les mêmes noms, puis on les remplit.
@@ -107,6 +129,8 @@ js = """/* =====================================================================
   FORMATION.lesCh = D.lesch; FORMATION.lessonPath = D.cats.map(function (c) { return c.id; }); FORMATION.coursOrder = FORMATION.lessonPath.slice();
   Q.push.apply(Q, D.q);
   F.push.apply(F, D.f);
+  REFS.push.apply(REFS, D.refs); GCASES.push.apply(GCASES, D.gc); SCH.push.apply(SCH, D.sch);
+  window.GL_QMUL = D.mq;
   GUEST_CATS.push("d1", "d9");
   D.cats.forEach(function (c) { PL_CATS.push(c.id); EXAM_PLAN[c.id] = 1; EPTEXT[c.id] = "Épreuve de l'" + c.code + " du DCG."; });
 })();
