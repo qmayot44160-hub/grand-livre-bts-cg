@@ -814,6 +814,7 @@ function vHome() {
   <button class="gs-entry" data-act="gsOpen">${I2.search}<span>Cherche un cours, une fiche, un quiz : « TVA », « quiz amortissement »…</span></button>
   ${rxHomeCard()}
   ${bbHomeCard()}
+  ${dcgHomeCard()}
   ${memoHomeCard()}
   ${persoCoursCards()}
   ${(() => { const up = (S.packs || []).map((p, i) => ({ p, i, d: daysTo(p.date) })).filter(x => x.d != null && x.d >= 0 && x.d <= 14).sort((a, b) => a.d - b.d)[0]; if (!up) return ""; const r = packReady(up.p); return `<button class="wk-cta" data-act="pkOpen" data-i="${up.i}" style="${hueStyle(up.p.cat)}"><span class="wk-ic">${ICON.target}</span><span><b>${up.d === 0 ? "Contrôle aujourd'hui" : up.d === 1 ? "Contrôle demain" : `Contrôle dans ${up.d} jours`} : ${h(packName(up.p))}</b><small>${r} % prêt${(up.p.hist || []).length ? ` · contrôle blanc : ${up.p.hist[up.p.hist.length - 1].pc} %` : " · fais un contrôle blanc pour te tester"}</small></span><span class="wk-go">Réviser ›</span></button>`; })()}
@@ -3807,6 +3808,25 @@ function memRow(x) {
   const [lab, cls] = memLv(x.m), in7 = x.m != null ? memChap(x.k, 7).m : null;
   return `<div class="mem-row"><div class="mem-t"><b>${h(x.c.title)}</b><small>${x.m == null ? `${x.tot} questions et cartes à découvrir` : `${Math.round(x.m * 100)} % · ${lab} · vu ${x.n} sur ${x.tot}${in7 != null && x.m - in7 > .08 ? ` · ${Math.round(in7 * 100)} % dans 7 jours sans révision` : ""}`}</small>${memBar(x.m, cls)}</div>
     <button class="btn small${x.m != null && x.m < .55 ? " primary" : ""}" data-act="memoCh" data-k="${x.k}">${x.m == null ? "Commencer" : "Rafraîchir"}</button></div>`;
+}
+/* Accueil DCG : moyenne, ce qu'il reste, et l'UE à reprendre en premier */
+function dcgHomeCard() {
+  if (!IS_DCG) return "";
+  const r = dcgCalc(); if (!r.act.length) return "";
+  const top = dcgPrio(r)[0], nq = top ? QS.filter(x => x.c === top.c.id && !lockedCat(x.c)).length : 0;
+  let title, txt;
+  if (r.won) { title = `Diplôme obtenu : ${fmtN(r.avg)}/20 de moyenne`; txt = "Toutes tes UE sont validées."; }
+  else if (!r.noted.length) { title = "Suis ta moyenne au DCG"; txt = "Entre tes notes par UE : l'appli calcule ta moyenne, ce qu'il te reste et quoi réviser en premier."; }
+  else {
+    title = `Moyenne ${fmtN(r.avg)}/20 · ${r.ok.length} UE acquise${r.ok.length > 1 ? "s" : ""} sur ${r.act.length}`;
+    const bits = [];
+    if (r.left.length) bits.push(`${r.left.length} UE à passer ou repasser${r.need != null && r.need > 6 && r.need <= 20 ? `, il te faut ${fmtN(r.need)} de moyenne dessus` : ""}`);
+    if (r.mid.length) bits.push(`${r.mid.length} entre 6 et 10`);
+    txt = bits.length ? bits.join(" · ") + "." : "";
+  }
+  return `<section class="mem-home"><div><span class="eyebrow">Mon DCG</span><b>${title}</b>
+    <p class="muted">${txt}${top && !r.won ? ` À reprendre en premier : <b>${h(top.c.code)}</b> ${h(top.c.name)}.` : ""}</p></div>
+    <div class="row">${top && nq && !r.won ? `<button class="btn primary" data-act="dcgPlan" data-c="${top.c.id}">Quiz de reprise ${h(top.c.code)}</button>` : ""}<button class="btn" data-nav="bts">${r.noted.length ? "Voir Mon DCG" : "Noter mes résultats"}</button></div></section>`;
 }
 function memoHomeCard() {
   const s = memSum(); if (!s.w.length) return "";
