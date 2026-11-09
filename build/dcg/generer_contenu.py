@@ -29,6 +29,8 @@ CREDIT = "Fiche : Les Geeks des Chiffres"
 
 chap, themes, Q = [], [], []
 rnd = random.Random(2027)
+MD = json.load(open("/tmp/claude-0/dcg/md.json"))
+cours, cmeta, lesch = {}, {}, {}
 for u in UE:
     L = [d for d in F if d["ue"] == u and d["pages"]]
     norm = lambda st: (st[0], re.sub(r"\s*\(suite\)\s*$", "", st[1], flags=re.I).strip()) if st else (0, "")
@@ -45,7 +47,7 @@ for u in UE:
         idee = txt[:200].rsplit(" ", 1)[0] + "…" if len(txt) > 200 else txt
         fid = "d%df%d" % (u, d["n"])
         chap.append(dict(id=fid, cat="d%d" % u, src="geeks", th="d%d:%d" % (u, k), n=d["n"], title=title, idee=idee,
-                         sections=[dict(h="Texte de la fiche", b=[["p", txt]])], points=[],
+                         sections=[], points=[],
                          imgs=["/dcg/u%d/f%d-%d.webp" % (u, d["n"], i + 1) for i in range(len(d["pages"]))], credit=CREDIT))
         for q in d["quiz"]:
             o = q["opts"]; good = o[q["a"]]; bad = [v for kk, v in o.items() if kk != q["a"]]
@@ -57,7 +59,17 @@ for u in UE:
         t = re.sub(r"(?i)\bue ?(\d+)", r"UE \1", t).replace("(tva)", "(TVA)").replace(" ess", " ESS").replace("& ", "et ").replace("Si et ", "SI et ")
         themes.append(dict(key="d%d:%d" % (u, k + 1), cat="d%d" % u, n=k + 1, title=t))
 
-data = dict(cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
+for u in UE:
+    L = [c for c in chap if c["cat"] == "d%d" % u]
+    parts = ["Le cours de l'UE %d du DCG, fiche par fiche, d'après les fiches de révision des Geeks des Chiffres (intégrées avec leur accord pour la classe). Chaque leçon renvoie à sa fiche illustrée et à son quiz." % u]
+    for c in L:
+        md = MD.get("%d:%d" % (u, c["n"]), "").strip() or "Cette fiche est surtout faite de schémas : ouvre la fiche illustrée."
+        md = re.sub(r"(?m)^## ", "### ", md)
+        parts.append("## %d. %s\n\n%s" % (c["n"], c["title"], md))
+    cours["d%d" % u] = "\n\n".join(parts)
+    cmeta["d%d" % u] = dict(id="d%d" % u, cat="d%d" % u, code="UE %d" % u, name=UE[u][0], short=UE[u][0])
+    lesch["d%d" % u] = [[c["id"]] for c in L]
+data = dict(cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
 js = """/* =====================================================================
    CONTENU DE LA FORMATION : DCG (diplôme de comptabilité et de gestion)
    Appliqué après le bloc de contenu BTS : on vide les mêmes noms, puis on les remplit.
@@ -76,6 +88,8 @@ js = """/* =====================================================================
   CATS.push.apply(CATS, D.cats);
   CHAP.push.apply(CHAP, D.chap);
   IMP_THEMES.push.apply(IMP_THEMES, D.themes);
+  Object.assign(COURS, D.cours); Object.assign(COURS_META, D.cmeta);
+  FORMATION.lesCh = D.lesch; FORMATION.lessonPath = D.cats.map(function (c) { return c.id; }); FORMATION.coursOrder = FORMATION.lessonPath.slice();
   Q.push.apply(Q, D.q);
   GUEST_CATS.push("d1", "d9");
   D.cats.forEach(function (c) { PL_CATS.push(c.id); EXAM_PLAN[c.id] = 1; EPTEXT[c.id] = "Épreuve de l'" + c.code + " du DCG."; });

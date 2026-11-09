@@ -628,7 +628,7 @@ const HUE = { p1: [220, 64], p2: [170, 62], p3: [265, 50], p4: [335, 58], p5: [2
 const LD = { p2: 10, p6: 7, ce: 7, an: 8, p5: 3 };
 Object.assign(HUE, FORMATION.hue || {});
 const hueStyle = cat => { const x = HUE[cat] || [228, 40]; return `--ld:${LD[cat] || 0}%;--h:${x[0]};--s:${x[1]}%`; };
-let matCat = CATS[0].id, matSeg = IS_DCG ? "fiche" : "lecons", LS = null, ficheQuery = "", matFicheQuery = "", coursQuery = "";
+let matCat = CATS[0].id, matSeg = "lecons", LS = null, ficheQuery = "", matFicheQuery = "", coursQuery = "";
 
 function normS() { S.q = S.q || {}; S.c = S.c || {}; S.l = S.l || {}; S.x = S.x || {}; S.st = S.st || { d: 0, n: 0 };  migL(S); }
 /* Leçons insérées ou réordonnées : les leçons lues suivent leur nouveau numéro (LES_MIG, par cours et par version) */
@@ -766,7 +766,7 @@ function vHome() {
   const nlT = nl ? lessonLabel(SPLIT(nl.cid)[nl.k].title, nl.k) : null;
   const dqN = dueQs().length, wk0 = weakChaps(1)[0];
   const steps = [
-    IS_DCG ? { done: (dy.f || 0) > 0, title: "Lire une fiche",
+    IS_DCG && !nl ? { done: (dy.f || 0) > 0, title: "Lire une fiche",
       text: nf ? `${h(CAT[nf.cat].code)} ${h(CAT[nf.cat].name)} : ${h(nf.title)}` : "Tu as lu toutes les fiches. Relis celles qui te posent problème.",
       btn: nf ? `<button class="btn primary" data-act="fiche" data-id="${nf.id}">Lire</button>` : `<button class="btn" data-nav="fiches">Voir les fiches</button>` } :
     { done: dy.l > 0, title: "Lire une leçon",
@@ -1478,13 +1478,13 @@ function startExam() {
 
 /* ---------- Cours, leçons, fiches (version 5) ---------- */
 const LES_MIG = {"p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 10, "9": 11, "10": 12, "11": 13, "12": 14}}], "p3": [{"v": 2, "m": {"3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 12}}], "p4": [{"v": 2, "m": {"4": 5, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p1": [{"v": 2, "m": {"5": 6, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p6": [{"v": 2, "m": {"4": 5, "5": 6, "6": 7, "7": 9, "8": 11, "9": 12}}]};
-const COURS_ORDER = ["me", "or", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "ce1", "ce2", "ce3", "ce4", "cg", "an"];
+const COURS_ORDER = FORMATION.coursOrder || ["me", "or", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "ce1", "ce2", "ce3", "ce4", "cg", "an"];
 function CMETA(id) { if (COURS_META[id]) return COURS_META[id]; const c = CAT[id]; return c ? Object.assign({ cat: c.id, short: c.name }, c) : null; }
 const COURSES_BY_CAT = { ce: ["ce1", "ce2", "ce3", "ce4", "ce"], me: ["me", "or"] };
 /* Cours personnels (ajoutés pour un seul compte) : rangés à la fin de leur matière */
 Object.keys(COURS_META).forEach(id => { const m = COURS_META[id]; if (!m.perso || !COURS[id]) return; if (!COURS_ORDER.includes(id)) COURS_ORDER.push(id); const l = COURSES_BY_CAT[m.cat] || (COURSES_BY_CAT[m.cat] = [m.cat]); if (!l.includes(id)) l.push(id); });
 const coursesOf = cat => COURSES_BY_CAT[cat] || (COURS[cat] ? [cat] : []);
-const LESSON_PATH = ["p1", "p2", "p3", "p4", "ce1", "p5", "p6", "ce2", "p7", "ce3", "ma", "cg", "ce4", "an", "me", "or", "ce"];
+const LESSON_PATH = FORMATION.lessonPath || ["p1", "p2", "p3", "p4", "ce1", "p5", "p6", "ce2", "p7", "ce3", "ma", "cg", "ce4", "an", "me", "or", "ce"];
 
 function inl(s) {
   return h(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*([^*\s][^*]*?)\*/g, "<em>$1</em>");
@@ -1804,6 +1804,7 @@ const LES_CH_RAW = {
   ce3: [["t3c1"], ["t3c2"], ["t3c3"], ["t3c4"], ["t3c5"], ["t3c6"]],
   ce4: [["t4c1"], ["t4c2"], ["t4c3"], ["t4c4"], ["t5c1"], ["t5c2"], ["t5c3"], ["t5c4"], ["t6c1"], ["t6c2"], ["t6c3"]]
 };
+Object.assign(LES_CH_RAW, FORMATION.lesCh || {});
 function lesChs(cid, k) { const r = LES_CH_RAW[cid]; return ((r && r[k - 1]) || []).filter(id => CHID[id]); }
 let CH_LES = null;
 function chLes(id) {
@@ -4645,6 +4646,7 @@ function glBuild() {
   GLF.forEach(([names, f, x]) => names.forEach(n => { const k = nk(n); if (GLX[k]) Object.assign(GLX[k], { f, x }); else GLX[k] = { t: n, p: 3, f, x, d: "" }; }));
   const terms = Object.values(GLX).map(e => e.t).filter(t => t.length >= 2).sort((a, b) => b.length - a.length);
   const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/'/g, "['’]");
+  if (!terms.length) { GLRE = null; return; }
   try { GLRE = new RegExp("(?<![\\p{L}\\p{N}])(" + terms.map(esc).join("|") + ")(?![\\p{L}\\p{N}])", "giu"); } catch (e) { GLRE = null; }
 }
 const GL_ZONES = ".feedback, .qx, .cx-corr, .face-back .back, .more-box, .ex-corr, .sc-key, .review-item .e, .lesson .md p, .lesson .md li, .lesson .md td, .gc-corr, .pl-phase";
@@ -4658,6 +4660,7 @@ function glossify(root) {
     for (const node of nodes) {
       if (n >= 10) break; const txt = node.nodeValue; GLRE.lastIndex = 0; let m, last = 0; const frag = document.createDocumentFragment(); let hit = false;
       while ((m = GLRE.exec(txt)) && n < 10) {
+        if (!m[0]) break;
         const raw = m[1], k = nk(raw), e = GLX[k]; if (!e || seen.has(k)) continue;
         if (/^[A-Z0-9]{2,6}$/.test(e.t) && raw !== e.t) continue; // sigles : casse exacte
         seen.add(k); n++; hit = true;
