@@ -69,7 +69,22 @@ for u in UE:
     cours["d%d" % u] = "\n\n".join(parts)
     cmeta["d%d" % u] = dict(id="d%d" % u, cat="d%d" % u, code="UE %d" % u, name=UE[u][0], short=UE[u][0])
     lesch["d%d" % u] = [[c["id"]] for c in L]
-data = dict(cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
+# Lexique (build/dcg/lexique.py) : cartes terme / définition, et questions inversées (la définition, trouver le terme)
+LX = json.load(open("/tmp/claude-0/dcg/lexique.json"))
+FL, QI = [], []
+num = {c["id"]: c["n"] for c in chap}
+for x in LX:
+    FL.append([x["c"], x["f"], x["b"], x["m"], x["ch"]])
+    words = [w for w in re.findall(r"[a-zà-ÿ]{4,}", x["f"].lower())]
+    if any(w in x["b"].lower() for w in words): continue
+    same = [y["f"] for y in LX if y["c"] == x["c"] and y["f"] != x["f"]]
+    if len(same) < 3: continue
+    same.sort(key=lambda t: abs(len(t) - len(x["f"])) + rnd.random() * 12)
+    QI.append([x["c"], "Quel terme correspond à cette définition ? « %s »" % x["b"].rstrip("."), [x["f"]] + same[:3],
+               "« %s » : %s (lexique de la fiche n°%d, Les Geeks des Chiffres)." % (x["f"], x["b"][:1].lower() + x["b"][1:], num.get(x["ch"], 0)), x["ch"]])
+Q += QI
+print("lexique : cartes", len(FL), "questions inversées", len(QI))
+data = dict(f=FL, cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
 js = """/* =====================================================================
    CONTENU DE LA FORMATION : DCG (diplôme de comptabilité et de gestion)
    Appliqué après le bloc de contenu BTS : on vide les mêmes noms, puis on les remplit.
@@ -91,6 +106,7 @@ js = """/* =====================================================================
   Object.assign(COURS, D.cours); Object.assign(COURS_META, D.cmeta);
   FORMATION.lesCh = D.lesch; FORMATION.lessonPath = D.cats.map(function (c) { return c.id; }); FORMATION.coursOrder = FORMATION.lessonPath.slice();
   Q.push.apply(Q, D.q);
+  F.push.apply(F, D.f);
   GUEST_CATS.push("d1", "d9");
   D.cats.forEach(function (c) { PL_CATS.push(c.id); EXAM_PLAN[c.id] = 1; EPTEXT[c.id] = "Épreuve de l'" + c.code + " du DCG."; });
 })();

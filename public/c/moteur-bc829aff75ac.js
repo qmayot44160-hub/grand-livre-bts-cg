@@ -11,7 +11,7 @@ const DCG_SKIP_CUR = (() => {
   if (!sk.length) return "";
   const out = id => sk.includes(id), keep = (a, f) => { const k = a.filter(x => !f(x)); a.splice(0, a.length, ...k); };
   FORMATION.hiddenCats = (FORMATION.hiddenCats || []).concat(CATS.filter(c => out(c.id)));
-  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
+  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(F, f => out(f[0])); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
   sk.forEach(id => { delete COURS[id]; delete COURS_META[id]; delete EXAM_PLAN[id]; delete EPTEXT[id]; if (FORMATION.lesCh) delete FORMATION.lesCh[id]; });
   ["lessonPath", "coursOrder"].forEach(k => { if (FORMATION[k]) FORMATION[k] = FORMATION[k].filter(id => !out(id)); });
   if (FORMATION.groups) FORMATION.groups = FORMATION.groups.map(([g, t, sub]) => { const L = CATS.filter(c => c.grp === g); if (!L.length) return null;
@@ -1411,13 +1411,26 @@ function vCible() {
   </section>
   ${ctlSection(c.id)}`;
 }
+/* Sens des cartes : « terme → définition » (normal) ou « définition → terme » (inversé, avec le terme à écrire) */
+let CINV = (() => { try { return localStorage.getItem("gl-cinv") === "1"; } catch (e) { return false; } })();
+const normT = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\([^)]*\)/g, " ").replace(/^(l'|l’|le |la |les |un |une )/, "").replace(/[^a-z0-9]+/g, " ").trim();
+function cardTypedCheck() {
+  const inp = document.getElementById("cardType"), out = document.querySelector(".typed-res");
+  if (!inp || !out || !C || !C.q[C.i]) return;
+  const v = inp.value.trim(), it = C.q[C.i].it;
+  if (!v) { out.hidden = true; return; }
+  const a = normT(v), b = normT(it.f), ok = a === b || (a.length >= 4 && (b.startsWith(a) || b.includes(a) && a.length >= b.length * .6));
+  out.hidden = false; out.className = "typed-res " + (ok ? "ok" : "ko");
+  out.innerHTML = ok ? `Bien vu : tu as écrit « ${h(v)} ».` : `Tu as écrit « ${h(v)} ». Le terme exact : <b>${h(it.f)}</b>.`;
+}
 function vCardsSetup() {
   const due = dueCards(cardSel.length ? cardSel : null, true);
   const n = Math.min(30, due.reviews.length + Math.min(15, due.fresh.length));
   const poolN = FS.filter(x => (!cardSel.length || cardSel.includes(x.c)) && chapOk(x)).length;
   return `<section class="setup">
-    <div><span class="eyebrow">Cartes à répétition espacée</span><h1>Tes fiches bristol</h1></div>
+    <div><span class="eyebrow">Cartes à répétition espacée</span><h1>${IS_DCG ? "Lexique du DCG" : "Tes fiches bristol"}</h1>${IS_DCG ? `<p class="muted">Chaque carte : un terme technique et sa définition, copiés des fiches. Apprends-les dans les deux sens.</p>` : ""}</div>
     <p class="muted">Retourne la carte, puis réponds honnêtement. « Je savais » : la carte revient plus tard (1, 3, 7, 15 puis 30 jours). « Difficile » : tu l'avais à moitié, elle revient demain sans monter de niveau. « À revoir » : elle revient dans la session et repart au début. Ne coche « Je savais » que si tu avais toute la réponse.</p>
+    <div><div class="label">Sens des cartes</div><div class="picker" role="group" aria-label="Sens des cartes"><button class="chip" data-act="cinv" data-v="0" aria-pressed="${!CINV}">Terme → définition</button><button class="chip" data-act="cinv" data-v="1" aria-pressed="${CINV}">Définition → terme, à écrire</button></div></div>
     <div><div class="label">Matières</div><div class="picker">${catChips(cardSel, "toggleCards")}</div></div>
     <div><div class="label">Chapitres</div>${chapPicker(cardSel, "f")}</div>
     <div class="row">
@@ -1443,16 +1456,17 @@ function vCard() {
   return `<section class="runner card-runner${C.flip ? " flipped" : ""}" style="${hueStyle(it.c)}">
     ${C.title ? `<p class="run-title">${h(C.title)}</p>` : ""}<div class="runner-top"><span class="progress-text"><button class="quit" data-act="quitCards" aria-label="Quitter les cartes">✕</button>Carte ${Math.min(C.i + 1, C.q.length)} sur ${C.q.length}</span><span class="kbd">Espace : retourner. 1 : à revoir, 2 : difficile, 3 : je savais</span></div>
     <div class="card3d${C.flip ? " is-flipped" : ""}" data-act="flip" role="button" tabindex="0" aria-label="Retourner la carte">
-      <div class="face face-front bristol">${head}<div class="bristol-body">${(() => { const cq = cardQ(it); return `<span class="front-k">${h(cq.k)}</span><p class="front">${h(cq.q)}</p>`; })()}<span class="hint">Touche ou clique pour retourner la carte</span></div></div>
-      <div class="face face-back bristol">${head}<div class="bristol-body"><span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p></div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span><span class="stamp hd" aria-hidden="true">Difficile</span></div>
+      <div class="face face-front bristol">${head}<div class="bristol-body">${CINV ? `<span class="front-k">Quel est le terme ?</span><p class="front front-def">${h(it.b)}</p>` : (() => { const cq = cardQ(it); return `<span class="front-k">${h(cq.k)}</span><p class="front">${h(cq.q)}</p>`; })()}<span class="hint">Touche ou clique pour retourner la carte</span></div></div>
+      <div class="face face-back bristol">${head}<div class="bristol-body">${CINV ? `<span class="hint">${h(it.b)}</span><p class="back back-term">${h(it.f)}</p>` : `<span class="hint">${h(it.f)}</span><p class="back">${h(it.b)}</p>`}</div><span class="stamp ok" aria-hidden="true">Je savais</span><span class="stamp ko" aria-hidden="true">À revoir</span><span class="stamp hd" aria-hidden="true">Difficile</span></div>
     </div>
     <div class="after-flip">
+      ${CINV ? `<p class="typed-res" hidden></p>` : ""}
       ${it.m ? `<details class="more-box"><summary>Pour aller plus loin</summary><p>${h(it.m)}</p></details>` : ""}
       <button class="rep-btn" data-act="report" data-t="c" data-id="${h(it.id)}" data-l="${h(String(it.f).slice(0, 140))}">Signaler une erreur</button>
       <p class="swipe-hint">Glisse la carte : à droite, je savais · à gauche, à revoir · vers le haut, difficile</p>
       <div class="card-actions"><button class="btn again" data-act="again">À revoir</button><button class="btn hard" data-act="hard">Difficile</button><button class="btn know" data-act="knew">Je savais</button></div>
     </div>
-    <div class="before-flip"><button class="btn primary" data-act="flip">Voir la réponse</button></div>
+    <div class="before-flip">${CINV ? `<input id="cardType" class="card-type" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Écris le terme (facultatif)" aria-label="Écris le terme">` : ""}<button class="btn primary" data-act="flip">Voir la réponse</button></div>
   </section>`;
 }
 
@@ -2471,6 +2485,7 @@ function bindFusion() {
 function flipCard() {
   if (!C) return;
   C.flip = !C.flip; tone("flip");
+  if (C.flip && CINV) cardTypedCheck();
   const r = document.querySelector(".card-runner");
   if (r) { r.classList.toggle("flipped", C.flip); const c3 = r.querySelector(".card3d"); if (c3) c3.classList.toggle("is-flipped", C.flip); } else render();
 }
@@ -2676,6 +2691,7 @@ const GS_TYPES = [["page", "Rubriques de l'appli"], ["lesson", "Leçons"], ["fic
 const GS_W = { page: 5, lesson: 4, fiche: 4, quiz: 3, annale: 3, ref: 3, case: 2, memo: 1 };
 /* Rubriques : [titre, mots qui la font trouver, action] */
 const GS_PAGES = [
+  ...(IS_DCG ? [["Lexique du DCG : termes et définitions", "lexique vocabulaire definitions termes cartes flashcards par coeur", () => go("cards")]] : []),
   ...(IS_DCG ? [["Mon DCG : mes notes, ma moyenne, mes révisions", "dcg notes moyenne ue resultats diplome revisions repasser dispense", () => go("bts")]] : []),
   ["Ma mémoire", "memoire oubli retenir s'efface seance memoire revoir", () => go("memo")],
   ["Mes erreurs et points faibles", "erreurs fautes rate points faibles revoir", () => go("erreurs")],
@@ -5238,6 +5254,7 @@ document.addEventListener("click", e => {
     case "cibleQuiz": startRun(shuffle(QS.filter(x => x.c === cibleCat && chapOk(x))).slice(0, quizLen), "quiz"); break;
     case "cibleCards": { const pool = FS.filter(x => x.c === cibleCat && chapOk(x)), d = dayNum(), due = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] <= d)), fresh = shuffle(pool.filter(x => !S.c[x.id])), rest = shuffle(pool.filter(x => S.c[x.id] && S.c[x.id][1] > d)); startCards(due.concat(fresh, rest).slice(0, P().clen)); break; }
     case "flip": flipCard(); break;
+    case "cinv": CINV = b.dataset.v === "1"; try { localStorage.setItem("gl-cinv", CINV ? "1" : "0"); } catch (e) {} render(); break;
     case "again": answerCard(false); break;
     case "knew": answerCard(true); break;
     case "hard": answerCard("hard"); break;
@@ -5246,6 +5263,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "k" || e.key === "K")) { e.preventDefault(); if (GS.open) gsClose(); else gsOpen(); return; }
   if (GS.open) { if (e.key === "Escape") gsClose(); return; }
+  if (e.target && e.target.id === "cardType" && e.key === "Enter" && view === "card" && C && !C.flip) { e.preventDefault(); e.target.blur(); flipCard(); return; }
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); gsOpen(); return; }
   if (view === "run" && R) {
