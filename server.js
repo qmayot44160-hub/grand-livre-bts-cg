@@ -221,6 +221,12 @@ app.get("/api/dcg-content.js", async (req, res) => {
 });
 /* Fiches DCG (Les Geeks des Chiffres, intégrées avec leur accord pour la classe) : réservées aux comptes connectés */
 const DCG_DIR = path.join(__dirname, "private", "dcg");
+// Moteur SQL dans le navigateur (exercices SQL du DCG, UE 8) : servi depuis node_modules, chargé seulement à l'ouverture de l'atelier
+const SQLJS_DIR = path.join(__dirname, "node_modules", "sql.js", "dist");
+app.get(/^\/vendor\/(sql-wasm\.(?:js|wasm))$/, (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=604800");
+  res.sendFile(path.join(SQLJS_DIR, req.params[0]), err => { if (err && !res.headersSent) res.status(404).end(); });
+});
 app.get("/dcg/:u/:f", async (req, res) => {
   const { u, f } = req.params;
   if (!/^u\d{1,2}$/.test(u) || !/^f\d{1,3}-\d{1,2}\.webp$/.test(f)) return res.status(404).end();

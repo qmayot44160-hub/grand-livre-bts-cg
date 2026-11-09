@@ -106,6 +106,27 @@ for name, cat, ch, theme, idea, pat in refs:
 Q += QA
 FL += AP["pieges"]
 print("auteurs", len(refs), "questions auteurs", len(QA), "pièges", len(AP["pieges"]), "· théorique", len(TH["mq"]), len(TH["gc"]), len(TH["sch"]))
+# UE 12 : le vocabulaire anglais des fiches (« Word – Traduction »), en cartes et en questions de traduction
+VOC = re.compile(r"([A-Z][A-Za-z’'/ -]{1,40}?)\s[–-]\s([A-ZÀ-Ýa-zà-ÿ][^–\n]{1,60}?)(?=\s[A-Z][A-Za-z’'/ -]{1,40}?\s[–-]\s|$|\n)")
+FR_W = re.compile(r"\b(les|des|du|de la|et|humaines|entreprise|ressources|service client)\b", re.I)
+voc, vseen = [], set()
+for key, md in MD.items():
+    if not key.startswith("12:"): continue
+    n = int(key.split(":")[1])
+    for m in VOC.finditer(md):
+        en, fr = m.group(1).strip(" -/"), m.group(2).strip(" -,;.")
+        if not re.fullmatch(r"[A-Za-z’'/ -]{2,40}", en) or FR_W.search(en) or len(fr) < 2 or en.lower() == fr.lower(): continue
+        if en.lower() in vseen: continue
+        vseen.add(en.lower()); voc.append((en, fr, "d12f%d" % n))
+for en, fr, ch in voc:
+    FL.append(["d12", en, fr, "", ch])
+QV = []
+for en, fr, ch in voc:
+    others = [e for e, f, c in voc if e != en]
+    others.sort(key=lambda t: abs(len(t) - len(en)) + rnd.random() * 10)
+    QV.append(["d12", "Comment dit-on « %s » en anglais ?" % fr, [en] + others[:3], "%s : %s (vocabulaire de la fiche n°%d, Les Geeks des Chiffres)." % (en, fr, num.get(ch, 0)), ch])
+Q += QV
+print("vocabulaire anglais", len(voc))
 data = dict(f=FL, refs=[r[:5] for r in refs], mq=TH["mq"], gc=TH["gc"], sch=TH["sch"], cours=cours, cmeta=cmeta, lesch=lesch, cats=cats, groups=groups, hue={"d%d" % u: v for u, v in HUES.items()}, chap=chap, themes=themes, q=Q)
 js = """/* =====================================================================
    CONTENU DE LA FORMATION : DCG (diplôme de comptabilité et de gestion)
@@ -119,6 +140,16 @@ js = """/* =====================================================================
   var hidden = CATS.splice(0, CATS.length);
   FORMATION.id = "dcg"; FORMATION.nom = "Diplôme de comptabilité et de gestion"; FORMATION.court = "DCG"; FORMATION.niveau = "Bac+3"; FORMATION.examen = "DCG";
   FORMATION.hiddenCats = hidden; FORMATION.groups = D.groups; FORMATION.hue = D.hue;
+  // Axe pratique : les générateurs d'exercices chiffrés du BTS (mêmes règles comptables, fiscales et sociales) rangés dans les UE du DCG
+  var PR = {
+    gens: { d9: ["p1fact", "p1avoir", "p1rappro", "p2lin", "p2deg", "p2cess", "p2cca", "p2dout", "p2stock", "p2regul", "p2rl", "p2affect", "p3tva", "p4paie"],
+            d10: ["p2dev", "p2depimmo", "p2prov", "p2affect", "p2cess"], d4: ["p3is", "p3rf", "p3rd", "p3exig", "p3ir", "p3tva"],
+            d3: ["p4cp", "p4hs", "p4abs", "p4lic", "p4pas"], d6: ["p6fonc", "p6ratios", "p6levier", "p6sig", "p6caf", "p6caf2", "p6bfr", "p6van", "p6emp", "p6drc", "p5budget", "maint"],
+            d11: ["p5mod", "p5cc", "p5sr", "p5ecart", "p5cump", "p6marge"], d8: ["p7sql"] },
+    cx: { d9: ["tvadec", "netcom", "ttc", "htttc", "agios", "coef", "amlin", "amdeg", "vnc", "cession", "cca", "depcli", "rlegale"], d4: ["is", "rfisc", "acpt", "solde", "ca12", "amvp", "tvadec"],
+          d3: ["brut", "csg", "net", "cout", "pas", "cp"], d11: ["sr", "pm", "cmup", "ecq"], d6: ["caf", "treso", "dcli", "va", "annuite"] },
+    dos: { "d-courant": ["d9", "d4"], "d-invest": ["d9"], "d-cloture": ["d9", "d4", "d10"], "d-paie": ["d9", "d3"], "d-ci": ["d8"] } };
+  var g0 = GENS.slice(), c0 = CXG.slice(), d0 = DOSS.slice();
   [Q, F, CHAP, IMP_THEMES, GCASES, REFS, ORAL, ORAL_TRAME, EPREUVES, BTS_PLAN, BTS_CHECK, ANN, GENS, DOSS, EXAM5, REDAC, SCH, CXG, AUSIT, RX_MORE, GUEST_CATS, PL_CATS].forEach(clearA);
   [COURS, COURS_META, METH, MCFG, NOTIONS, VIG, QX, STEP_EXP, EPTEXT, EXAM_PLAN, EPREUVE_INFO, RX].forEach(clearO);
   if (Array.isArray(GLF)) clearA(GLF); else clearO(GLF);
@@ -128,6 +159,9 @@ js = """/* =====================================================================
   Object.assign(COURS, D.cours); Object.assign(COURS_META, D.cmeta);
   FORMATION.lesCh = D.lesch; FORMATION.lessonPath = D.cats.map(function (c) { return c.id; }); FORMATION.coursOrder = FORMATION.lessonPath.slice();
   Q.push.apply(Q, D.q);
+  Object.keys(PR.gens).forEach(function (u) { PR.gens[u].forEach(function (id) { var g = g0.find(function (x) { return x.id === id; }); if (g) GENS.push(Object.assign({}, g, { id: u + "-" + id, cat: u })); }); });
+  Object.keys(PR.cx).forEach(function (u) { PR.cx[u].forEach(function (id) { var g = c0.find(function (x) { return x.id === id; }); if (g) CXG.push(Object.assign({}, g, { id: u + "-" + id, cat: u })); }); });
+  Object.keys(PR.dos).forEach(function (id) { var d = d0.find(function (x) { return x.id === id; }); if (d) DOSS.push(Object.assign({}, d, { id: "dcg-" + id, cats: PR.dos[id] })); });
   F.push.apply(F, D.f);
   REFS.push.apply(REFS, D.refs); GCASES.push.apply(GCASES, D.gc); SCH.push.apply(SCH, D.sch);
   window.GL_QMUL = D.mq;

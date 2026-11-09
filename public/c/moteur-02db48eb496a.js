@@ -11,7 +11,7 @@ const DCG_SKIP_CUR = (() => {
   if (!sk.length) return "";
   const out = id => sk.includes(id), keep = (a, f) => { const k = a.filter(x => !f(x)); a.splice(0, a.length, ...k); };
   FORMATION.hiddenCats = (FORMATION.hiddenCats || []).concat(CATS.filter(c => out(c.id)));
-  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(F, f => out(f[0])); keep(GCASES, k => out(k.cat)); keep(SCH, x => out(x.cat)); keep(REFS, r => out(r[1])); if (window.GL_QMUL) window.GL_QMUL = window.GL_QMUL.filter(x => !out(x.c)); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
+  keep(CATS, c => out(c.id)); keep(Q, q => out(q[0])); keep(F, f => out(f[0])); keep(GCASES, k => out(k.cat)); keep(GENS, g => out(g.cat)); keep(CXG, g => out(g.cat)); DOSS.forEach(d => { d.cats = d.cats.filter(c => !out(c)); }); keep(DOSS, d => !d.cats.length); keep(SCH, x => out(x.cat)); keep(REFS, r => out(r[1])); if (window.GL_QMUL) window.GL_QMUL = window.GL_QMUL.filter(x => !out(x.c)); keep(CHAP, c => out(c.cat)); keep(IMP_THEMES, t => out(t.cat)); keep(GUEST_CATS, out); keep(PL_CATS, out);
   sk.forEach(id => { delete COURS[id]; delete COURS_META[id]; delete EXAM_PLAN[id]; delete EPTEXT[id]; if (FORMATION.lesCh) delete FORMATION.lesCh[id]; });
   ["lessonPath", "coursOrder"].forEach(k => { if (FORMATION[k]) FORMATION[k] = FORMATION[k].filter(id => !out(id)); });
   if (FORMATION.groups) FORMATION.groups = FORMATION.groups.map(([g, t, sub]) => { const L = CATS.filter(c => c.grp === g); if (!L.length) return null;
@@ -720,7 +720,7 @@ function render() {
   if (S.pref && S.pref.qlen !== prefSeenQ) { prefSeenQ = S.pref.qlen; quizLen = prefSeenQ; }
   if (Array.isArray(S.chap) && S.chap.join("|") !== chapSel.join("|")) chapSel = S.chap.slice();
   const v = $("#view");
-  const fn = { amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, recite: vRecite, rchome: vReciteHome, memo: vMemo, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
+  const fn = { sql: vSql, amis: vAmis, room: vRoom, duel: vDuel, pack: vPack, rx: vRx, rxread: vRxRead, recite: vRecite, rchome: vReciteHome, memo: vMemo, classe: () => { AMT = "classement"; return vAmis(); }, oral: vOral, erreurs: vErreurs, home: vHome, quiz: vQuizSetup, run: vRun, result: vResult, cards: vCardsSetup, cible: vCible, profil: vProfil, card: vCard, cardsEnd: vCardsEnd, exam: vExamSetup, fiches: vFiches, cours: vCoursList, mat: vMat, lesson: vLesson, ex: vExHome, exrun: vExRun, exres: vExRes, redac: vRedac, schema: vSchema, calc: vCalc, fiche: vFiche, gcase: vCase, defi: vDefi, bts: vBts, annex: vAnnEx }[view] || vHome;
   v.innerHTML = fn();
   if (inPack() && /^(run|result|cards|card|cardsEnd|exrun|exres|calc|schema|gcase|oral|redac)$/.test(view) && !(view === "result" && R && R.pack != null)) v.insertAdjacentHTML("afterbegin", `<div class="pk-ban" style="${hueStyle(S.packs[FROMPACK].cat)}"><span>Contrôle : <b>${h(packName(S.packs[FROMPACK]))}</b></span><button class="btn small primary" data-act="pkResume">Suite du contrôle</button></div>`);
   v.dataset.view = view;
@@ -2348,6 +2348,116 @@ function balanceHTML() {
   </section>`;
 }
 /* =====================================================================
+   ATELIER SQL : de vraies requêtes exécutées dans le navigateur (moteur SQLite, sql.js)
+   Base reprise des fiches SQL (CLIENT, FACTURE, PRODUIT, LIGNE_FACTURE). Correction : on compare le
+   résultat de ta requête à celui de la requête attendue (mêmes lignes ; même ordre si un tri est demandé).
+   ===================================================================== */
+const SQLX = {
+  schema: `PRAGMA foreign_keys = ON;
+CREATE TABLE CLIENT (NumClient INTEGER PRIMARY KEY, NomClient TEXT NOT NULL, Email TEXT, Ville TEXT);
+CREATE TABLE FACTURE (NumFacture INTEGER PRIMARY KEY, DateFacture TEXT, MontantHT REAL, NumClient INTEGER NOT NULL REFERENCES CLIENT(NumClient));
+CREATE TABLE PRODUIT (NumProduit INTEGER PRIMARY KEY, LibelleProduit TEXT, PrixUnitaireHT REAL);
+CREATE TABLE LIGNE_FACTURE (NumFacture INTEGER REFERENCES FACTURE(NumFacture), NumProduit INTEGER REFERENCES PRODUIT(NumProduit), Quantite INTEGER, PrixUnitaire REAL, PRIMARY KEY (NumFacture, NumProduit));
+INSERT INTO CLIENT VALUES (1,'Martin Conseil','contact@martin-conseil.fr','Paris'),(2,'SCI Le Port','sci.port@mail.fr','Marseille'),(3,'Boulangerie Durand',NULL,'Lille'),(4,'Marchal Transports','info@marchal.fr','Lyon'),(5,'SCI Horizon','horizon@sci.fr','Paris'),(6,'Atelier Rousseau',NULL,'Nantes'),(7,'Marine Services','marine@services.fr','Marseille'),(8,'Cabinet Petit','petit@cabinet.fr','Lyon');
+INSERT INTO PRODUIT VALUES (1,'Audit comptable',450),(2,'Tenue de comptabilité',120),(3,'Conseil fiscal',200),(4,'Formation Excel',350),(5,'Paie mensuelle',35);
+INSERT INTO FACTURE VALUES (1001,'2026-01-12',740,1),(1002,'2026-01-28',2400,2),(1003,'2026-02-15',1100,1),(1004,'2026-03-03',550,4),(1005,'2026-03-30',3100,5),(1006,'2026-04-08',930,1),(1007,'2026-04-22',1750,2),(1008,'2026-05-10',430,7),(1009,'2026-06-02',2050,4),(1010,'2026-06-18',1200,3);
+INSERT INTO LIGNE_FACTURE VALUES (1001,2,5,120),(1001,5,4,35),(1002,1,4,450),(1002,3,3,200),(1003,4,2,350),(1003,3,2,200),(1004,5,10,35),(1004,3,1,200),(1005,1,6,450),(1005,3,2,200),(1006,2,6,120),(1006,5,6,35),(1007,4,5,350),(1008,2,3,120),(1008,5,2,35),(1009,1,3,450),(1009,4,2,350),(1010,3,6,200);`,
+  tables: { CLIENT: "NumClient (clé primaire), NomClient, Email, Ville", FACTURE: "NumFacture (clé primaire), DateFacture, MontantHT, NumClient (clé étrangère vers CLIENT)", PRODUIT: "NumProduit (clé primaire), LibelleProduit, PrixUnitaireHT", LIGNE_FACTURE: "NumFacture et NumProduit (clé primaire et clés étrangères), Quantite, PrixUnitaire" },
+  ex: [
+    ["s1", "Toute la table", "Affiche toutes les colonnes de la table CLIENT.", "SELECT * FROM CLIENT;", "SELECT * pour toutes les colonnes, FROM pour la table."],
+    ["s2", "Sans doublon", "Affiche la liste des villes des clients, chaque ville une seule fois.", "SELECT DISTINCT Ville FROM CLIENT;", "DISTINCT supprime les doublons du résultat."],
+    ["s3", "Un filtre", "Affiche le numéro et le montant HT des factures de plus de 1 000 € HT.", "SELECT NumFacture, MontantHT FROM FACTURE WHERE MontantHT > 1000;", "WHERE filtre les lignes ; les nombres s'écrivent sans espace."],
+    ["s4", "Différent de", "Affiche le nom et la ville des clients qui ne sont pas à Paris.", "SELECT NomClient, Ville FROM CLIENT WHERE Ville <> 'Paris';", "<> (ou !=) veut dire différent ; les textes entre apostrophes simples."],
+    ["s5", "Entre deux dates", "Affiche le numéro et la date des factures du premier trimestre 2026 (du 1er janvier au 31 mars inclus).", "SELECT NumFacture, DateFacture FROM FACTURE WHERE DateFacture BETWEEN '2026-01-01' AND '2026-03-31';", "BETWEEN x AND y inclut les 2 bornes ; dates au format 'AAAA-MM-JJ'."],
+    ["s6", "Un motif", "Affiche le nom des clients dont le nom commence par SCI.", "SELECT NomClient FROM CLIENT WHERE NomClient LIKE 'SCI%';", "LIKE 'motif' avec % pour « n'importe quelle suite de caractères »."],
+    ["s7", "Valeur vide", "Affiche le nom des clients qui n'ont pas d'adresse e-mail renseignée.", "SELECT NomClient FROM CLIENT WHERE Email IS NULL;", "Jamais = NULL : toujours IS NULL."],
+    ["s8", "Une liste et un tri", "Affiche le nom et la ville des clients situés à Paris, Lyon ou Marseille, triés par nom (ordre alphabétique).", "SELECT NomClient, Ville FROM CLIENT WHERE Ville IN ('Paris', 'Lyon', 'Marseille') ORDER BY NomClient ASC;", "IN (liste) pour l'appartenance ; ORDER BY se place toujours à la fin."],
+    ["s9", "Tri décroissant", "Affiche le numéro et le montant HT de toutes les factures, de la plus élevée à la plus faible.", "SELECT NumFacture, MontantHT FROM FACTURE ORDER BY MontantHT DESC;", "DESC pour l'ordre décroissant."],
+    ["j1", "Une jointure", "Affiche, pour chaque facture, son numéro, sa date et le nom du client.", "SELECT F.NumFacture, F.DateFacture, C.NomClient FROM FACTURE F INNER JOIN CLIENT C ON F.NumClient = C.NumClient;", "INNER JOIN … ON clé étrangère = clé primaire ; alias F et C pour raccourcir."],
+    ["j2", "Les orphelins", "Affiche le nom des clients qui n'ont aucune facture.", "SELECT C.NomClient FROM CLIENT C LEFT JOIN FACTURE F ON C.NumClient = F.NumClient WHERE F.NumFacture IS NULL;", "LEFT JOIN garde tous les clients ; sans facture, les colonnes de FACTURE valent NULL."],
+    ["j3", "Trois jointures", "Affiche le numéro de facture, le nom du client, le libellé du produit et la quantité de chaque ligne de facture.", "SELECT F.NumFacture, C.NomClient, P.LibelleProduit, LF.Quantite FROM LIGNE_FACTURE LF INNER JOIN FACTURE F ON LF.NumFacture = F.NumFacture INNER JOIN CLIENT C ON F.NumClient = C.NumClient INNER JOIN PRODUIT P ON LF.NumProduit = P.NumProduit;", "Pars de LIGNE_FACTURE et ajoute une jointure par table."],
+    ["a1", "Compter", "Affiche le nombre total de factures.", "SELECT COUNT(*) FROM FACTURE;", "COUNT(*) compte les lignes."],
+    ["a2", "Une moyenne", "Affiche le montant HT moyen des factures.", "SELECT AVG(MontantHT) FROM FACTURE;", "AVG(colonne) calcule une moyenne."],
+    ["a3", "Grouper", "Affiche le chiffre d'affaires HT total par ville (la ville et la somme des montants HT de ses factures).", "SELECT C.Ville, SUM(F.MontantHT) AS CA_Ville FROM FACTURE F INNER JOIN CLIENT C ON F.NumClient = C.NumClient GROUP BY C.Ville;", "Une jointure pour avoir la ville, puis GROUP BY C.Ville."],
+    ["a4", "Filtrer les groupes", "Affiche le numéro des clients qui ont au moins 2 factures, avec leur nombre de factures.", "SELECT NumClient, COUNT(*) AS NbFactures FROM FACTURE GROUP BY NumClient HAVING COUNT(*) >= 2;", "HAVING filtre les groupes après le GROUP BY (WHERE filtre les lignes avant)."],
+    ["m1", "Ajouter une ligne", "Ajoute le client n°42, « SCI Les Oliviers », situé à Marseille (sans e-mail).", "INSERT INTO CLIENT (NumClient, NomClient, Ville) VALUES (42, 'SCI Les Oliviers', 'Marseille');", "INSERT INTO table (colonnes) VALUES (valeurs) ; même ordre des deux côtés.", "SELECT * FROM CLIENT ORDER BY NumClient;"],
+    ["m2", "Modifier une valeur", "Le client n°3 a déménagé : sa ville est désormais Roubaix.", "UPDATE CLIENT SET Ville = 'Roubaix' WHERE NumClient = 3;", "UPDATE … SET … WHERE : sans WHERE, toutes les lignes seraient modifiées.", "SELECT NumClient, Ville FROM CLIENT ORDER BY NumClient;"],
+    ["m3", "Augmenter les prix", "Augmente de 5 % le prix unitaire HT de tous les produits.", "UPDATE PRODUIT SET PrixUnitaireHT = PrixUnitaireHT * 1.05;", "Ici, pas de WHERE : on veut bien modifier toutes les lignes.", "SELECT NumProduit, PrixUnitaireHT FROM PRODUIT ORDER BY NumProduit;"],
+    ["m4", "Supprimer", "Supprime le client n°6 (Atelier Rousseau), qui n'a aucune facture.", "DELETE FROM CLIENT WHERE NumClient = 6;", "DELETE FROM … WHERE. Un client lié à des factures serait refusé (intégrité référentielle).", "SELECT NumClient FROM CLIENT ORDER BY NumClient;"],
+  ].map(([id, t, q, sol, tip, chk]) => ({ id, t, q, sol, tip, chk, f: /^m/.test(id) ? 15 : 14 })),
+};
+let SQLJS = null, SQLX_I = 0, SQLX_OUT = null;
+function sqlLoad() {
+  if (SQLJS) return Promise.resolve(SQLJS);
+  if (window.__sqlP) return window.__sqlP;
+  window.__sqlP = new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = "/vendor/sql-wasm.js"; sc.onload = () => window.initSqlJs({ locateFile: f => "/vendor/" + f }).then(m => { SQLJS = m; ok(m); }, ko); sc.onerror = () => { window.__sqlP = null; ko(new Error("chargement")); }; document.head.appendChild(sc); });
+  return window.__sqlP;
+}
+function sqlDb() { const db = new SQLJS.Database(); db.exec(SQLX.schema); return db; }
+function sqlRun(db, q) { const r = db.exec(q); return r.length ? r[r.length - 1] : { columns: [], values: [] }; }
+const sqlNorm = v => typeof v === "number" ? Math.round(v * 100) / 100 : v == null ? null : String(v).trim();
+function sqlSame(a, b, ordered) {
+  if (a.values.length !== b.values.length || (a.values[0] || []).length !== (b.values[0] || []).length) return false;
+  const k = r => JSON.stringify(r.map(sqlNorm)), A = a.values.map(k), B = b.values.map(k);
+  if (!ordered) { A.sort(); B.sort(); }
+  return A.every((x, i) => x === B[i]);
+}
+function sqlTable(r, max) {
+  if (!r || !r.columns.length) return `<p class="muted small">Requête exécutée (aucun tableau à afficher).</p>`;
+  const rows = r.values.slice(0, max || 30);
+  return `<div class="sql-res"><table><thead><tr>${r.columns.map(c => `<th>${h(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(v => `<tr>${v.map(x => `<td>${x == null ? `<i class="muted">NULL</i>` : h(typeof x === "number" ? sqlNorm(x) : x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <p class="muted small">${r.values.length} ligne${r.values.length > 1 ? "s" : ""}${r.values.length > rows.length ? `, les ${rows.length} premières affichées` : ""}</p>`;
+}
+function sqlExec(grade) {
+  const ta = document.getElementById("sqlIn"); if (!ta) return; const q = ta.value.trim(), ex = SQLX.ex[SQLX_I];
+  S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[ex.id] = ta.value;
+  if (!q) { SQLX_OUT = { err: "Écris d'abord une requête." }; render(); return; }
+  sqlLoad().then(() => {
+    let mine, want, db;
+    try { db = sqlDb(); mine = sqlRun(db, q); if (ex.chk) mine = sqlRun(db, ex.chk); }
+    catch (e) { SQLX_OUT = { err: String(e.message || e).replace(/^Error: /, "") }; render(); return; }
+    finally { if (db) db.close(); }
+    SQLX_OUT = { res: ex.chk ? null : mine, after: ex.chk ? mine : null };
+    if (grade) {
+      const db2 = sqlDb(); want = sqlRun(db2, ex.sol); if (ex.chk) want = sqlRun(db2, ex.chk); db2.close();
+      const ok = sqlSame(mine, want, !!ex.chk || /order\s+by/i.test(ex.sol));
+      SQLX_OUT.ok = ok; SQLX_OUT.want = want;
+      S.sqlx = S.sqlx || {}; if (ok && !S.sqlx[ex.id]) { S.xp = (S.xp || 0) + 5; renderTop(); } if (ok) S.sqlx[ex.id] = 1; touch(); tone(ok ? "ok" : "ko");
+    }
+    render();
+  }, () => { SQLX_OUT = { err: "Le moteur SQL n'a pas pu se charger. Vérifie ta connexion et réessaie." }; render(); });
+}
+function vSql() {
+  const ex = SQLX.ex[SQLX_I], done = S.sqlx || {}, nd = SQLX.ex.filter(x => done[x.id]).length, o = SQLX_OUT || {};
+  const draft = (S.sqlDraft || {})[ex.id] || "";
+  const cat = IS_DCG ? "d8" : "p7", fid = IS_DCG ? "d8f" + ex.f : "";
+  if (!SQLJS) sqlLoad().then(() => { const ta = document.getElementById("sqlIn"); if (ta) { S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[ex.id] = ta.value; } }, () => {});
+  return `<section class="stack">
+    <div class="row" style="justify-content:space-between"><button class="btn small" data-nav="ex">Retour</button><span class="pill">${nd} / ${SQLX.ex.length} réussies</span></div>
+    <div><span class="eyebrow">${h(CAT[cat] ? CAT[cat].code : "")} · Atelier SQL</span><h1>Écris de vraies requêtes</h1><p class="muted">Ta requête est exécutée sur une petite base (celle des fiches SQL). « Exécuter » te montre le résultat ; « Valider » le compare au résultat attendu. La base est remise à zéro à chaque essai.</p></div>
+    <details class="panel sql-schema"><summary><b>La base : 4 tables</b> <span class="muted small">(touche pour voir les colonnes)</span></summary>
+      ${Object.entries(SQLX.tables).map(([t, c]) => `<p><b class="mono">${t}</b> : ${h(c)}</p>`).join("")}
+      <div class="row">${Object.keys(SQLX.tables).map(t => `<button class="chip small" data-act="sqlPeek" data-t="${t}">Voir ${t}</button>`).join("")}</div>
+    </details>
+    <div class="sql-nav" role="tablist" aria-label="Exercices">${SQLX.ex.map((x, i) => `<button class="chip small${done[x.id] ? " is-done" : ""}" data-act="sqlGo" data-i="${i}" aria-pressed="${i === SQLX_I}">${i + 1}${done[x.id] ? " ✓" : ""}</button>`).join("")}</div>
+    <div class="panel stack sql-ex">
+      <span class="eyebrow">Exercice ${SQLX_I + 1} · ${h(ex.t)}</span>
+      <p class="sql-q"><b>${h(ex.q)}</b></p>
+      <textarea id="sqlIn" class="sql-in" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="SELECT … FROM … ;" aria-label="Ta requête SQL">${h(draft)}</textarea>
+      <div class="row"><button class="btn" data-act="sqlRun">Exécuter</button><button class="btn primary" data-act="sqlCheck">Valider</button><button class="btn small" data-act="sqlTip">Indice</button><button class="btn small" data-act="sqlSol">Voir la solution</button></div>
+      ${o.tip ? `<p class="muted"><b>Indice :</b> ${h(ex.tip)}</p>` : ""}
+      ${o.err ? `<p class="sql-err"><b>Erreur :</b> ${h(o.err)}</p>` : ""}
+      ${o.ok === true ? `<p class="typed-res ok"><b>Juste.</b> Ton résultat est celui attendu.${SQLX_I < SQLX.ex.length - 1 ? ` <button class="btn small primary" data-act="sqlGo" data-i="${SQLX_I + 1}">Exercice suivant</button>` : ""}</p>` : ""}
+      ${o.ok === false ? `<p class="typed-res ko"><b>Pas encore.</b> Ton résultat ne correspond pas à celui attendu (${o.want.values.length} ligne${o.want.values.length > 1 ? "s" : ""} et ${(o.want.columns || []).length} colonne${(o.want.columns || []).length > 1 ? "s" : ""} attendues). Relis la consigne, ou demande un indice.</p>` : ""}
+      ${o.res ? `<h3 class="small">Ton résultat</h3>${sqlTable(o.res)}` : ""}
+      ${o.after ? `<h3 class="small">La table après ta requête</h3>${sqlTable(o.after)}` : ""}
+      ${o.sol ? `<h3 class="small">Une solution</h3><pre class="sql-sol">${h(ex.sol)}</pre>` : ""}
+      ${o.peek ? `<h3 class="small">Table ${h(o.peek.t)}</h3>${sqlTable(o.peek.r, 50)}` : ""}
+      ${fid && CHID[fid] ? `<button class="btn small peek-cta" data-act="fichePeek" data-id="${fid}">${ICON.book}Revoir la fiche : ${h(CHID[fid].title)}</button>` : ""}
+    </div>
+  </section>`;
+}
+/* =====================================================================
    MON DCG : notes par UE, moyenne et révisions à faire
    Règles (arrêté du 13 février 2019, BO n°30 du 25 juillet 2019 ; arrêté du 22 mai 2020) :
    13 UE au coefficient 1 ; diplôme si moyenne >= 10 sur les UE passées et aucune UE < 6 ;
@@ -2982,7 +3092,8 @@ function setExTab(t) { EXT = t; try { localStorage.setItem("gl-extab", t); } cat
 function exTabs() {
   const T = [["ctl", ICON.target, "Préparer un contrôle", `${(S.packs || []).length ? (S.packs || []).length + " contrôle" + ((S.packs || []).length > 1 ? "s" : "") + " préparé" + ((S.packs || []).length > 1 ? "s" : "") : "Matière, chapitre, thème"}`], ["quiz", ICON.cards, "Quiz et cartes", `${QS.length} questions · ${FS.length} cartes`], ["justif", ICON.list, "Décider et justifier", `${Object.keys(DWFX).filter(k => CTLX[k] && !lockedCat(CHID[k] && CHID[k].cat)).length} entraînements · décision puis pourquoi`], ["chiffres", ICON.calc, "Exercices chiffrés", `${CXG.length} calculs express · ${GENS.length} exercices`], ["guides", ICON.steps, "Exercices guidés", `${GCASES.length} cas en étapes`], ["schemas", ICON.schema, "Schémas", `${SCH.length} processus à reconstituer`], ["annales", ICON.archive, "Annales", `${ANNEX.length} exercices officiels`], ["redac", ICON.pen, "Rédactions", `${REDAC.length} sujets`], ["oraux", ICON.talk, "Oraux E6 et E7", `${ORAL.length} questions du jury`]];
   if (IS_DCG && QMUL.length) T.splice(2, 0, ["multi", ICON.list, "Plusieurs réponses", `${QMUL.length} questions · tout cocher`]);
-  const TT = IS_DCG ? T.filter(t => t[0] === "ctl" || t[0] === "quiz" || t[0] === "multi" || (t[0] === "guides" && GCASES.length) || (t[0] === "schemas" && SCH.length)) : T;
+  if (!IS_DCG || CATS.some(c => c.id === "d8")) T.splice(IS_DCG ? 3 : 4, 0, ["sql", ICON.calc, "Atelier SQL", `${SQLX.ex.length} requêtes à écrire`]);
+  const TT = IS_DCG ? T.filter(t => t[0] === "ctl" || t[0] === "quiz" || t[0] === "multi" || (t[0] === "guides" && GCASES.length) || (t[0] === "schemas" && SCH.length) || (t[0] === "chiffres" && (GENS.length || CXG.length)) || t[0] === "sql") : T;
   if (!TT.some(t => t[0] === EXT)) EXT = "quiz";
   return `<nav class="ex-tabs" aria-label="Types d'entraînement">${TT.map(([k, ic, t, sub]) => `<button class="ex-tab" data-act="exTab" data-t="${k}" aria-current="${EXT === k ? "page" : "false"}"><span class="ex-tab-ic" aria-hidden="true">${ic}</span><b>${t}</b><small>${sub}</small></button>`).join("")}</nav>`;
 }
@@ -4004,6 +4115,10 @@ function vExHome() {
       ${body}
     </section>
     <p class="muted small">Sujets officiels de l'Éducation nationale, liens vers les sites qui les publient (Comprendre la compta gestion, Compta Online, académie de Lille, Réviser BTS CG). Les corrigés marqués « non officiel » sont rédigés par ces sites.</p>` : ""}
+    ${EXT === "sql" ? `<section class="stack">
+      <div class="sec-head"><h2>Atelier SQL</h2><p>${SQLX.ex.length} requêtes à écrire toi-même : extraction (SELECT, WHERE, jointures, regroupements) puis mise à jour (INSERT, UPDATE, DELETE). Elles sont vraiment exécutées et corrigées sur la base des fiches.</p></div>
+      <div class="row"><button class="btn primary" data-act="sqlOpen">${Object.keys(S.sqlx || {}).length ? `Continuer (${Object.keys(S.sqlx || {}).length} / ${SQLX.ex.length} réussies)` : "Commencer"}</button></div>
+    </section>` : ""}
     ${EXT === "multi" ? `<section class="stack">
       <div class="sec-head"><h2>Quiz à plusieurs réponses</h2><p>Une seule question, plusieurs bonnes réponses : coche-les toutes. Juste seulement si tu n'en oublies aucune et n'en coches aucune de trop.</p></div>
       <div class="row"><button class="btn primary" data-act="mulGo">Toutes les UE (${QMUL.filter(x => !lockedCat(x.c)).length})</button></div>
@@ -4254,14 +4369,14 @@ function dosCard(d) {
 function dosSection(cat) {
   const list = cat ? DOSS.filter(d => d.cats.includes(cat)) : DOSS, gens = cat ? GENS.filter(g => g.cat === cat) : [];
   if (!list.length && !gens.length) return "";
-  const groups = cat ? "" : ["p1", "p2", "p3", "p4", "p5", "p6", "ma"].map(c => `<details class="ex-group ann-more gc-more" data-ann="gen-${c}"${ANN_OPEN.has("gen-" + c) ? " open" : ""} style="${hueStyle(c)}"><summary><h3><span class="tabcode">${h(CAT[c].code)}</span>${h(CAT[c].name)} <span class="muted small">${GENS.filter(g => g.cat === c).length} exercices</span></h3></summary><div class="ex-grid">${GENS.filter(g => g.cat === c).map(exCard).join("")}</div></details>`).join("");
+  const groups = cat ? "" : (IS_DCG ? CATS.map(c => c.id).filter(c => GENS.some(g => g.cat === c)) : ["p1", "p2", "p3", "p4", "p5", "p6", "ma"]).map(c => `<details class="ex-group ann-more gc-more" data-ann="gen-${c}"${ANN_OPEN.has("gen-" + c) ? " open" : ""} style="${hueStyle(c)}"><summary><h3><span class="tabcode">${h(CAT[c].code)}</span>${h(CAT[c].name)} <span class="muted small">${GENS.filter(g => g.cat === c).length} exercices</span></h3></summary><div class="ex-grid">${GENS.filter(g => g.cat === c).map(exCard).join("")}</div></details>`).join("");
   return `<div class="ex-group dos-group">
-      ${cat ? "" : (() => { const r = (S.x || {})["e5-blanc"], o = e5Load(); if (o) { const left = Math.max(0, Math.round((o.end - Date.now()) / 60000)); return `<button class="e5-cta" data-act="exam5Resume"><span class="e5-ic">${ICON.clock}</span><span><b>Reprendre ton examen blanc E5</b><small>${o.list.filter(m => m.user).length} missions sur ${o.list.length} commencées · ${left > 0 ? `il reste ${Math.floor(left / 60)} h ${String(left % 60).padStart(2, "0")}` : "temps écoulé : voir la correction"}.</small></span><span class="wk-go">Reprendre ›</span></button><p class="muted small" style="margin:-6px 0 14px"><button class="rep-btn" data-act="exam5Drop">Abandonner cet examen</button></p>`; } return `<button class="e5-cta" data-act="exam5"><span class="e5-ic">${ICON.clock}</span><span><b>Examen blanc E5 complet</b><small>Une entreprise, 5 dossiers, 4 h 30, noté sur 20 comme le jour J. Nouveaux chiffres à chaque sujet.${r ? ` Ta meilleure note : ${fmtN20(r[1] / 5)}/20.` : ""}</small></span><span class="wk-go">Commencer ›</span></button>`; })()}
-      <h2>${cat ? "Cas pratiques à saisir" : "Épreuve E5 : dossiers à saisir"}</h2>
+      ${cat || IS_DCG ? "" : (() => { const r = (S.x || {})["e5-blanc"], o = e5Load(); if (o) { const left = Math.max(0, Math.round((o.end - Date.now()) / 60000)); return `<button class="e5-cta" data-act="exam5Resume"><span class="e5-ic">${ICON.clock}</span><span><b>Reprendre ton examen blanc E5</b><small>${o.list.filter(m => m.user).length} missions sur ${o.list.length} commencées · ${left > 0 ? `il reste ${Math.floor(left / 60)} h ${String(left % 60).padStart(2, "0")}` : "temps écoulé : voir la correction"}.</small></span><span class="wk-go">Reprendre ›</span></button><p class="muted small" style="margin:-6px 0 14px"><button class="rep-btn" data-act="exam5Drop">Abandonner cet examen</button></p>`; } return `<button class="e5-cta" data-act="exam5"><span class="e5-ic">${ICON.clock}</span><span><b>Examen blanc E5 complet</b><small>Une entreprise, 5 dossiers, 4 h 30, noté sur 20 comme le jour J. Nouveaux chiffres à chaque sujet.${r ? ` Ta meilleure note : ${fmtN20(r[1] / 5)}/20.` : ""}</small></span><span class="wk-go">Commencer ›</span></button>`; })()}
+      <h2>${cat ? "Cas pratiques à saisir" : IS_DCG ? "Dossiers à saisir" : "Épreuve E5 : dossiers à saisir"}</h2>
       <p class="muted">${cat ? "Tu calcules et tu passes les écritures, l'appli corrige ligne par ligne. Nouveaux chiffres à chaque essai." : "Comme le jour J : une entreprise, des missions qui s'enchaînent (les montants d'une mission servent à la suivante), un chrono et une note sur 20. Tu calcules, tu passes les écritures, l'appli corrige ligne par ligne."}</p>
       ${list.length ? `<div class="ex-grid">${list.map(dosCard).join("")}</div>` : ""}
       ${gens.length ? `<div class="ex-grid">${gens.map(exCard).join("")}</div>` : ""}
-      ${cat ? "" : `<div class="row"><button class="btn" data-act="exE5">Épreuve rapide : 6 exercices de P1 à P4 en 45 min</button></div><h3 class="qf-title">Exercices courts, par matière</h3>${groups}`}
+      ${cat ? "" : `${IS_DCG ? "" : `<div class="row"><button class="btn" data-act="exE5">Épreuve rapide : 6 exercices de P1 à P4 en 45 min</button></div>`}<h3 class="qf-title">Exercices courts, par ${IS_DCG ? "UE" : "matière"}</h3>${groups}`}
     </div>`;
 }
 const REDACBY = Object.fromEntries(REDAC.map(r => [r.id, r]));
@@ -4667,10 +4782,11 @@ function cxCheck() {
   setTimeout(() => { const f = document.querySelector(".cx-corr"); if (f) f.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "nearest" }); }, 30);
 }
 function cxHome(cat) {
-  const st = S.cx || {}, cats = ["p1", "p2", "p3", "p4", "p5", "p6"].filter(c => (!cat || c === cat) && CXG.some(g => g.cat === c));
+  const st = S.cx || {}, cats = (IS_DCG ? CATS.map(c => c.id) : ["p1", "p2", "p3", "p4", "p5", "p6"]).filter(c => (!cat || c === cat) && CXG.some(g => g.cat === c));
+  if (!CXG.length) return "";
   const tot = Object.values(st).reduce((a, r) => [a[0] + r[0], a[1] + r[1]], [0, 0]);
   return `<div class="ex-group cx-home"><h2>Calculs express</h2><p class="muted">10 calculs courts, de nouveaux chiffres à chaque fois, sans chrono. Tu tapes ton résultat et la correction détaille chaque étape. Les calculs que tu rates reviennent plus souvent.${tot[0] ? ` <b>${tot[1]}/${tot[0]}</b> justes jusqu'ici.` : ""}</p>
-    <div class="ex-grid g3">${cat ? "" : `<button class="ex-card cx-all" data-act="cxGo" data-c=""><span class="mini">P1 à P6</span><b>Tout mélanger</b><span class="muted">${CXG.length} types de calculs</span></button>`}
+    <div class="ex-grid g3">${cat ? "" : `<button class="ex-card cx-all" data-act="cxGo" data-c=""><span class="mini">${IS_DCG ? "Toutes les UE" : "P1 à P6"}</span><b>Tout mélanger</b><span class="muted">${CXG.length} types de calculs</span></button>`}
     ${cats.map(c => { const gs = CXG.filter(g => g.cat === c), d = gs.reduce((a, g) => { const r = st[g.id]; return r ? [a[0] + r[0], a[1] + r[1]] : a; }, [0, 0]);
       return `<button class="ex-card" style="${hueStyle(c)}" data-act="cxGo" data-c="${c}" data-cat="${c}"><span class="mini">${h(CAT[c].code)}</span><b>${h(CAT[c].name)}</b><span class="muted">${gs.length} types · ${d[0] ? Math.round(d[1] / d[0] * 100) + " % de réussite" : "pas encore fait"}</span></button>`; }).join("")}</div></div>`;
 }
@@ -5143,6 +5259,13 @@ document.addEventListener("click", e => {
     case "redoErrors": { const w = R.list.filter(x => !(x.pick !== null && x.order[x.pick] === 0)).map(x => x.it); startRun(shuffle(w), "quiz"); break; }
     case "pick": pick(+b.dataset.pos); break;
     case "mtog": mulTog(+b.dataset.i); break;
+    case "sqlOpen": SQLX_OUT = null; go("sql"); break;
+    case "sqlGo": { const ta = document.getElementById("sqlIn"); if (ta) { S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[SQLX.ex[SQLX_I].id] = ta.value; } SQLX_I = Math.max(0, Math.min(SQLX.ex.length - 1, +b.dataset.i)); SQLX_OUT = null; render(); window.scrollTo(0, 0); break; }
+    case "sqlRun": sqlExec(false); break;
+    case "sqlCheck": sqlExec(true); break;
+    case "sqlTip": { const ta = document.getElementById("sqlIn"); if (ta) { S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[SQLX.ex[SQLX_I].id] = ta.value; } SQLX_OUT = Object.assign({}, SQLX_OUT, { tip: 1 }); render(); break; }
+    case "sqlSol": { const ta = document.getElementById("sqlIn"); if (ta) { S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[SQLX.ex[SQLX_I].id] = ta.value; } SQLX_OUT = Object.assign({}, SQLX_OUT, { sol: 1 }); render(); break; }
+    case "sqlPeek": { const t = b.dataset.t; sqlLoad().then(() => { const db = sqlDb(); const r = sqlRun(db, "SELECT * FROM " + t + ";"); db.close(); const ta = document.getElementById("sqlIn"); if (ta) { S.sqlDraft = S.sqlDraft || {}; S.sqlDraft[SQLX.ex[SQLX_I].id] = ta.value; } SQLX_OUT = Object.assign({}, SQLX_OUT, { peek: { t, r } }); render(); }, () => {}); break; }
     case "mval": mulVal(); break;
     case "mulGo": { const c = b.dataset.c, l = QMUL.filter(x => (!c || x.c === c) && !lockedCat(x.c)); if (!l.length) break; RUN_T = c ? `Plusieurs réponses · ${CAT[c].code}` : "Plusieurs réponses · toutes les UE"; startRun(shuffle(l), "quiz"); break; }
     case "tw1": tw1(+b.dataset.i); break;
@@ -5296,6 +5419,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "k" || e.key === "K")) { e.preventDefault(); if (GS.open) gsClose(); else gsOpen(); return; }
   if (GS.open) { if (e.key === "Escape") gsClose(); return; }
+  if (e.target && e.target.id === "sqlIn" && e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sqlExec(true); return; }
   if (e.target && e.target.id === "cardType" && e.key === "Enter" && view === "card" && C && !C.flip) { e.preventDefault(); e.target.blur(); flipCard(); return; }
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); gsOpen(); return; }
