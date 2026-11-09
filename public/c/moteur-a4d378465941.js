@@ -726,7 +726,7 @@ function render() {
   bindView();
   if (S.form === "dcg" && !DCG_OK) { S.form = "bts"; touch(); setForm("bts", true); }
   else if (S.form && S.form !== FORM_CUR) setForm(S.form);
-  else if (IS_DCG && S.dcgSkipSet && dcgSkipList().join(",") !== DCG_SKIP_CUR) dcgSkipApply();
+  else if (IS_DCG && S.form === "dcg" && dcgSkipList().join(",") !== DCG_SKIP_CUR) dcgSkipApply();
   if (!S.form && !DCG_OK) { S.form = "bts"; touch(); }
   const askF = () => !S.form || (DCG_OK && !S.formAsk && !isGuest());
   if (view === "home" && askF()) setTimeout(() => { if (view === "home" && askF() && !document.querySelector(".gl-auth, .form-pick")) formPick(true); }, 600);
