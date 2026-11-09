@@ -3,6 +3,7 @@
 const CAT = Object.fromEntries(CATS.concat(FORMATION.hiddenCats || []).map(c => [c.id, c]));
 const IS_DCG = FORMATION.id === "dcg", FORM_CUR = IS_DCG ? "dcg" : "bts";
 document.documentElement.classList.toggle("form-dcg", IS_DCG);
+if (IS_DCG) document.querySelectorAll('.nav-btn[data-nav="bts"]').forEach(b => { const t = [...b.childNodes].reverse().find(n => n.nodeType === 3 && n.textContent.trim()); if (t) t.textContent = "Mon DCG"; });
 /* Le DCG n'est ouvert qu'aux comptes choisis par l'administrateur (le serveur le dit à la page) */
 const DCG_OK = IS_DCG || (window.GL_DCG !== false && !window.GL_DCG_NO);
 if (!IS_DCG && !DCG_OK) { try { if (localStorage.getItem("gl-form") === "dcg") localStorage.setItem("gl-form", "bts"); } catch (e) {} }
@@ -81,6 +82,7 @@ function mergeS(a, b) {
   each("h", (p, q) => Math.max(+p || 0, +q || 0));
   each("dwr", (p, q) => ((q && q.n) || 0) > ((p && p.n) || 0) ? q : p);
   each("bb", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
+  each("dcgN", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("rc", (p, q) => ((q && q[1]) || 0) > ((p && p[1]) || 0) ? q : p);
   ["l", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
@@ -92,7 +94,7 @@ function mergeS(a, b) {
   if (A.df || B.df) M.df = Object.assign({}, older.df, newer.df, { best: Math.max((A.df || {}).best || 0, (B.df || {}).best || 0) });
   if (A.dus || B.dus) { const da = A.dus || {}, db = B.dus || {}; M.dus = (da.w || 0) + (da.l || 0) + (da.d || 0) >= (db.w || 0) + (db.l || 0) + (db.d || 0) ? da : db; }
   ["rp", "sit", "packs"].forEach(k => { if (!(M[k] || []).length && (o[k] || []).length) M[k] = o[k]; });
-  ["av", "cl", "bts", "pl", "last", "tour"].forEach(k => { if (M[k] == null && o[k] != null) M[k] = o[k]; });
+  ["av", "cl", "bts", "pl", "last", "tour", "dcgBts"].forEach(k => { if (M[k] == null && o[k] != null) M[k] = o[k]; });
   M.v = 1; M.u = Math.max(A.u || 0, B.u || 0);
   return M;
 }
@@ -523,7 +525,7 @@ const TOUR = [
   ['[data-nav="ex"]', "S'entraîner", "Quiz, exercices chiffrés, cas guidés, annales et rédactions, rangés par onglet. Ton cahier des erreurs est là aussi."],
   [".gs-entry", "Tout retrouver", "Tape un mot (« TVA », « quiz amortissement », « mémoire ») : leçons, fiches, quiz et pages de l'appli s'affichent."],
   ['[data-nav="amis"]', "Amis", "En haut à gauche : tes camarades, qui est en ligne, les duels et les quiz à plusieurs. Ajoute-les avec leur code ami."],
-  ['[data-nav="bts"]', "Mon BTS", "Le compte à rebours, le poids de chaque épreuve et ton équilibre de révision."],
+  ['[data-nav="bts"]', IS_DCG ? "Mon DCG" : "Mon BTS", IS_DCG ? "Tes notes par UE, ta moyenne calculée toute seule et les révisions à faire en premier." : "Le compte à rebours, le poids de chaque épreuve et ton équilibre de révision."],
   [".who", "Ton niveau", "Tu gagnes des XP en répondant juste. Une question réussie deux jours différents devient acquise : tampon !"]
 ];
 let tourI = -1;
@@ -2287,7 +2289,82 @@ function balanceHTML() {
     ${lows.length ? `<p class="bal-tip"><b>À renforcer :</b> ${lows.slice(0, 3).map(r => `${r.e.c} (${Math.round(r.me)} % de ton temps pour ${Math.round(r.w)} % de la note)`).join(", ")}.</p>` : `<p class="bal-tip ok">Ton temps est bien réparti par rapport aux coefficients.</p>`}
   </section>`;
 }
+/* =====================================================================
+   MON DCG : notes par UE, moyenne et révisions à faire
+   Règles (arrêté du 13 février 2019, BO n°30 du 25 juillet 2019 ; arrêté du 22 mai 2020) :
+   13 UE au coefficient 1 ; diplôme si moyenne >= 10 sur les UE passées et aucune UE < 6 ;
+   UE >= 10 acquise ; UE dispensée hors moyenne ; BTS CG : dispense des UE 1, 5, 8, 9, 12 et 13.
+   ===================================================================== */
+const DCG_BTS_DISP = ["d1", "d5", "d8", "d9", "d12", "d13"];
+const DCG_YEAR = { d1: 1, d5: 1, d8: 1, d9: 1, d12: 1, d2: 2, d4: 2, d6: 2, d10: 2, d3: 3, d7: 3, d11: 3, d13: 3 };
+const dcgStore = () => { S.dcgN = S.dcgN || {}; return S.dcgN; };
+const dcgDisp = id => (S.dcgBts && DCG_BTS_DISP.includes(id)) || !!(dcgStore()[id] && dcgStore()[id].disp);
+const dcgNote = id => { const x = dcgStore()[id]; return x && x.n != null && x.n !== "" && !isNaN(+x.n) ? +x.n : null; };
+const fmtN = n => (Math.round(n * 100) / 100).toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+function dcgCalc() {
+  const L = CATS.map(c => { const disp = dcgDisp(c.id), n = disp ? null : dcgNote(c.id), ms = memSum([c.id]);
+    return { c, disp, n, m: ms.m, w: ms.w.length, st: disp ? "disp" : n == null ? "todo" : n >= 10 ? "ok" : n >= 6 ? "mid" : "ko" }; });
+  const act = L.filter(x => !x.disp), noted = act.filter(x => x.n != null), todo = act.filter(x => x.n == null);
+  const sum = noted.reduce((a, x) => a + x.n, 0), avg = noted.length ? sum / noted.length : null;
+  const ko = act.filter(x => x.st === "ko"), mid = act.filter(x => x.st === "mid"), ok = act.filter(x => x.st === "ok");
+  // les UE sous 6 seront repassées : leur note sera remplacée, elle ne compte donc pas dans ce qui est déjà acquis
+  const left = todo.concat(ko), kept = noted.filter(x => x.st !== "ko").reduce((a, x) => a + x.n, 0);
+  const need = left.length ? (10 * act.length - kept) / left.length : null;
+  // estimation : les notes connues, et pour les UE sans note, la mémoire des quiz ramenée sur 20 (seulement si l'UE a été travaillée)
+  const est = act.map(x => x.n != null ? x.n : x.m != null && x.w ? x.m * 20 : null), estK = est.filter(v => v != null);
+  const estAvg = todo.some(x => x.m != null && x.w) && estK.length ? estK.reduce((a, v) => a + v, 0) / estK.length : null;
+  const won = act.length > 0 && !todo.length && avg >= 10 && !ko.length;
+  return { L, act, noted, todo, avg, ko, mid, ok, need, left, estAvg, won };
+}
+function dcgPrio(r) {
+  // priorité : UE sous 6 (à repasser), UE à passer (de la moins retenue à la plus retenue), puis UE entre 6 et 10 (au plus près de 10 d'abord)
+  const mm = x => x.m == null ? .4 : x.m;
+  return [].concat(r.ko.slice().sort((a, b) => a.n - b.n), r.todo.slice().sort((a, b) => mm(a) - mm(b)), r.mid.slice().sort((a, b) => b.n - a.n));
+}
+function vDcg() {
+  const r = dcgCalc(), st = dcgStore(), P = dcgPrio(r).slice(0, 5);
+  const why = x => x.st === "ko" ? `${fmtN(x.n)}/20 : sous 6, à repasser obligatoirement` : x.st === "mid" ? `${fmtN(x.n)}/20 : tu peux la garder, ou la repasser pour remonter ta moyenne (la nouvelle note remplace l'ancienne)` : `À passer${x.m != null && x.w ? ` · quiz retenus à ${Math.round(x.m * 100)} %` : " · pas encore travaillée"}`;
+  const weak = id => memChaps([id]).sort((a, b) => (a.m == null ? .4 : a.m) - (b.m == null ? .4 : b.m)).slice(0, 3);
+  let verdict;
+  if (!r.act.length) verdict = `<p>Toutes les UE sont marquées dispensées : il n'y a rien à calculer.</p>`;
+  else if (r.won) verdict = `<p><span class="pill ok">Diplôme obtenu</span> Moyenne de ${fmtN(r.avg)}/20 sur ${r.act.length} UE, aucune sous 6.</p>`;
+  else {
+    const parts = [];
+    if (r.todo.length) parts.push(`<p><b>${r.todo.length} UE à passer</b> : ${r.todo.map(x => h(x.c.code)).join(", ")}.</p>`);
+    if (r.ko.length) parts.push(`<p><b>À repasser obligatoirement</b> (note sous 6) : ${r.ko.map(x => `${h(x.c.code)} (${fmtN(x.n)})`).join(", ")}.</p>`);
+    if (r.left.length && r.need != null) parts.push(`<p>${r.need <= 6 ? `Ta moyenne est déjà assurée par tes UE acquises : il te faut seulement au moins 6 à ${r.left.length > 1 ? `chacune des ${r.left.length} UE restantes` : "l'UE restante"}.` : r.need > 20 ? `Même avec 20 aux ${r.left.length} UE restantes, la moyenne n'atteindrait pas 10 : il faudra aussi repasser des UE entre 6 et 10.` : `Il te faut en moyenne <b>${fmtN(r.need)}/20</b> sur ${r.left.length > 1 ? `les ${r.left.length} UE qu'il te reste à passer ou repasser` : "l'UE qu'il te reste"} pour atteindre 10 de moyenne, et au moins 6 à chacune.`}</p>`);
+    if (r.mid.length) parts.push(`<p><b>Entre 6 et 10</b>, à garder ou à repasser : ${r.mid.map(x => `${h(x.c.code)} (${fmtN(x.n)})`).join(", ")}.${!r.left.length && r.avg < 10 ? ` Ta moyenne est sous 10 : en repasser au moins une est nécessaire.` : ""}</p>`);
+    if (!parts.length) parts.push(`<p>Note tes résultats ci-dessous pour voir ce qu'il te reste.</p>`);
+    verdict = parts.join("");
+  }
+  return `<section class="stack"><h1>Mon DCG</h1><p class="muted">Note tes résultats par UE : l'appli calcule ta moyenne, te dit ce qu'il te reste pour le diplôme et quelles UE réviser en premier.</p></section>
+    <section class="dcg-top">
+      <div class="dcg-k"><span class="eyebrow">Moyenne</span><span class="big">${r.avg != null ? fmtN(r.avg) : "-"}</span><small>${r.noted.length} UE notée${r.noted.length > 1 ? "s" : ""} sur ${r.act.length}</small></div>
+      <div class="dcg-k"><span class="eyebrow">UE acquises</span><span class="big">${r.ok.length}<span class="muted" style="font-size:1rem"> / ${r.act.length}</span></span><small>note de 10 ou plus</small></div>
+      <div class="dcg-k"><span class="eyebrow">Moyenne estimée</span><span class="big">${r.estAvg != null ? fmtN(r.estAvg) : "-"}</span><small>${r.estAvg != null ? "tes notes, et tes quiz pour les UE sans note" : "fais des quiz pour l'estimer"}</small></div>
+    </section>
+    <section class="stack panel dcg-st"><h2>Où tu en es</h2>${verdict}</section>
+    <section class="stack" id="dcgNotes"><h2>Mes notes par UE</h2>
+      <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" style="margin-top:4px;flex:none" data-dcgbts ${S.dcgBts ? "checked" : ""}><span><b>J'ai le BTS CG</b> : dispense des UE 1, 5, 8, 9, 12 et 13, qui ne comptent plus dans la moyenne.</span></label>
+      <div class="dcg-ue">${r.L.map(x => { const bts = S.dcgBts && DCG_BTS_DISP.includes(x.c.id), own = !!(st[x.c.id] && st[x.c.id].disp);
+        return `<div class="dcg-f ${x.st}" style="${hueStyle(x.c.id)}"><span><b>${h(x.c.code)}</b> ${h(x.c.name)} <span class="muted">· ${DCG_YEAR[x.c.id]}${DCG_YEAR[x.c.id] === 1 ? "re" : "e"} année</span></span>
+          <div class="row"><input type="number" min="0" max="20" step="0.25" inputmode="decimal" placeholder="Note" aria-label="Note ${h(x.c.code)}" data-dcgn="${x.c.id}" value="${x.disp ? "" : h(dcgNote(x.c.id) != null ? dcgNote(x.c.id) : "")}"${x.disp ? " disabled" : ""}>
+          <label class="small"><input type="checkbox" data-dcgd="${x.c.id}" ${x.disp ? "checked" : ""}${bts ? " disabled" : ""}>Dispensée</label></div>
+          <small class="muted">${x.disp ? bts ? "Dispensée grâce au BTS CG" : "Dispensée" : x.st === "ok" ? "Acquise" : x.st === "mid" ? "À garder ou à repasser" : x.st === "ko" ? "À repasser" : "Pas encore notée"}${own && bts ? "" : ""}</small></div>`; }).join("")}</div>
+      <p class="muted small">Règles officielles : 13 UE au coefficient 1. Le diplôme s'obtient avec une moyenne d'au moins 10 sur 20 sur les UE passées, sans aucune note sous 6. Une UE à 10 ou plus est acquise (8 ans). Entre 6 et 10, tu peux garder la note ou repasser l'UE. Sous 6, tu dois la repasser. Les UE dispensées ne comptent pas. Sources : BO n°30 du 25 juillet 2019 et arrêté du 22 mai 2020.</p>
+    </section>
+    <section class="stack"><h2>Révisions à faire</h2>
+      ${P.length ? `<p class="muted">D'abord les UE à repasser, puis celles à passer en commençant par celles que tu retiens le moins, puis celles entre 6 et 10. Pour chacune, les fiches que tu retiens le moins.</p>
+      <div class="bb-todo">${P.map(x => `<div class="bb-e" style="${hueStyle(x.c.id)}"><div class="bb-h"><b>${h(x.c.code)} · ${h(x.c.name)}</b><span class="pill ${x.st === "ko" ? "ko" : ""}">${x.n != null ? fmtN(x.n) + "/20" : "à passer"}</span></div>
+        <small class="muted">${why(x)}</small>
+        <div class="mem-list">${weak(x.c.id).map(memRow).join("")}</div>
+        <div class="row"><button class="btn small primary" data-act="dcgPlan" data-c="${x.c.id}">Quiz de reprise ${h(x.c.code)}</button><button class="btn small" data-act="mat" data-cat="${x.c.id}" data-seg="fiche">Les fiches</button></div></div>`).join("")}</div>`
+      : r.act.length ? `<p class="panel">Toutes tes UE sont acquises : bravo. Garde le rythme avec la séance mémoire si tu veux.</p>` : ""}
+    </section>
+    ${plSection()}`;
+}
 function vBts() {
+  if (IS_DCG) return vDcg();
   const b = btsState(), dl = daysLeft(), now = new Date(), cur = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0"), sim = simText();
   const doneN = BTS_CHECK.filter((_, i) => b.check[i]).length;
   return `<section class="bts-hero">
@@ -2322,6 +2399,11 @@ function bindFusion() {
   document.querySelectorAll("[data-widget]").forEach(el => { const f = MATHS.WIDGETS[el.dataset.widget]; if (f) { try { f(el); } catch (e) { el.remove(); } } else el.remove(); });
   document.querySelectorAll("textarea[data-gstep]").forEach(t => t.addEventListener("input", () => { const st = caseState(GC.id); st.notes[t.dataset.gstep] = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(touch, 900); }));
   document.querySelectorAll("[data-bb]").forEach(inp => inp.addEventListener("change", () => { S.bb = S.bb || {}; const v = inp.value.trim().replace(",", "."), n = v === "" ? null : Math.max(0, Math.min(20, +v)); S.bb[inp.dataset.bb] = { n: n != null && !isNaN(n) ? n : null, d: dayNum() }; touch(); const y = window.scrollY; render(); window.scrollTo(0, y); }));
+  const dcgRe = () => { touch(); const y = window.scrollY; render(); window.scrollTo(0, y); };
+  document.querySelectorAll("[data-dcgn]").forEach(inp => inp.addEventListener("change", () => { const st = dcgStore(), id = inp.dataset.dcgn, v = inp.value.trim().replace(",", "."), n = v === "" ? null : Math.max(0, Math.min(20, +v));
+    st[id] = Object.assign(st[id] || {}, { n: n != null && !isNaN(n) ? n : null, d: dayNum() }); dcgRe(); }));
+  document.querySelectorAll("[data-dcgd]").forEach(inp => inp.addEventListener("change", () => { const st = dcgStore(), id = inp.dataset.dcgd; st[id] = Object.assign(st[id] || {}, { disp: inp.checked }); dcgRe(); }));
+  document.querySelectorAll("[data-dcgbts]").forEach(inp => inp.addEventListener("change", () => { S.dcgBts = inp.checked; dcgRe(); }));
   const bd = document.getElementById("btsDate");
   if (bd) bd.addEventListener("change", () => { btsState().date = bd.value; touch(); render(); });
   document.querySelectorAll("[data-sit], [data-sitf]").forEach(inp => inp.addEventListener(inp.tagName === "SELECT" ? "change" : "input", () => {
@@ -2563,6 +2645,7 @@ const GS_TYPES = [["page", "Rubriques de l'appli"], ["lesson", "Leçons"], ["fic
 const GS_W = { page: 5, lesson: 4, fiche: 4, quiz: 3, annale: 3, ref: 3, case: 2, memo: 1 };
 /* Rubriques : [titre, mots qui la font trouver, action] */
 const GS_PAGES = [
+  ...(IS_DCG ? [["Mon DCG : mes notes, ma moyenne, mes révisions", "dcg notes moyenne ue resultats diplome revisions repasser dispense", () => go("bts")]] : []),
   ["Ma mémoire", "memoire oubli retenir s'efface seance memoire revoir", () => go("memo")],
   ["Mes erreurs et points faibles", "erreurs fautes rate points faibles revoir", () => go("erreurs")],
   ["Mes BTS blancs : noter mes résultats", "bts blanc blancs notes resultats examen blanc", () => { go("bts"); setTimeout(() => { const e = document.getElementById("bbSec"); if (e) e.scrollIntoView(); }, 60); }],
@@ -4847,6 +4930,8 @@ document.addEventListener("click", e => {
     case "bbToSim": { const bt = btsState(); Object.entries(S.bb || {}).forEach(([k, v]) => { if (v && v.n != null && v.n !== "") bt.notes[k] = v.n; }); touch(); render(); toast("Notes reportées dans le simulateur"); break; }
     case "bbPlan": { const e = EPREUVES.find(x => x.c === b.dataset.e); if (!e) break; const pool = QS.filter(x => e.cats.includes(x.c) && !lockedCat(x.c)), wk = memChaps(e.cats).sort((a, c) => (a.m == null ? .4 : a.m) - (c.m == null ? .4 : c.m)).slice(0, 4).map(x => x.k);
       const a1 = memQuizItems(pool, 10), more = shuffle(pool.filter(x => wk.includes(x.ch) && !a1.includes(x))); const l = a1.concat(more).slice(0, 15); if (l.length) startRun(shuffle(l), "quiz"); break; }
+    case "dcgPlan": { const c = b.dataset.c; if (!CAT[c]) break; const pool = QS.filter(x => x.c === c && !lockedCat(x.c)), wk = memChaps([c]).sort((a, d) => (a.m == null ? .4 : a.m) - (d.m == null ? .4 : d.m)).slice(0, 4).map(x => x.k);
+      const a1 = memQuizItems(pool, 10), more = shuffle(pool.filter(x => wk.includes(x.ch) && !a1.includes(x))), rest = shuffle(pool.filter(x => !a1.includes(x) && !more.includes(x))); const l = a1.concat(more, rest).slice(0, 15); if (l.length) startRun(shuffle(l), "quiz"); break; }
     case "fmode": FMODE = b.dataset.m === "full" ? "full" : "recap"; try { localStorage.setItem("gl-fmode", FMODE); } catch (e) {} render(); window.scrollTo(0, 0); break;
     case "yrSet": S.yr = b.dataset.y === "all" ? "all" : b.dataset.y; touch(); render(); break;
     case "auSit": { const r = x => { const q = S.q[x.id]; return !q ? 1 : q[2] === 0 ? 0 : 2; }, y = b.dataset.yr || "all"; const l = AUSIT.filter(x => y === "all" || x.y.includes(y)); if (l.length) startRun(shuffle(l), "quiz"); break; }
