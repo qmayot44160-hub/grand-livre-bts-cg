@@ -736,7 +736,7 @@ function render() {
   bindFusion();
   bindAnn();
   fx3d();
-  gtClose(); requestAnimationFrame(() => glossify(v));
+  gtClose(); hlBarClose(); requestAnimationFrame(() => { glossify(v); hlApply(); });
 }
 
 /* Intercalaires de matière */
@@ -2066,6 +2066,57 @@ function ttsToggle(btn, from) {
   };
   next();
 }
+/* =====================================================================
+   SURLIGNAGE : toucher un paragraphe d'une leçon ou d'une fiche ouvre une petite barre
+   (4 couleurs, effacer, écouter d'ici). Gardé dans la progression (S.hl), par leçon ou fiche,
+   repéré par une empreinte du texte du paragraphe : il survit aux petits changements d'ordre.
+   ===================================================================== */
+const HL_COLORS = [["y", "Jaune"], ["g", "Vert"], ["p", "Rose"], ["b", "Bleu"]];
+let HL_CUR = null;
+const hlKey = () => view === "lesson" && LS ? "l:" + LS.cid + ":" + LS.k : view === "fiche" && FC ? "f:" + FC.id : null;
+function hlHash(t) { t = String(t || "").replace(/\s+/g, " ").trim(); let x = 5381; for (let i = 0; i < t.length; i++) x = ((x << 5) + x + t.charCodeAt(i)) | 0; return (x >>> 0).toString(36) + t.length.toString(36); }
+function hlBlocks(root) {
+  if (!root) return [];
+  const all = [...root.querySelectorAll(".md p, .md li, .md tr, .md h4, .md-label, .rv-key, .rv-p, .rv-f, .rv-pts li, .rv-flow > *")];
+  return all.filter(e => !all.some(o => o !== e && o.contains(e)) && (e.innerText || "").trim());
+}
+function hlApply() {
+  const k = hlKey(), root = document.querySelector("#view .lesson"); if (!k || !root) return;
+  const m = (S.hl || {})[k] || {};
+  hlBlocks(root).forEach(b => { HL_COLORS.forEach(([c]) => b.classList.remove("hl-" + c)); const c = m[hlHash(b.innerText)]; if (c) b.classList.add("hl-" + c); });
+}
+function hlBarClose() { document.querySelectorAll(".hl-bar").forEach(x => x.remove()); document.querySelectorAll(".hl-sel").forEach(x => x.classList.remove("hl-sel")); HL_CUR = null; }
+function hlBarOpen(b) {
+  hlBarClose(); HL_CUR = b; b.classList.add("hl-sel");
+  const k = hlKey(), cur = ((S.hl || {})[k] || {})[hlHash(b.innerText)];
+  const bar = document.createElement("div"); bar.className = "hl-bar"; bar.setAttribute("role", "toolbar"); bar.setAttribute("aria-label", "Surligner ce paragraphe");
+  bar.innerHTML = HL_COLORS.map(([c, n]) => `<button class="hl-sw hl-${c}${cur === c ? " is-on" : ""}" data-act="hlSet" data-c="${c}" aria-label="Surligner en ${n.toLowerCase()}" aria-pressed="${cur === c}"></button>`).join("")
+    + (cur ? `<button class="hl-tx" data-act="hlClear">Effacer</button>` : "")
+    + (TTS_OK ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}Écouter d'ici</button>` : "");
+  document.body.appendChild(bar);
+  const r = b.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight, W = document.documentElement.clientWidth;
+  let top = r.top - bh - 8; if (top < 70) top = Math.min(r.bottom + 8, window.innerHeight - bh - 80);
+  bar.style.top = Math.max(8, top) + "px"; bar.style.left = Math.max(8, Math.min(W - bw - 8, r.left + Math.min(r.width, 320) / 2 - bw / 2)) + "px";
+}
+function hlSet(c) {
+  const b = HL_CUR, k = hlKey(); if (!b || !k) return hlBarClose();
+  S.hl = S.hl || {}; const m = S.hl[k] = S.hl[k] || {}, hh = hlHash(b.innerText);
+  if (c && m[hh] !== c) m[hh] = c; else delete m[hh];
+  if (!Object.keys(m).length) delete S.hl[k];
+  touch(); hlApply(); hlBarClose();
+}
+document.addEventListener("click", e => {
+  if (e.target.closest(".hl-bar")) return;
+  if (ttsRun) { hlBarClose(); return; }
+  const root = document.querySelector("#view .lesson");
+  if (!root || !root.contains(e.target) || !hlKey()) { if (!e.target.closest(".hl-bar")) hlBarClose(); return; }
+  if (e.target.closest("button, a, input, textarea, select, summary, [data-act], .gt")) { hlBarClose(); return; }
+  try { if (String(window.getSelection() || "").trim()) return; } catch (er) {}
+  const b = hlBlocks(root).find(x => x.contains(e.target));
+  if (!b || b === HL_CUR) { hlBarClose(); return; }
+  hlBarOpen(b);
+});
+window.addEventListener("scroll", () => { if (HL_CUR) hlBarClose(); }, { passive: true });
 /* Pendant la lecture, toucher un paragraphe relance la lecture à partir de lui */
 document.addEventListener("click", e => {
   const run = ttsRun; if (!run || !run.root || !run.root.contains(e.target)) return;
@@ -5442,6 +5493,9 @@ document.addEventListener("click", e => {
     case "ttsVoices": ttsStop(); ttsVoiceSheet(); break;
     case "ttsTry": { const v = ttsFrVoices().find(x => x.name === b.dataset.v); if (!v) break; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Bonjour, je lis tes leçons de comptabilité. Le bilan présente le patrimoine de l'entreprise à la date de clôture."); u.voice = v; u.lang = v.lang; u.rate = ttsRate(); speechSynthesis.speak(u); } catch (e) {} break; }
     case "ttsSet": { try { localStorage.setItem("gl-ttsv", b.dataset.v); speechSynthesis.cancel(); } catch (e) {} closeSheet(); toast("Voix choisie : " + b.dataset.v); break; }
+    case "hlSet": hlSet(b.dataset.c); break;
+    case "hlClear": hlSet(null); break;
+    case "hlRead": { const blk = HL_CUR, root = document.querySelector("#view .lesson"), btn = root && root.querySelector(".tts-btn"); hlBarClose(); if (!btn || !blk) break; const bl = ttsBlocks(root); const i = bl.findIndex(x => x === blk || x.contains(blk) || blk.contains(x)); ttsToggle(btn, Math.max(0, i)); break; }
     case "ttsChain": { S.pref = S.pref || {}; S.pref.ttsc = !ttsChain(); touch(); b.setAttribute("aria-pressed", String(ttsChain())); break; }
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn, at = Math.max(0, ttsRun.i - 1); ttsStop(); ttsToggle(bt, at); } break; }
     case "pkIcs": icsSheet(PK); break;
