@@ -2004,6 +2004,8 @@ function ttsStop() {
   const r = ttsRun; ttsRun = null;
   try { speechSynthesis.cancel(); } catch (e) {}
   document.querySelectorAll(".tts-on").forEach(x => x.classList.remove("tts-on"));
+  document.querySelectorAll(".tts-live").forEach(x => x.classList.remove("tts-live"));
+  document.querySelectorAll(".tts-hint").forEach(x => x.remove());
   document.querySelectorAll(".tts-btn[aria-pressed='true']").forEach(b => { b.setAttribute("aria-pressed", "false"); b.innerHTML = ttsLabel(false, b.dataset.w); });
   if (r && r.wake) { try { r.wake.release(); } catch (e) {} }
 }
@@ -2031,14 +2033,16 @@ function ttsVoiceSheet() {
   if (ttsFrVoices().length) show(); else { try { speechSynthesis.onvoiceschanged = () => { speechSynthesis.onvoiceschanged = null; show(); }; } catch (e) {} setTimeout(show, 600); }
 }
 function ttsRateHTML() { return TTS_OK ? `<button class="tts-rate" data-act="ttsRate" aria-label="Vitesse de lecture">${String(ttsRate()).replace(".", ",")}×</button>` : ""; }
-function ttsToggle(btn) {
+function ttsToggle(btn, from) {
   if (!TTS_OK) return;
-  if (ttsRun && ttsRun.btn === btn) return ttsStop();
+  if (ttsRun && ttsRun.btn === btn && from == null) return ttsStop();
   ttsStop();
   const root = btn.closest(".peek-sheet") || btn.closest(".lesson") || document.getElementById("main"), blocks = root ? ttsBlocks(root) : [];
   if (!blocks.length) return;
-  const run = ttsRun = { btn, i: 0, blocks };
+  const run = ttsRun = { btn, i: Math.max(0, Math.min(blocks.length - 1, from || 0)), blocks, root };
+  root.classList.add("tts-live");
   btn.setAttribute("aria-pressed", "true"); btn.innerHTML = ttsLabel(true, btn.dataset.w);
+  { const row = btn.closest(".tts-row"); if (row && !row.querySelector(".tts-hint")) row.insertAdjacentHTML("beforeend", `<p class="tts-hint muted small">Touche un paragraphe pour reprendre la lecture à cet endroit.</p>`); }
   try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(w => { if (ttsRun === run) run.wake = w; else w.release(); }).catch(() => {}); } catch (e) {}
   const voice = ttsVoice();
   const next = () => {
@@ -2061,6 +2065,13 @@ function ttsToggle(btn) {
   };
   next();
 }
+/* Pendant la lecture, toucher un paragraphe relance la lecture à partir de lui */
+document.addEventListener("click", e => {
+  const run = ttsRun; if (!run || !run.root || !run.root.contains(e.target)) return;
+  if (e.target.closest("button, a, input, textarea, select, summary, [data-act], .gt")) return;
+  const at = run.blocks.findIndex(b => b.contains(e.target)); if (at < 0) return;
+  e.preventDefault(); ttsToggle(run.btn, at);
+});
 if (TTS_OK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {} document.addEventListener("visibilitychange", () => { if (document.hidden && ttsRun && /iPhone|iPad/.test(navigator.userAgent)) ttsStop(); }); window.addEventListener("pagehide", () => ttsStop()); }
 
 let peekT = null;
@@ -5430,7 +5441,7 @@ document.addEventListener("click", e => {
     case "ttsTry": { const v = ttsFrVoices().find(x => x.name === b.dataset.v); if (!v) break; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Bonjour, je lis tes leçons de comptabilité. Le bilan présente le patrimoine de l'entreprise à la date de clôture."); u.voice = v; u.lang = v.lang; u.rate = ttsRate(); speechSynthesis.speak(u); } catch (e) {} break; }
     case "ttsSet": { try { localStorage.setItem("gl-ttsv", b.dataset.v); speechSynthesis.cancel(); } catch (e) {} closeSheet(); toast("Voix choisie : " + b.dataset.v); break; }
     case "ttsChain": { S.pref = S.pref || {}; S.pref.ttsc = !ttsChain(); touch(); b.setAttribute("aria-pressed", String(ttsChain())); break; }
-    case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn; ttsStop(); ttsToggle(bt); } break; }
+    case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn, at = Math.max(0, ttsRun.i - 1); ttsStop(); ttsToggle(bt, at); } break; }
     case "pkIcs": icsSheet(PK); break;
     case "icsFile": icsFile(+b.dataset.i); break;
     case "peekFull": { const id = b.dataset.id; peekClose(true); openFiche(id); break; }
