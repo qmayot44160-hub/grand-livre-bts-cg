@@ -104,7 +104,7 @@ function mergeS(a, b) {
   each("bb", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("dcgN", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("rc", (p, q) => ((q && q[1]) || 0) > ((p && p[1]) || 0) ? q : p);
-  ["l", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
+  ["l", "lp", "hl", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
   each("gc", (p, q) => Object.keys(q.ok || {}).length > Object.keys(p.ok || {}).length ? q : p);
   each("sch", (p, q) => ({ t: Math.max(p.t || 0, q.t || 0), c: Math.max(p.c || 0, q.c || 0), d: Math.max(p.d || 0, q.d || 0) }));
@@ -1573,6 +1573,8 @@ function lessonLabel(title, k) {
   return { lab: "Leçon " + k, t: title, num: String(k) };
 }
 const isRead = (cid, k) => !!(S.l && S.l[cid + ":" + k]);
+const isWip = (cid, k) => !isRead(cid, k) && !!(S.lp && S.lp[cid + ":" + k]);
+const lsState = (cid, k) => isRead(cid, k) ? "read" : isWip(cid, k) ? "wip" : "";
 function lessonStats(cat) { let n = 0, r = 0; coursesOf(cat).forEach(cid => { const L = nLessons(cid); for (let k = 1; k <= L; k++) { if (!yrOk(lesYr(cid, k))) continue; n++; if (isRead(cid, k)) r++; } }); return { n, r }; }
 function totalLessons() { let n = 0, r = 0; CATS.forEach(c => { const s = lessonStats(c.id); n += s.n; r += s.r; }); return { n, r }; }
 const MINC = {};
@@ -1591,7 +1593,7 @@ function nextOf(cid, k) { if (k < nLessons(cid)) return { cid, k: k + 1 }; const
 function prevOf(cid, k) { if (k > 1) return { cid, k: k - 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i > 0 ? { cid: s[i - 1], k: nLessons(s[i - 1]) } : null; }
 function openLesson(cid, k) { if (!COURS[cid]) return; { const m = CMETA(cid); if (m && lockedCat(m.cat)) return lockSheet(m.cat); } k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
 const readEnough = () => !!(LS && LS.t0 && Date.now() - LS.t0 >= 25000);
-function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; try { wlog("l", CMETA(cid).cat); } catch (e) {} if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
+function markRead(cid, k) { const key = cid + ":" + k; if (S.lp) delete S.lp[key]; if (S.l[key]) return; S.l[key] = 1; try { wlog("l", CMETA(cid).cat); } catch (e) {} if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
 function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (lockedCat(cat)) return lockSheet(cat); if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
 
 /* Rendu du markdown des cours */
@@ -1729,7 +1731,7 @@ function matLecons(c) {
       if (!yrOk(y)) return "";
       const head = YRS() === "all" && yrs.size > 1 && grp(y) !== lastY ? `<li class="yr-h">${YR_LBL[grp(y)]}</li>` : ""; lastY = grp(y);
       return head + (() => {
-      return `<li><button class="lesson-row${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button>${lesLinks(cid, k)}</li>`; })();
+      return `<li><button class="lesson-row${r ? " is-read" : isWip(cid, k) ? " is-wip" : ""}" data-act="lesson" data-cid="${cid}" data-k="${k}"><span class="tick" aria-hidden="true">${r ? ICON.check : h(lb.num)}</span><span class="lr-t">${inl(lb.t)}${r ? '<span class="sr-only"> (lue)</span>' : ""}</span><span class="lr-m">${readMin(cid, k)} min</span></button>${lesLinks(cid, k)}</li>`; })();
     }).join("");
     if (!rows) return "";
     return `<div class="course-block">${multi ? `<h2>${h(m.short)}</h2>` : ""}<div class="md lead">${mdBlocks(secs[0].lines, "lead-" + cid)}</div><ol class="lesson-list">${rows}</ol></div>`;
@@ -1796,7 +1798,7 @@ function vLesson() {
   if (!LS || !COURS[LS.cid]) return vCoursList();
   const { cid, k } = LS, m = CMETA(cid), cat = m.cat, secs = SPLIT(cid), n = secs.length - 1, s = secs[k];
   const lb = lessonLabel(s.title, k), nx = nextOf(cid, k), pv = prevOf(cid, k);
-  const outline = secs.slice(1).map((x, j) => { const kk = j + 1, b = lessonLabel(x.title, kk), r = isRead(cid, kk); return `<li class="ol-li"><button class="ol-tickb${r ? " is-read" : ""}" data-act="lessonTick" data-cid="${cid}" data-k="${kk}" aria-pressed="${r}" aria-label="${r ? "Lue : touche pour la marquer non lue" : "Non lue : touche pour la marquer comme lue"}"><span class="tick">${r ? ICON.check : h(b.num)}</span></button><button class="ol-row${kk === k ? " is-cur" : ""}${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${kk}" ${kk === k ? 'aria-current="true"' : ""}><span>${inl(b.t)}</span></button></li>`; }).join("");
+  const outline = secs.slice(1).map((x, j) => { const kk = j + 1, b = lessonLabel(x.title, kk), r = isRead(cid, kk); const w = isWip(cid, kk); return `<li class="ol-li"><button class="ol-tickb${r ? " is-read" : w ? " is-wip" : ""}" data-act="lessonTick" data-cid="${cid}" data-k="${kk}" aria-label="${r ? "Lue : touche pour la marquer non lue" : w ? "En cours : touche pour la marquer comme lue" : "Non lue : touche pour la marquer en cours"}"><span class="tick">${r ? ICON.check : h(b.num)}</span></button><button class="ol-row${kk === k ? " is-cur" : ""}${r ? " is-read" : w ? " is-wip" : ""}" data-act="lesson" data-cid="${cid}" data-k="${kk}" ${kk === k ? 'aria-current="true"' : ""}><span>${inl(b.t)}</span></button></li>`; }).join("");
   const nxt = nx ? lessonLabel(SPLIT(nx.cid)[nx.k].title, nx.k) : null;
   const nextBtn = nx
     ? `<button class="next-card" data-act="lessonNext"><span>${nx.cid === cid ? "Leçon suivante" : "Partie suivante : " + h(CMETA(nx.cid).short)}</span><b>${inl(nxt.t)}</b></button>`
@@ -1810,7 +1812,7 @@ function vLesson() {
     </aside>
     <article class="lesson">
       <details class="outline-m"><summary>Sommaire : ${h(m.short)}</summary><ol>${outline}</ol></details>
-      <p class="lesson-meta"><span class="tabcode">${h(CAT[cat].code)}</span><span>${h(where)}</span><span>${readMin(cid, k)} min de lecture</span><button class="chip small ls-tick" data-act="lessonTick" data-cid="${cid}" data-k="${k}" aria-pressed="${isRead(cid, k)}">${isRead(cid, k) ? `${ICON.check} Lue` : "Marquer comme lue"}</button></p>
+      <p class="lesson-meta"><span class="tabcode">${h(CAT[cat].code)}</span><span>${h(where)}</span><span>${readMin(cid, k)} min de lecture</span><button class="chip small ls-tick ls-${lsState(cid, k) || "no"}" data-act="lessonTick" data-cid="${cid}" data-k="${k}" title="Touche pour passer à l'état suivant : non lue, en cours, lue">${isRead(cid, k) ? `${ICON.check} Lue` : isWip(cid, k) ? "En cours" : "Non lue"}</button></p>
       <div class="lprog" role="presentation"><i style="width:${pct(k, n)}%"></i></div>
       <h1>${inl(lb.t)}</h1>
       ${ttsLessonRow()}
@@ -2080,27 +2082,41 @@ function hlBlocks(root) {
   const all = [...root.querySelectorAll(".md p, .md li, .md tr, .md h4, .md-label, .rv-key, .rv-p, .rv-f, .rv-pts li, .rv-flow > *")];
   return all.filter(e => !all.some(o => o !== e && o.contains(e)) && (e.innerText || "").trim());
 }
+/* Surlignage d'un passage précis : clé « empreinte@début-fin » (positions dans le texte du paragraphe) */
+let HL_PART = null;
+function hlUnwrap(root) { root.querySelectorAll("mark.hl-m").forEach(m => { const p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); p.normalize(); }); }
+function hlWrap(b, st, en, c, key) {
+  const tw = document.createTreeWalker(b, NodeFilter.SHOW_TEXT); let pos = 0; const segs = [];
+  while (tw.nextNode()) { const n = tw.currentNode, L = n.nodeValue.length, a = Math.max(st, pos), z = Math.min(en, pos + L); if (z > a) segs.push([n, a - pos, z - pos]); pos += L; if (pos >= en) break; }
+  segs.forEach(([n, a, z]) => { let t = n; if (a > 0) t = t.splitText(a); if (z - a < t.nodeValue.length) t.splitText(z - a); const m = document.createElement("mark"); m.className = "hl-m hl-" + c; m.dataset.hlk = key; t.parentNode.insertBefore(m, t); m.appendChild(t); });
+}
+function hlSelOffsets(b, r) { const pre = document.createRange(); pre.selectNodeContents(b); pre.setEnd(r.startContainer, r.startOffset); const st = pre.toString().length; return [st, st + r.toString().length]; }
 function hlApply() {
   const k = hlKey(), root = document.querySelector("#view .lesson"); if (!k || !root) return;
   const m = (S.hl || {})[k] || {};
-  hlBlocks(root).forEach(b => { HL_COLORS.forEach(([c]) => b.classList.remove("hl-" + c)); const c = m[hlHash(b.innerText)]; if (c) b.classList.add("hl-" + c); });
+  hlUnwrap(root);
+  const blocks = hlBlocks(root), byHash = {};
+  blocks.forEach(b => { HL_COLORS.forEach(([c]) => b.classList.remove("hl-" + c)); const hh = hlHash(b.innerText); byHash[hh] = b; const c = m[hh]; if (c) b.classList.add("hl-" + c); });
+  Object.keys(m).filter(x => x.includes("@")).forEach(x => { const [hh, rg] = x.split("@"), [st, en] = rg.split("-").map(Number), b = byHash[hh]; if (b && en > st) { try { hlWrap(b, st, en, m[x], x); } catch (e) {} } });
 }
-function hlBarClose() { document.querySelectorAll(".hl-bar").forEach(x => x.remove()); document.querySelectorAll(".hl-sel").forEach(x => x.classList.remove("hl-sel")); HL_CUR = null; }
-function hlBarOpen(b) {
-  hlBarClose(); HL_CUR = b; b.classList.add("hl-sel");
-  const k = hlKey(), cur = ((S.hl || {})[k] || {})[hlHash(b.innerText)];
+function hlBarClose() { document.querySelectorAll(".hl-bar").forEach(x => x.remove()); document.querySelectorAll(".hl-sel").forEach(x => x.classList.remove("hl-sel")); HL_CUR = null; HL_PART = null; }
+function hlBarOpen(b, part, rect) {
+  hlBarClose(); HL_CUR = b; HL_PART = part || null; if (!part) b.classList.add("hl-sel");
+  const k = hlKey(), cur = ((S.hl || {})[k] || {})[part ? part.key : hlHash(b.innerText)];
   const bar = document.createElement("div"); bar.className = "hl-bar"; bar.setAttribute("role", "toolbar"); bar.setAttribute("aria-label", "Surligner ce paragraphe");
   bar.innerHTML = HL_COLORS.map(([c, n]) => `<button class="hl-sw hl-${c}${cur === c ? " is-on" : ""}" data-act="hlSet" data-c="${c}" aria-label="Surligner en ${n.toLowerCase()}" aria-pressed="${cur === c}"></button>`).join("")
     + (cur ? `<button class="hl-tx" data-act="hlClear">Effacer</button>` : "")
-    + (TTS_OK ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}Écouter d'ici</button>` : "");
+    + (TTS_OK && !part ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}Écouter d'ici</button>` : "");
   document.body.appendChild(bar);
-  const r = b.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight, W = document.documentElement.clientWidth;
-  let top = r.top - bh - 8; if (top < 70) top = Math.min(r.bottom + 8, window.innerHeight - bh - 80);
+  const r = rect || b.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight, W = document.documentElement.clientWidth;
+  // passage sélectionné : la barre se place sous la sélection (le menu du téléphone s'affiche au-dessus)
+  let top = part ? r.bottom + 34 : r.top - bh - 8; if (top < 70 || top > window.innerHeight - bh - 70) top = part ? r.top - bh - 12 : Math.min(r.bottom + 8, window.innerHeight - bh - 80);
   bar.style.top = Math.max(8, top) + "px"; bar.style.left = Math.max(8, Math.min(W - bw - 8, r.left + Math.min(r.width, 320) / 2 - bw / 2)) + "px";
 }
 function hlSet(c) {
   const b = HL_CUR, k = hlKey(); if (!b || !k) return hlBarClose();
-  S.hl = S.hl || {}; const m = S.hl[k] = S.hl[k] || {}, hh = hlHash(b.innerText);
+  S.hl = S.hl || {}; const m = S.hl[k] = S.hl[k] || {}, hh = HL_PART ? HL_PART.key : hlHash(b.innerText);
+  if (HL_PART) { try { window.getSelection().removeAllRanges(); } catch (e) {} }
   if (c && m[hh] !== c) m[hh] = c; else delete m[hh];
   if (!Object.keys(m).length) delete S.hl[k];
   touch(); hlApply(); hlBarClose();
@@ -2112,11 +2128,26 @@ document.addEventListener("click", e => {
   if (!root || !root.contains(e.target) || !hlKey()) { if (!e.target.closest(".hl-bar")) hlBarClose(); return; }
   if (e.target.closest("button, a, input, textarea, select, summary, [data-act], .gt")) { hlBarClose(); return; }
   try { if (String(window.getSelection() || "").trim()) return; } catch (er) {}
-  const b = hlBlocks(root).find(x => x.contains(e.target));
+  const mk = e.target.closest("mark.hl-m"), b = hlBlocks(root).find(x => x.contains(e.target));
+  if (mk && b) { hlBarOpen(b, { key: mk.dataset.hlk }, mk.getBoundingClientRect()); return; }
   if (!b || b === HL_CUR) { hlBarClose(); return; }
   hlBarOpen(b);
 });
-window.addEventListener("scroll", () => { if (HL_CUR) hlBarClose(); }, { passive: true });
+window.addEventListener("scroll", () => { if (HL_CUR && !HL_PART) hlBarClose(); }, { passive: true });
+/* Sélectionner un passage (appui long sur téléphone, ou à la souris) : la barre propose de surligner juste ce passage */
+let hlSelT = null;
+document.addEventListener("selectionchange", () => {
+  clearTimeout(hlSelT);
+  hlSelT = setTimeout(() => {
+    if (ttsRun || !hlKey()) return;
+    let sel; try { sel = window.getSelection(); } catch (e) { return; }
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const r = sel.getRangeAt(0), root = document.querySelector("#view .lesson"); if (!root || !r.toString().trim()) return;
+    const b = hlBlocks(root).find(x => x.contains(r.startContainer) && x.contains(r.endContainer)); if (!b) return;
+    const [st, en] = hlSelOffsets(b, r); if (en - st < 2) return;
+    hlBarOpen(b, { key: hlHash(b.innerText) + "@" + st + "-" + en }, r.getBoundingClientRect());
+  }, 350);
+});
 /* Pendant la lecture, toucher un paragraphe relance la lecture à partir de lui */
 document.addEventListener("click", e => {
   const run = ttsRun; if (!run || !run.root || !run.root.contains(e.target)) return;
@@ -5347,7 +5378,10 @@ document.addEventListener("click", e => {
     case "mat": openMat(cat, b.dataset.seg); break;
     case "seg": matSeg = b.dataset.seg; matFicheQuery = ""; render(); break;
     case "lesson": openLesson(b.dataset.cid, +b.dataset.k); break;
-    case "lessonTick": { const key = b.dataset.cid + ":" + b.dataset.k; if (S.l[key]) { delete S.l[key]; toast("Leçon marquée non lue"); } else { S.l[key] = 1; toast("Leçon marquée comme lue"); } touch(); const y = window.scrollY, ol = document.querySelector(".outline"), oy = ol ? ol.scrollTop : 0; render(); window.scrollTo(0, y); const ol2 = document.querySelector(".outline"); if (ol2) ol2.scrollTop = oy; break; }
+    case "lessonTick": { const key = b.dataset.cid + ":" + b.dataset.k; S.lp = S.lp || {};
+      if (S.l[key]) { delete S.l[key]; delete S.lp[key]; toast("Leçon marquée non lue"); }
+      else if (S.lp[key]) { delete S.lp[key]; S.l[key] = 1; toast("Leçon marquée comme lue"); }
+      else { S.lp[key] = 1; toast("Leçon marquée en cours"); } touch(); const y = window.scrollY, ol = document.querySelector(".outline"), oy = ol ? ol.scrollTop : 0; render(); window.scrollTo(0, y); const ol2 = document.querySelector(".outline"); if (ol2) ol2.scrollTop = oy; break; }
     case "lessonNext": { const nx = nextOf(LS.cid, LS.k); if (readEnough()) markRead(LS.cid, LS.k); if (nx) openLesson(nx.cid, nx.k); else { touch(); render(); } break; }
     case "lessonPrev": { const pv = prevOf(LS.cid, LS.k); if (pv) openLesson(pv.cid, pv.k); break; }
     case "lessonDone": { markRead(LS.cid, LS.k); touch(); const lc = CMETA(LS.cid).cat; startRun(shuffle(QBY[lc]).slice(0, 10), "quiz"); break; }
