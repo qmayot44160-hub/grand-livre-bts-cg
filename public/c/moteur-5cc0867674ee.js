@@ -104,7 +104,7 @@ function mergeS(a, b) {
   each("bb", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("dcgN", (p, q) => ((q && q.d) || 0) > ((p && p.d) || 0) ? q : p);
   each("rc", (p, q) => ((q && q[1]) || 0) > ((p && p[1]) || 0) ? q : p);
-  ["l", "lp", "hl", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
+  ["l", "lp", "hl", "hn", "fr", "frx", "ew", "dlog", "rx"].forEach(k => each(k, p => p));
   each("an", (p, q) => Object.assign({}, q, p, { d: p.d || q.d, t: (p.t || "").length >= (q.t || "").length ? p.t : q.t }));
   each("gc", (p, q) => Object.keys(q.ok || {}).length > Object.keys(p.ok || {}).length ? q : p);
   each("sch", (p, q) => ({ t: Math.max(p.t || 0, q.t || 0), c: Math.max(p.c || 0, q.c || 0), d: Math.max(p.d || 0, q.d || 0) }));
@@ -628,6 +628,7 @@ const ICON = {
   speak: SVG('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
   stop: SVG('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>'),
   pause: SVG('<path d="M8.5 6v12"/><path d="M15.5 6v12"/>'),
+  note: SVG('<path d="M5 4.5h14v10l-5 5H5z"/><path d="M14 19.5v-5h5"/><path d="M8.5 9h7"/><path d="M8.5 12.5h4"/>'),
   play: SVG('<path d="M8 5.5v13l10-6.5z"/>'),
   cal: SVG('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 13v4M10 15h4"/>'),
   home: SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h5v-6h4v6h5V9.5"/>'),
@@ -2141,6 +2142,9 @@ function hlApply() {
   hlUnwrap(root);
   const blocks = hlBlocks(root), byHash = {};
   blocks.forEach(b => { HL_COLORS.forEach(([c]) => b.classList.remove("hl-" + c)); const hh = hlHash(b.innerText); byHash[hh] = b; const c = m[hh]; if (c) b.classList.add("hl-" + c); });
+  root.querySelectorAll(".hn-pin").forEach(x => x.remove());
+  const nm = (S.hn || {})[k] || {};
+  Object.keys(nm).forEach(hh => { const b = byHash[hh]; if (!b || !nm[hh]) return; const host = b.tagName === "TR" ? (b.lastElementChild || b) : b; host.insertAdjacentHTML("beforeend", `<button class="hn-pin" data-act="hnOpen" data-h="${hh}" aria-label="Voir ma note sur ce paragraphe" title="Ma note">${ICON.note}</button>`); });
   Object.keys(m).filter(x => x.includes("@")).forEach(x => { const [hh, rg] = x.split("@"), [st, en] = rg.split("-").map(Number), b = byHash[hh]; if (b && en > st) { try { hlWrap(b, st, en, m[x], x); } catch (e) {} } });
 }
 function hlBarClose() { document.querySelectorAll(".hl-bar").forEach(x => x.remove()); document.querySelectorAll(".hl-sel").forEach(x => x.classList.remove("hl-sel")); HL_CUR = null; HL_PART = null; }
@@ -2150,6 +2154,7 @@ function hlBarOpen(b, part, rect) {
   const bar = document.createElement("div"); bar.className = "hl-bar"; bar.setAttribute("role", "toolbar"); bar.setAttribute("aria-label", "Surligner ce paragraphe");
   bar.innerHTML = HL_COLORS.map(([c, n]) => `<button class="hl-sw hl-${c}${cur === c ? " is-on" : ""}" data-act="hlSet" data-c="${c}" aria-label="Surligner en ${n.toLowerCase()}" aria-pressed="${cur === c}"></button>`).join("")
     + (cur ? `<button class="hl-tx" data-act="hlClear">Effacer</button>` : "")
+    + `<button class="hl-tx" data-act="hnFromBar">${ICON.note}Note</button>`
     + (TTS_OK && !part ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}${ttsRun ? "Lire à partir d'ici" : "Écouter d'ici"}</button>` : "");
   document.body.appendChild(bar);
   const r = rect || b.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight, W = document.documentElement.clientWidth;
@@ -2158,6 +2163,29 @@ function hlBarOpen(b, part, rect) {
   bar.style.top = Math.max(8, top) + "px"; bar.style.left = Math.max(8, Math.min(W - bw - 8, r.left + Math.min(r.width, 320) / 2 - bw / 2)) + "px";
 }
 function hlBarPlace() { const bar = document.querySelector(".hl-bar"); if (!bar || !HL_CUR) return; const r = HL_CUR.getBoundingClientRect(), bh = bar.offsetHeight; if (r.bottom < 0 || r.top > window.innerHeight) return hlBarClose(); let top = r.top - bh - 8; if (top < 70) top = Math.min(r.bottom + 8, window.innerHeight - bh - 80); bar.style.top = Math.max(8, top) + "px"; }
+/* Notes personnelles sur un paragraphe : S.hn[clé de la page][empreinte du paragraphe] = texte */
+function hnOpen(hh) {
+  const k = hlKey(); if (!k || !hh) return;
+  const cur = ((S.hn || {})[k] || {})[hh] || "";
+  openSheet(`<h2 id="hnT">Ma note</h2>
+    <p class="muted small">Elle reste attachée à ce paragraphe, visible seulement par toi.</p>
+    <textarea id="hnIn" class="hn-in" rows="6" placeholder="Écris ce que tu veux retenir : une astuce, une question pour le prof, un lien avec un autre cours…" aria-labelledby="hnT">${h(cur)}</textarea>
+    <div class="row"><button class="btn primary" data-act="hnSave" data-h="${hh}">Enregistrer</button>${cur ? `<button class="btn" data-act="hnDel" data-h="${hh}">Supprimer la note</button>` : ""}</div>`);
+  const ta = document.getElementById("hnIn");
+  if (ta) {
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 60);
+    // enregistrement automatique pendant la frappe : fermer la fenêtre ne perd rien
+    ta.addEventListener("input", () => { clearTimeout(hnOpen.t); hnOpen.t = setTimeout(() => { if (document.getElementById("hnIn") === ta) hnSave(hh, ta.value, true); }, 500); });
+  }
+}
+function hnSave(hh, txt, keepOpen) {
+  if (!keepOpen) clearTimeout(hnOpen.t);
+  const k = hlKey(); if (!k || !hh) return;
+  S.hn = S.hn || {}; const m = S.hn[k] = S.hn[k] || {}; txt = String(txt || "").trim();
+  if (txt) m[hh] = txt.slice(0, 4000); else delete m[hh];
+  if (!Object.keys(m).length) delete S.hn[k];
+  touch(); if (!keepOpen) closeSheet(); hlApply();
+}
 function hlSet(c) {
   const b = HL_CUR, k = hlKey(); if (!b || !k) return hlBarClose();
   S.hl = S.hl || {}; const m = S.hl[k] = S.hl[k] || {}, hh = HL_PART ? HL_PART.key : hlHash(b.innerText);
@@ -5567,6 +5595,10 @@ document.addEventListener("click", e => {
     case "ttsTry": { const v = ttsFrVoices().find(x => x.name === b.dataset.v); if (!v) break; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Bonjour, je lis tes leçons de comptabilité. Le bilan présente le patrimoine de l'entreprise à la date de clôture."); u.voice = v; u.lang = v.lang; u.rate = ttsRate(); speechSynthesis.speak(u); } catch (e) {} break; }
     case "ttsSet": { try { localStorage.setItem("gl-ttsv", b.dataset.v); speechSynthesis.cancel(); } catch (e) {} closeSheet(); toast("Voix choisie : " + b.dataset.v); break; }
     case "hlSet": hlSet(b.dataset.c); break;
+    case "hnFromBar": { const blk = HL_CUR, hh = HL_PART ? HL_PART.key.split("@")[0] : blk && hlHash(blk.innerText); hlBarClose(); try { window.getSelection().removeAllRanges(); } catch (e) {} if (hh) hnOpen(hh); break; }
+    case "hnOpen": hnOpen(b.dataset.h); break;
+    case "hnSave": { const ta = document.getElementById("hnIn"); hnSave(b.dataset.h, ta ? ta.value : ""); toast("Note enregistrée"); break; }
+    case "hnDel": hnSave(b.dataset.h, ""); toast("Note supprimée"); break;
     case "hlClear": hlSet(null); break;
     case "hlRead": { const blk = HL_CUR, root = document.querySelector("#view .lesson"), btn = root && root.querySelector(".tts-btn"); hlBarClose(); if (!btn || !blk) break; const bl = ttsBlocks(root); const i = bl.findIndex(x => x === blk || x.contains(blk) || blk.contains(x)); ttsToggle(btn, Math.max(0, i)); break; }
     case "qSpeak": { const cur = R && R.list[R.i]; if (cur && R.mode === "quiz" && cur.pick !== null) qSpeakFb(); else qSpeakQ(); break; }
