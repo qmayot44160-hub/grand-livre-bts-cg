@@ -1590,6 +1590,7 @@ function nextLesson() {
 function nextOf(cid, k) { if (k < nLessons(cid)) return { cid, k: k + 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i >= 0 && i < s.length - 1 ? { cid: s[i + 1], k: 1 } : null; }
 function prevOf(cid, k) { if (k > 1) return { cid, k: k - 1 }; const s = coursesOf(CMETA(cid).cat), i = s.indexOf(cid); return i > 0 ? { cid: s[i - 1], k: nLessons(s[i - 1]) } : null; }
 function openLesson(cid, k) { if (!COURS[cid]) return; { const m = CMETA(cid); if (m && lockedCat(m.cat)) return lockSheet(m.cat); } k = Math.min(Math.max(1, k || 1), nLessons(cid)); LS = { cid, k, t0: Date.now() }; S.last = { c: cid, k }; touch(); go("lesson"); }
+const readEnough = () => !!(LS && LS.t0 && Date.now() - LS.t0 >= 25000);
 function markRead(cid, k) { const key = cid + ":" + k; if (S.l[key]) return; S.l[key] = 1; try { wlog("l", CMETA(cid).cat); } catch (e) {} if (!LS || !LS.t0 || Date.now() - LS.t0 >= 40000) S.xp += 8; dayLog().l++; bumpStreak(); }
 function openMat(cat, seg) { if (!CAT[cat]) cat = (CMETA(cat) || { cat: "p1" }).cat; if (lockedCat(cat)) return lockSheet(cat); if (cat !== matCat) matSub = "fiches"; matCat = cat; matSeg = seg || "lecons"; matFicheQuery = ""; go("mat"); }
 
@@ -1795,7 +1796,7 @@ function vLesson() {
   if (!LS || !COURS[LS.cid]) return vCoursList();
   const { cid, k } = LS, m = CMETA(cid), cat = m.cat, secs = SPLIT(cid), n = secs.length - 1, s = secs[k];
   const lb = lessonLabel(s.title, k), nx = nextOf(cid, k), pv = prevOf(cid, k);
-  const outline = secs.slice(1).map((x, j) => { const kk = j + 1, b = lessonLabel(x.title, kk), r = isRead(cid, kk); return `<li><button class="ol-row${kk === k ? " is-cur" : ""}${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${kk}" ${kk === k ? 'aria-current="true"' : ""}><span class="tick">${r ? ICON.check : h(b.num)}</span><span>${inl(b.t)}</span></button></li>`; }).join("");
+  const outline = secs.slice(1).map((x, j) => { const kk = j + 1, b = lessonLabel(x.title, kk), r = isRead(cid, kk); return `<li class="ol-li"><button class="ol-tickb${r ? " is-read" : ""}" data-act="lessonTick" data-cid="${cid}" data-k="${kk}" aria-pressed="${r}" aria-label="${r ? "Lue : touche pour la marquer non lue" : "Non lue : touche pour la marquer comme lue"}"><span class="tick">${r ? ICON.check : h(b.num)}</span></button><button class="ol-row${kk === k ? " is-cur" : ""}${r ? " is-read" : ""}" data-act="lesson" data-cid="${cid}" data-k="${kk}" ${kk === k ? 'aria-current="true"' : ""}><span>${inl(b.t)}</span></button></li>`; }).join("");
   const nxt = nx ? lessonLabel(SPLIT(nx.cid)[nx.k].title, nx.k) : null;
   const nextBtn = nx
     ? `<button class="next-card" data-act="lessonNext"><span>${nx.cid === cid ? "Leçon suivante" : "Partie suivante : " + h(CMETA(nx.cid).short)}</span><b>${inl(nxt.t)}</b></button>`
@@ -1809,7 +1810,7 @@ function vLesson() {
     </aside>
     <article class="lesson">
       <details class="outline-m"><summary>Sommaire : ${h(m.short)}</summary><ol>${outline}</ol></details>
-      <p class="lesson-meta"><span class="tabcode">${h(CAT[cat].code)}</span><span>${h(where)}</span><span>${readMin(cid, k)} min de lecture</span>${isRead(cid, k) ? "<span>Déjà lue</span>" : ""}</p>
+      <p class="lesson-meta"><span class="tabcode">${h(CAT[cat].code)}</span><span>${h(where)}</span><span>${readMin(cid, k)} min de lecture</span><button class="chip small ls-tick" data-act="lessonTick" data-cid="${cid}" data-k="${k}" aria-pressed="${isRead(cid, k)}">${isRead(cid, k) ? `${ICON.check} Lue` : "Marquer comme lue"}</button></p>
       <div class="lprog" role="presentation"><i style="width:${pct(k, n)}%"></i></div>
       <h1>${inl(lb.t)}</h1>
       ${ttsLessonRow()}
@@ -5295,7 +5296,8 @@ document.addEventListener("click", e => {
     case "mat": openMat(cat, b.dataset.seg); break;
     case "seg": matSeg = b.dataset.seg; matFicheQuery = ""; render(); break;
     case "lesson": openLesson(b.dataset.cid, +b.dataset.k); break;
-    case "lessonNext": { const nx = nextOf(LS.cid, LS.k); markRead(LS.cid, LS.k); if (nx) openLesson(nx.cid, nx.k); else { touch(); render(); } break; }
+    case "lessonTick": { const key = b.dataset.cid + ":" + b.dataset.k; if (S.l[key]) { delete S.l[key]; toast("Leçon marquée non lue"); } else { S.l[key] = 1; toast("Leçon marquée comme lue"); } touch(); const y = window.scrollY, ol = document.querySelector(".outline"), oy = ol ? ol.scrollTop : 0; render(); window.scrollTo(0, y); const ol2 = document.querySelector(".outline"); if (ol2) ol2.scrollTop = oy; break; }
+    case "lessonNext": { const nx = nextOf(LS.cid, LS.k); if (readEnough()) markRead(LS.cid, LS.k); if (nx) openLesson(nx.cid, nx.k); else { touch(); render(); } break; }
     case "lessonPrev": { const pv = prevOf(LS.cid, LS.k); if (pv) openLesson(pv.cid, pv.k); break; }
     case "lessonDone": { markRead(LS.cid, LS.k); touch(); const lc = CMETA(LS.cid).cat; startRun(shuffle(QBY[lc]).slice(0, 10), "quiz"); break; }
     case "quickQuiz": startRun(shuffle(QBY[cat].filter(chapOk)).slice(0, quizLen), "quiz"); break;
@@ -5494,7 +5496,7 @@ document.addEventListener("keydown", e => {
   } else if (view === "fiche" && FC && !e.altKey && !e.metaKey && !e.ctrlKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
     const bt = document.querySelector(e.key === "ArrowRight" ? "[data-fnext]" : "[data-fprev]"); if (bt) bt.click();
   } else if (view === "lesson" && LS && !e.altKey && !e.metaKey && !e.ctrlKey) {
-    if (e.key === "ArrowRight") { const nx = nextOf(LS.cid, LS.k); if (nx) { markRead(LS.cid, LS.k); openLesson(nx.cid, nx.k); } }
+    if (e.key === "ArrowRight") { const nx = nextOf(LS.cid, LS.k); if (nx) { if (readEnough()) markRead(LS.cid, LS.k); openLesson(nx.cid, nx.k); } }
     else if (e.key === "ArrowLeft") { const pv = prevOf(LS.cid, LS.k); if (pv) openLesson(pv.cid, pv.k); }
   }
 });
