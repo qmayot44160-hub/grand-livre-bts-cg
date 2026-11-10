@@ -1122,7 +1122,14 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:6
         ]);
         list.append(card);
       });
-      if (TAB === "signal") setView([el("div", { cls: "sec-head" }, [el("h2", { text: "Signalements" }), el("p", { text: "Erreurs repérées par les élèves dans le contenu, avis et idées d'amélioration des élèves, et demandes envoyées par des enseignants depuis la page d'accueil. Marque-les comme traités une fois réglés." })]), kchips, chips, list]);
+      // « Copier pour Claude » : tous les signalements à traiter, en texte, prêts à coller dans la conversation
+      var copyBtn = el("button", { cls: "btn small", text: "Copier pour Claude (" + open + ")", onclick: async function () {
+        var todo = j.reports.filter(function (r) { return !r.done; });
+        var txt = "Signalements à traiter (" + todo.length + ")\n\n" + todo.map(function (r, i) { return (i + 1) + ". [" + r.kind + "] élément : " + (r.item || "") + "\n   titre : " + (r.label || "") + "\n   problème : " + (r.choice || "") + (r.comment ? "\n   commentaire : " + r.comment : "") + "\n   par " + r.user_name + ", " + new Date(r.created).toLocaleString("fr-FR") + " (id " + r.id + ")"; }).join("\n\n");
+        try { await navigator.clipboard.writeText(txt); toast("Copié : colle-le dans la conversation avec Claude"); }
+        catch (er) { var ta = el("textarea", { style: "width:100%;min-height:200px" }); ta.value = txt; list.prepend(ta); ta.select(); toast("Sélectionne le texte et copie-le"); }
+      } });
+      if (TAB === "signal") setView([copyBtn, el("div", { cls: "sec-head" }, [el("h2", { text: "Signalements" }), el("p", { text: "Erreurs repérées par les élèves dans le contenu, avis et idées d'amélioration des élèves, et demandes envoyées par des enseignants depuis la page d'accueil. Marque-les comme traités une fois réglés." })]), kchips, chips, list]);
     } catch (e) { errView(e); }
   }
 
