@@ -1260,6 +1260,13 @@ function lockSheet(c) {
   document.body.appendChild(el);
 }
 function closeSheet() { const x = document.getElementById("wkSheet"); if (x) x.remove(); }
+function openSheet(html) {
+  closeSheet();
+  const el = document.createElement("div"); el.className = "wk-sheet"; el.id = "wkSheet";
+  el.innerHTML = `<div class="wk-box" role="dialog" aria-modal="true"><button class="wk-x" data-act="wkClose" aria-label="Fermer">×</button>${html}</div>`;
+  el.addEventListener("click", e => { if (e.target === el) closeSheet(); });
+  document.body.appendChild(el);
+}
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 function weakChaps(limit) {
   const by = {};
@@ -1974,8 +1981,12 @@ function ficheMd(c) {
 const TTS_OK = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
 const TTS_RATES = [1, 1.25, 1.5, 0.85];
 let ttsRun = null;
+/* Voix choisie par la personne (gardée sur l'appareil : chaque téléphone a ses propres voix) */
+const ttsPick = () => { try { return localStorage.getItem("gl-ttsv") || ""; } catch (e) { return ""; } };
+const ttsFrVoices = () => { try { return speechSynthesis.getVoices().filter(x => /^fr/i.test(x.lang)); } catch (e) { return []; } };
 function ttsVoice() {
-  const v = speechSynthesis.getVoices().filter(x => /^fr/i.test(x.lang));
+  const v = ttsFrVoices(), mine = ttsPick() && v.find(x => x.name === ttsPick());
+  if (mine) return mine;
   return v.find(x => /fr[-_]FR/i.test(x.lang) && /(premium|enhanced|natural|neural|google|amélie|thomas|audrey)/i.test(x.name)) || v.find(x => /fr[-_]FR/i.test(x.lang)) || v[0] || null;
 }
 function ttsRate() { return (S.pref && S.pref.ttsr) || 1; }
@@ -2000,7 +2011,25 @@ function ttsLabel(on, w) { return on ? `${ICON.stop}<span>Arrêter la lecture</s
 function ttsBtnHTML(w) { return TTS_OK ? `<button class="tts-btn" data-act="tts" data-w="${w || ""}" aria-pressed="false">${ttsLabel(false, w)}</button>` : ""; }
 /* Leçons : bouton d'écoute, vitesse, et « Enchaîner » (passe tout seul à la leçon suivante et continue la lecture) */
 const ttsChain = () => !!(S.pref && S.pref.ttsc);
-function ttsLessonRow() { return TTS_OK ? `<div class="tts-row">${ttsBtnHTML("la leçon")}${ttsRateHTML()}<button class="chip small tts-chain" data-act="ttsChain" aria-pressed="${ttsChain()}" title="Passer tout seul à la leçon suivante">Enchaîner les leçons</button></div>` : ""; }
+function ttsLessonRow() { return TTS_OK ? `<div class="tts-row">${ttsBtnHTML("la leçon")}${ttsRateHTML()}<button class="chip small tts-chain" data-act="ttsChain" aria-pressed="${ttsChain()}" title="Passer tout seul à la leçon suivante">Enchaîner les leçons</button><button class="chip small" data-act="ttsVoices">Changer de voix</button></div>` : ""; }
+/* Fenêtre « Choisir la voix » : toutes les voix françaises du téléphone, avec un essai pour chacune */
+function ttsVoiceSheet() {
+  if (!TTS_OK) return;
+  const show = () => {
+    const v = ttsFrVoices(), cur = (ttsVoice() || {}).name || "";
+    const good = x => /(premium|enhanced|améliorée|amelioree|natural|neural|online|google|siri)/i.test(x.name);
+    const list = v.slice().sort((a, b) => (good(b) - good(a)) || a.name.localeCompare(b.name));
+    openSheet(`<h2>Choisir la voix</h2>
+      <p class="muted small">Ce sont les voix françaises installées sur cet appareil. Touche « Essayer », puis « Choisir ». Les voix marquées « naturelle » sont en général les plus agréables.</p>
+      ${list.length ? `<div class="tts-voices">${list.map(x => `<div class="tts-v${x.name === cur ? " is-cur" : ""}"><div><b>${h(x.name)}</b><small class="muted">${h(x.lang)}${good(x) ? " · naturelle" : ""}${x.localService === false ? " · en ligne" : ""}</small></div>
+        <div class="row"><button class="btn small" data-act="ttsTry" data-v="${h(x.name)}">Essayer</button><button class="btn small${x.name === cur ? " primary" : ""}" data-act="ttsSet" data-v="${h(x.name)}">${x.name === cur ? "Choisie" : "Choisir"}</button></div></div>`).join("")}</div>`
+        : `<p>Aucune voix française trouvée sur cet appareil.</p>`}
+      <details class="small"><summary>Avoir de meilleures voix sur ton téléphone</summary>
+        <p><b>iPhone :</b> Réglages, Accessibilité, Contenu énoncé, Voix, Français : télécharge une voix « améliorée » ou « premium » (par exemple Amélie ou Thomas), puis reviens ici.</p>
+        <p><b>Android :</b> Paramètres, recherche « synthèse vocale », moteur Google : Installer les données vocales, Français, puis choisis une voix. Redémarre ensuite l'appli.</p></details>`);
+  };
+  if (ttsFrVoices().length) show(); else { try { speechSynthesis.onvoiceschanged = () => { speechSynthesis.onvoiceschanged = null; show(); }; } catch (e) {} setTimeout(show, 600); }
+}
 function ttsRateHTML() { return TTS_OK ? `<button class="tts-rate" data-act="ttsRate" aria-label="Vitesse de lecture">${String(ttsRate()).replace(".", ",")}×</button>` : ""; }
 function ttsToggle(btn) {
   if (!TTS_OK) return;
@@ -2172,7 +2201,7 @@ function vFiche() {
       <div class="lprog" role="presentation"><i style="width:${pct(i + 1, list.length)}%"></i></div>
       <h1>${h(c.title)}</h1>
       ${(() => { const L = chLes(c.id); return L.length ? `<p class="fi-les"><span class="muted">Lire la leçon :</span> ${L.map(([cid, k]) => `<button class="linkbtn" data-act="lesson" data-cid="${cid}" data-k="${k}">${inl(lessonLabel(SPLIT(cid)[k].title, k).t)}</button>`).join(" · ")}</p>` : ""; })()}
-      ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}</div>` : ""}
+      ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}<button class="chip small" data-act="ttsVoices">Changer de voix</button></div>` : ""}
       <div class="picker fmode" role="tablist" aria-label="Version de la fiche"${c.imgs ? " hidden" : ""}><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Résumé</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Version longue</button></div>
       ${c.imgs ? ficheImgs(c) : FMODE === "recap" ? ficheRecap(c) : `<div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
@@ -5397,6 +5426,9 @@ document.addEventListener("click", e => {
     case "duBack": duelStop(); DU = null; AMT = "duels"; go("amis"); loadDuels(true); break;
     case "duAgain": { const was = DU; duelStop(); DU = null; if (!was || was.bot) { const c = duelCfg(), ids = duelPick(c.cats, c.n); duelBegin({ id: "bot", bot: true, ids, seed: Math.floor(Math.random() * 4e9) }); } else { const N = DUEL_NET(), c = { cats: was.srv && was.srv.cats && was.srv.cats.length ? was.srv.cats : duelCfg().cats }, ids = duelPick(c.cats, was.items.length); if (N && N.rematch) N.rematch(was.id, ids).then(j => { duelFromSrv(j.duel); toast("Revanche proposée !"); }).catch(e => { toast((e && e.message) || "Revanche impossible pour l'instant."); AMT = "duels"; go("amis"); }); else { AMT = "duels"; go("amis"); } } break; }
     case "tts": ttsToggle(b); break;
+    case "ttsVoices": ttsStop(); ttsVoiceSheet(); break;
+    case "ttsTry": { const v = ttsFrVoices().find(x => x.name === b.dataset.v); if (!v) break; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Bonjour, je lis tes leçons de comptabilité. Le bilan présente le patrimoine de l'entreprise à la date de clôture."); u.voice = v; u.lang = v.lang; u.rate = ttsRate(); speechSynthesis.speak(u); } catch (e) {} break; }
+    case "ttsSet": { try { localStorage.setItem("gl-ttsv", b.dataset.v); speechSynthesis.cancel(); } catch (e) {} closeSheet(); toast("Voix choisie : " + b.dataset.v); break; }
     case "ttsChain": { S.pref = S.pref || {}; S.pref.ttsc = !ttsChain(); touch(); b.setAttribute("aria-pressed", String(ttsChain())); break; }
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn; ttsStop(); ttsToggle(bt); } break; }
     case "pkIcs": icsSheet(PK); break;
