@@ -1,5 +1,7 @@
 # Génère build/dcg_overlay.js : le contenu DCG, appliqué par-dessus le bloc de contenu BTS (mêmes noms, vidés puis remplis)
-import json, re, random, sys
+import json, re, random, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from explications import explain
 F = json.load(open("/tmp/claude-0/dcg/fiches.json"))
 OUT = "/home/claude/grand-livre-bts-cg/build/dcg_overlay.js"
 FIX_T = {(5, 9): "Les externalités et leur régulation", (5, 11): "Les agents à capacité de financement et l’épargne des ménages"}
@@ -52,7 +54,8 @@ for u in UE:
         for q in d["quiz"]:
             o = q["opts"]; good = o[q["a"]]; bad = [v for kk, v in o.items() if kk != q["a"]]
             if not good or not bad: continue
-            Q.append(["d%d" % u, q["q"], [good] + bad, "D'après la fiche n°%d « %s » (Les Geeks des Chiffres)." % (d["n"], title), fid])
+            ex = explain(MD.get("%d:%d" % (u, d["n"]), ""), q["q"], good, d["n"], title)
+            Q.append(["d%d" % u, q["q"], [good] + bad, (ex + " Source : Les Geeks des Chiffres.") if ex else "D'après la fiche n°%d « %s » (Les Geeks des Chiffres)." % (d["n"], title), fid])
     for k, st in enumerate(steps):
         t = st[1].strip().rstrip(".").strip() or "Fiches"
         t = t[:1] + t[1:].lower() if t.upper() == t else t
