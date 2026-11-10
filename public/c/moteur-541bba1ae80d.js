@@ -627,6 +627,8 @@ const ICON = {
   duel: SVG('<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4M7 17l-3 3M3 19l2 2"/>'),
   speak: SVG('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
   stop: SVG('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>'),
+  pause: SVG('<path d="M8.5 6v12"/><path d="M15.5 6v12"/>'),
+  play: SVG('<path d="M8 5.5v13l10-6.5z"/>'),
   cal: SVG('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 13v4M10 15h4"/>'),
   home: SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h5v-6h4v6h5V9.5"/>'),
   book: SVG('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/>'),
@@ -738,7 +740,14 @@ function render() {
   fx3d();
   gtClose(); hlBarClose(); requestAnimationFrame(() => { glossify(v); hlApply(); });
   if (view === "run") qSpeakAuto();
+  ttsStickInit();
 }
+function ttsTopH() { const t = document.querySelector("header.top"); if (!t) return; const pos = getComputedStyle(t).position; document.documentElement.style.setProperty("--top-h", (pos === "sticky" || pos === "fixed" ? t.offsetHeight : 0) + "px"); }
+function ttsStickInit() {
+  ttsTopH(); const row = document.querySelector("#view .tts-stick"); if (!row || row._obs) return;
+  try { const s = document.createElement("div"); s.style.height = "1px"; row.before(s); const o = new IntersectionObserver(([e]) => row.classList.toggle("is-stuck", !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseInt(getComputedStyle(document.documentElement).getPropertyValue("--top-h")) || 0}px 0px 0px 0px` }); o.observe(s); row._obs = o; } catch (e) {}
+}
+window.addEventListener("resize", ttsTopH);
 
 /* Intercalaires de matière */
 const GROUPS = FORMATION.groups || [["pro", "Bloc professionnel", "P1 à P7 : écrit E5 et oraux E6, E7, E8. 23 coefficients sur 39."], ["gen", "Matières générales", "Culture générale, anglais, maths et CEJM. 16 coefficients sur 39."], ["met", "Méthodes", "Ce que les correcteurs attendent, épreuve par épreuve, et la préparation des oraux."]];
@@ -2039,11 +2048,11 @@ function ttsStop() {
   document.querySelectorAll(".tts-btn[aria-pressed='true']").forEach(b => { b.setAttribute("aria-pressed", "false"); b.innerHTML = ttsLabel(false, b.dataset.w); });
   if (r && r.wake) { try { r.wake.release(); } catch (e) {} }
 }
-function ttsLabel(on, w) { return on ? `${ICON.stop}<span>Arrêter la lecture</span>` : `${ICON.speak}<span>Écouter ${w || "la fiche"}</span>`; }
+function ttsLabel(on, w, paused) { return on ? `${ICON.pause}<span>Pause</span>` : paused ? `${ICON.play}<span>Reprendre</span>` : `${ICON.speak}<span>Écouter ${w || "la fiche"}</span>`; }
 function ttsBtnHTML(w) { return TTS_OK ? `<button class="tts-btn" data-act="tts" data-w="${w || ""}" aria-pressed="false">${ttsLabel(false, w)}</button>` : ""; }
 /* Leçons : bouton d'écoute, vitesse, et « Enchaîner » (passe tout seul à la leçon suivante et continue la lecture) */
 const ttsChain = () => !!(S.pref && S.pref.ttsc);
-function ttsLessonRow() { return TTS_OK ? `<div class="tts-row">${ttsBtnHTML("la leçon")}${ttsRateHTML()}<button class="chip small tts-chain" data-act="ttsChain" aria-pressed="${ttsChain()}" title="Passer tout seul à la leçon suivante">Enchaîner les leçons</button><button class="chip small" data-act="ttsVoices">Changer de voix</button></div>` : ""; }
+function ttsLessonRow() { return TTS_OK ? `<div class="tts-row tts-stick">${ttsBtnHTML("la leçon")}${ttsRateHTML()}<button class="chip small tts-chain" data-act="ttsChain" aria-pressed="${ttsChain()}" title="Passer tout seul à la leçon suivante">Enchaîner</button><button class="chip small" data-act="ttsVoices">Voix</button></div>` : ""; }
 /* Fenêtre « Choisir la voix » : toutes les voix françaises du téléphone, avec un essai pour chacune */
 function ttsVoiceSheet() {
   if (!TTS_OK) return;
@@ -2065,14 +2074,22 @@ function ttsVoiceSheet() {
 function ttsRateHTML() { return TTS_OK ? `<button class="tts-rate" data-act="ttsRate" aria-label="Vitesse de lecture">${String(ttsRate()).replace(".", ",")}×</button>` : ""; }
 function ttsToggle(btn, from) {
   if (!TTS_OK) return;
-  if (ttsRun && ttsRun.btn === btn && from == null) return ttsStop();
+  // pendant la lecture : Pause (on retient le paragraphe en cours) ; en pause : Reprendre à ce paragraphe
+  if (ttsRun && ttsRun.btn === btn && from == null) {
+    const at = Math.max(0, ttsRun.i - 1); ttsStop();
+    btn.dataset.at = at; btn.innerHTML = ttsLabel(false, btn.dataset.w, true);
+    const row = btn.closest(".tts-row"); if (row && !row.querySelector(".tts-restart")) btn.insertAdjacentHTML("afterend", `<button class="chip small tts-restart" data-act="ttsRestart">Depuis le début</button>`);
+    return;
+  }
+  if (from == null && btn.dataset.at != null && btn.dataset.at !== "") from = +btn.dataset.at;
+  delete btn.dataset.at; document.querySelectorAll(".tts-restart").forEach(x => x.remove());
   ttsStop();
   const root = btn.closest(".peek-sheet") || btn.closest(".lesson") || document.getElementById("main"), blocks = root ? ttsBlocks(root) : [];
   if (!blocks.length) return;
   const run = ttsRun = { btn, i: Math.max(0, Math.min(blocks.length - 1, from || 0)), blocks, root };
   root.classList.add("tts-live");
   btn.setAttribute("aria-pressed", "true"); btn.innerHTML = ttsLabel(true, btn.dataset.w);
-  { const row = btn.closest(".tts-row"); if (row && !row.querySelector(".tts-hint")) row.insertAdjacentHTML("beforeend", `<p class="tts-hint muted small">Pendant la lecture, tu peux surligner : touche un paragraphe (ou sélectionne une phrase). « Lire à partir d'ici » fait sauter la lecture à ce paragraphe.</p>`); }
+  { const row = btn.closest(".tts-row"); if (row && !document.querySelector(".tts-hint")) row.insertAdjacentHTML("afterend", `<p class="tts-hint muted small">Pendant la lecture, tu peux surligner : touche un paragraphe (ou sélectionne une phrase). « Lire à partir d'ici » fait sauter la lecture à ce paragraphe.</p>`); }
   try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(w => { if (ttsRun === run) run.wake = w; else w.release(); }).catch(() => {}); } catch (e) {}
   const voice = ttsVoice();
   const next = () => {
@@ -2317,7 +2334,7 @@ function vFiche() {
       <div class="lprog" role="presentation"><i style="width:${pct(i + 1, list.length)}%"></i></div>
       <h1>${h(c.title)}</h1>
       ${(() => { const L = chLes(c.id); return L.length ? `<p class="fi-les"><span class="muted">Lire la leçon :</span> ${L.map(([cid, k]) => `<button class="linkbtn" data-act="lesson" data-cid="${cid}" data-k="${k}">${inl(lessonLabel(SPLIT(cid)[k].title, k).t)}</button>`).join(" · ")}</p>` : ""; })()}
-      ${TTS_OK ? `<div class="tts-row">${ttsBtnHTML()}${ttsRateHTML()}<button class="chip small" data-act="ttsVoices">Changer de voix</button></div>` : ""}
+      ${TTS_OK ? `<div class="tts-row tts-stick">${ttsBtnHTML()}${ttsRateHTML()}<button class="chip small" data-act="ttsVoices">Voix</button></div>` : ""}
       <div class="picker fmode" role="tablist" aria-label="Version de la fiche"${c.imgs ? " hidden" : ""}><button class="chip" role="tab" data-act="fmode" data-m="recap" aria-pressed="${FMODE === "recap"}">Résumé</button><button class="chip" role="tab" data-act="fmode" data-m="full" aria-pressed="${FMODE === "full"}">Version longue</button></div>
       ${c.imgs ? ficheImgs(c) : FMODE === "recap" ? ficheRecap(c) : `<div class="md">
         <blockquote class="callout key"><p class="md-label"><strong>Idée clé</strong></p><p>${h(c.idee)}</p></blockquote>
@@ -5554,6 +5571,7 @@ document.addEventListener("click", e => {
     case "hlRead": { const blk = HL_CUR, root = document.querySelector("#view .lesson"), btn = root && root.querySelector(".tts-btn"); hlBarClose(); if (!btn || !blk) break; const bl = ttsBlocks(root); const i = bl.findIndex(x => x === blk || x.contains(blk) || blk.contains(x)); ttsToggle(btn, Math.max(0, i)); break; }
     case "qSpeak": { const cur = R && R.list[R.i]; if (cur && R.mode === "quiz" && cur.pick !== null) qSpeakFb(); else qSpeakQ(); break; }
     case "qAuto": { S.pref = S.pref || {}; S.pref.qauto = !qAuto(); touch(); b.setAttribute("aria-pressed", String(qAuto())); if (qAuto()) { R._tts = null; qSpeakAuto(); } else ttsStop(); break; }
+    case "ttsRestart": { const bt = document.querySelector("#view .lesson .tts-btn"); if (bt) { delete bt.dataset.at; ttsToggle(bt, 0); } break; }
     case "ttsChain": { S.pref = S.pref || {}; S.pref.ttsc = !ttsChain(); touch(); b.setAttribute("aria-pressed", String(ttsChain())); break; }
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn, at = Math.max(0, ttsRun.i - 1); ttsStop(); ttsToggle(bt, at); } break; }
     case "pkIcs": icsSheet(PK); break;
