@@ -2073,6 +2073,8 @@ function ttsVoiceSheet() {
   if (ttsFrVoices().length) show(); else { try { speechSynthesis.onvoiceschanged = () => { speechSynthesis.onvoiceschanged = null; show(); }; } catch (e) {} setTimeout(show, 600); }
 }
 function ttsRateHTML() { return TTS_OK ? `<button class="tts-rate" data-act="ttsRate" aria-label="Vitesse de lecture">${String(ttsRate()).replace(".", ",")}×</button>` : ""; }
+let ttsUserT = 0;
+["touchstart", "wheel", "keydown"].forEach(ev => window.addEventListener(ev, e => { if (!e.target || !e.target.closest || !e.target.closest(".tts-stick")) ttsUserT = Date.now(); }, { passive: true }));
 function ttsToggle(btn, from) {
   if (!TTS_OK) return;
   // pendant la lecture : Pause (on retient le paragraphe en cours) ; en pause : Reprendre à ce paragraphe
@@ -2107,7 +2109,8 @@ function ttsToggle(btn, from) {
     }
     const el = run.blocks[run.i++], u = new SpeechSynthesisUtterance(ttsText(el));
     u.lang = "fr-FR"; if (voice) u.voice = voice; u.rate = ttsRate();
-    el.classList.add("tts-on"); try { el.scrollIntoView({ block: "nearest", behavior: fxOn() ? "smooth" : "auto" }); } catch (e) {}
+    // la page suit la lecture, sauf si la personne vient de toucher ou faire défiler l'écran (elle surligne, prend une note, relit plus haut)
+    el.classList.add("tts-on"); if (!HL_CUR && !document.getElementById("wkSheet") && Date.now() - ttsUserT > 5000) { try { el.scrollIntoView({ block: "nearest", behavior: fxOn() ? "smooth" : "auto" }); } catch (e) {} }
     u.onend = next; u.onerror = e => { if (e.error !== "interrupted" && e.error !== "canceled") next(); };
     run.u = u; speechSynthesis.speak(u);
   };
