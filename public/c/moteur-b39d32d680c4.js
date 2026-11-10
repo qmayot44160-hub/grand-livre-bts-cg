@@ -737,6 +737,7 @@ function render() {
   bindAnn();
   fx3d();
   gtClose(); hlBarClose(); requestAnimationFrame(() => { glossify(v); hlApply(); });
+  if (view === "run") qSpeakAuto();
 }
 
 /* Intercalaires de matière */
@@ -999,7 +1000,7 @@ function vRun() {
       </div>`
     : (answered ? `<div class="row"><button class="btn primary" data-act="next" id="nextBtn">${last ? "Voir le bilan" : "Question suivante"}</button><span class="kbd">Entrée</span></div>` : it.mul ? "" : `<span class="kbd">Touches 1 à 4 pour répondre</span>`);
   return `<section class="runner">
-    ${R.title ? `<p class="run-title">${h(R.title)}</p>` : ""}<div class="runner-top"><span class="progress-text">${R.mode === "quiz" ? `<button class="quit" data-act="quitRun" aria-label="Quitter le quiz">✕</button>` : ""}Question ${R.i + 1} / ${R.list.length}</span>${head}</div>
+    ${R.title ? `<p class="run-title">${h(R.title)}</p>` : ""}${TTS_OK ? `<div class="q-tts"><button class="chip small" data-act="qSpeak">${ICON.speak} ${answered ? "Écouter la correction" : "Écouter la question"}</button><button class="chip small" data-act="qAuto" aria-pressed="${qAuto()}">Lecture auto</button></div>` : ""}<div class="runner-top"><span class="progress-text">${R.mode === "quiz" ? `<button class="quit" data-act="quitRun" aria-label="Quitter le quiz">✕</button>` : ""}Question ${R.i + 1} / ${R.list.length}</span>${head}</div>
     <div class="bar"><i style="width:${pct(R.i + (answered ? 1 : 0), R.list.length)}%"></i></div>
     <div class="qcard">
       ${R.mode === "exam" ? `<span class="ep" style="align-self:flex-start">${h(c.code)} · ${h(c.name)}</span>` : ""}
@@ -1009,6 +1010,32 @@ function vRun() {
     </div>
     ${nav}
   </section>`;
+}
+/* Quiz à voix haute : la question et ses réponses, puis la correction (avec « Lecture auto », à chaque question) */
+const qAuto = () => !!(S.pref && S.pref.qauto);
+function ttsSay(parts) {
+  if (!TTS_OK) return; ttsStop();
+  const voice = ttsVoice(), list = parts.map(t => ttsText({ innerText: t })).filter(Boolean), tok = {}; ttsSay.tok = tok;
+  const go1 = i => { if (ttsSay.tok !== tok || i >= list.length) return; const u = new SpeechSynthesisUtterance(list[i]); u.lang = "fr-FR"; if (voice) u.voice = voice; u.rate = ttsRate(); u.onend = () => go1(i + 1); u.onerror = e => { if (e.error !== "interrupted" && e.error !== "canceled") go1(i + 1); }; try { speechSynthesis.speak(u); } catch (e) {} };
+  go1(0);
+}
+function qSpeakQ() {
+  const card = document.querySelector(".runner .qcard"); if (!card) return;
+  const q = card.querySelector(".qtext"), parts = [q ? q.innerText : ""];
+  const tw = card.querySelector(".tw-k"); if (tw) parts.push(tw.innerText);
+  card.querySelectorAll(".opt").forEach(o => { const k = o.querySelector(".k"), t = [...o.querySelectorAll("span")].filter(x => !x.classList.contains("k") && !x.classList.contains("mul-box")).map(x => x.innerText).join(" ") || o.innerText; parts.push((k && k.innerText.trim() ? "Réponse " + k.innerText.trim() + " : " : "") + t); });
+  ttsSay(parts);
+}
+function qSpeakFb() {
+  const fb = document.querySelector(".runner .feedback"); if (!fb) return;
+  const parts = [...fb.querySelectorAll(".verdict, p")].filter(e => !e.closest("button, details:not([open])")).map(e => e.innerText).filter(t => t && t.trim());
+  ttsSay(parts.length ? parts : [fb.innerText]);
+}
+function qSpeakAuto() {
+  if (!TTS_OK || !qAuto() || view !== "run" || !R || !R.list[R.i]) return;
+  const cur = R.list[R.i], ans = R.mode === "quiz" && cur.pick !== null, key = R.i + ":" + ans;
+  if (R._tts === key) return; R._tts = key;
+  setTimeout(() => { if (view === "run") (ans ? qSpeakFb : qSpeakQ)(); }, 250);
 }
 function pick(pos) {
   const cur = R.list[R.i];
@@ -5530,6 +5557,8 @@ document.addEventListener("click", e => {
     case "hlSet": hlSet(b.dataset.c); break;
     case "hlClear": hlSet(null); break;
     case "hlRead": { const blk = HL_CUR, root = document.querySelector("#view .lesson"), btn = root && root.querySelector(".tts-btn"); hlBarClose(); if (!btn || !blk) break; const bl = ttsBlocks(root); const i = bl.findIndex(x => x === blk || x.contains(blk) || blk.contains(x)); ttsToggle(btn, Math.max(0, i)); break; }
+    case "qSpeak": { const cur = R && R.list[R.i]; if (cur && R.mode === "quiz" && cur.pick !== null) qSpeakFb(); else qSpeakQ(); break; }
+    case "qAuto": { S.pref = S.pref || {}; S.pref.qauto = !qAuto(); touch(); b.setAttribute("aria-pressed", String(qAuto())); if (qAuto()) { R._tts = null; qSpeakAuto(); } else ttsStop(); break; }
     case "ttsChain": { S.pref = S.pref || {}; S.pref.ttsc = !ttsChain(); touch(); b.setAttribute("aria-pressed", String(ttsChain())); break; }
     case "ttsRate": { S.pref = S.pref || {}; const r = TTS_RATES[(TTS_RATES.indexOf(ttsRate()) + 1) % TTS_RATES.length]; S.pref.ttsr = r; touch(); b.textContent = String(r).replace(".", ",") + "×"; if (ttsRun) { const bt = ttsRun.btn, at = Math.max(0, ttsRun.i - 1); ttsStop(); ttsToggle(bt, at); } break; }
     case "pkIcs": icsSheet(PK); break;
