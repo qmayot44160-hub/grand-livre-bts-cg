@@ -2072,7 +2072,7 @@ function ttsToggle(btn, from) {
   const run = ttsRun = { btn, i: Math.max(0, Math.min(blocks.length - 1, from || 0)), blocks, root };
   root.classList.add("tts-live");
   btn.setAttribute("aria-pressed", "true"); btn.innerHTML = ttsLabel(true, btn.dataset.w);
-  { const row = btn.closest(".tts-row"); if (row && !row.querySelector(".tts-hint")) row.insertAdjacentHTML("beforeend", `<p class="tts-hint muted small">Touche un paragraphe pour reprendre la lecture à cet endroit.</p>`); }
+  { const row = btn.closest(".tts-row"); if (row && !row.querySelector(".tts-hint")) row.insertAdjacentHTML("beforeend", `<p class="tts-hint muted small">Pendant la lecture, tu peux surligner : touche un paragraphe (ou sélectionne une phrase). « Lire à partir d'ici » fait sauter la lecture à ce paragraphe.</p>`); }
   try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(w => { if (ttsRun === run) run.wake = w; else w.release(); }).catch(() => {}); } catch (e) {}
   const voice = ttsVoice();
   const next = () => {
@@ -2133,13 +2133,14 @@ function hlBarOpen(b, part, rect) {
   const bar = document.createElement("div"); bar.className = "hl-bar"; bar.setAttribute("role", "toolbar"); bar.setAttribute("aria-label", "Surligner ce paragraphe");
   bar.innerHTML = HL_COLORS.map(([c, n]) => `<button class="hl-sw hl-${c}${cur === c ? " is-on" : ""}" data-act="hlSet" data-c="${c}" aria-label="Surligner en ${n.toLowerCase()}" aria-pressed="${cur === c}"></button>`).join("")
     + (cur ? `<button class="hl-tx" data-act="hlClear">Effacer</button>` : "")
-    + (TTS_OK && !part ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}Écouter d'ici</button>` : "");
+    + (TTS_OK && !part ? `<button class="hl-tx" data-act="hlRead">${ICON.speak}${ttsRun ? "Lire à partir d'ici" : "Écouter d'ici"}</button>` : "");
   document.body.appendChild(bar);
   const r = rect || b.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight, W = document.documentElement.clientWidth;
   // passage sélectionné : la barre se place sous la sélection (le menu du téléphone s'affiche au-dessus)
   let top = part ? r.bottom + 34 : r.top - bh - 8; if (top < 70 || top > window.innerHeight - bh - 70) top = part ? r.top - bh - 12 : Math.min(r.bottom + 8, window.innerHeight - bh - 80);
   bar.style.top = Math.max(8, top) + "px"; bar.style.left = Math.max(8, Math.min(W - bw - 8, r.left + Math.min(r.width, 320) / 2 - bw / 2)) + "px";
 }
+function hlBarPlace() { const bar = document.querySelector(".hl-bar"); if (!bar || !HL_CUR) return; const r = HL_CUR.getBoundingClientRect(), bh = bar.offsetHeight; if (r.bottom < 0 || r.top > window.innerHeight) return hlBarClose(); let top = r.top - bh - 8; if (top < 70) top = Math.min(r.bottom + 8, window.innerHeight - bh - 80); bar.style.top = Math.max(8, top) + "px"; }
 function hlSet(c) {
   const b = HL_CUR, k = hlKey(); if (!b || !k) return hlBarClose();
   S.hl = S.hl || {}; const m = S.hl[k] = S.hl[k] || {}, hh = HL_PART ? HL_PART.key : hlHash(b.innerText);
@@ -2150,7 +2151,6 @@ function hlSet(c) {
 }
 document.addEventListener("click", e => {
   if (e.target.closest(".hl-bar")) return;
-  if (ttsRun) { hlBarClose(); return; }
   const root = document.querySelector("#view .lesson");
   if (!root || !root.contains(e.target) || !hlKey()) { if (!e.target.closest(".hl-bar")) hlBarClose(); return; }
   if (e.target.closest("button, a, input, textarea, select, summary, [data-act], .gt")) { hlBarClose(); return; }
@@ -2160,13 +2160,13 @@ document.addEventListener("click", e => {
   if (!b || b === HL_CUR) { hlBarClose(); return; }
   hlBarOpen(b);
 });
-window.addEventListener("scroll", () => { if (HL_CUR && !HL_PART) hlBarClose(); }, { passive: true });
+window.addEventListener("scroll", () => { if (HL_CUR && !HL_PART && !ttsRun) hlBarClose(); else if (HL_CUR && ttsRun) hlBarPlace(); }, { passive: true });
 /* Sélectionner un passage (appui long sur téléphone, ou à la souris) : la barre propose de surligner juste ce passage */
 let hlSelT = null;
 document.addEventListener("selectionchange", () => {
   clearTimeout(hlSelT);
   hlSelT = setTimeout(() => {
-    if (ttsRun || !hlKey()) return;
+    if (!hlKey()) return;
     let sel; try { sel = window.getSelection(); } catch (e) { return; }
     if (!sel || sel.isCollapsed || !sel.rangeCount) return;
     const r = sel.getRangeAt(0), root = document.querySelector("#view .lesson"); if (!root || !r.toString().trim()) return;
@@ -2176,12 +2176,7 @@ document.addEventListener("selectionchange", () => {
   }, 350);
 });
 /* Pendant la lecture, toucher un paragraphe relance la lecture à partir de lui */
-document.addEventListener("click", e => {
-  const run = ttsRun; if (!run || !run.root || !run.root.contains(e.target)) return;
-  if (e.target.closest("button, a, input, textarea, select, summary, [data-act], .gt")) return;
-  const at = run.blocks.findIndex(b => b.contains(e.target)); if (at < 0) return;
-  e.preventDefault(); ttsToggle(run.btn, at);
-});
+/* (Pendant la lecture, toucher un paragraphe ouvre la barre de surlignage, avec « Lire à partir d'ici ».) */
 if (TTS_OK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {} document.addEventListener("visibilitychange", () => { if (document.hidden && ttsRun && /iPhone|iPad/.test(navigator.userAgent)) ttsStop(); }); window.addEventListener("pagehide", () => ttsStop()); }
 
 let peekT = null;
