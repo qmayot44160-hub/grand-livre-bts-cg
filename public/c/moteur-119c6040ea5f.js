@@ -657,7 +657,7 @@ let matCat = CATS[0].id, matSeg = "lecons", LS = null, ficheQuery = "", matFiche
 
 function normS() { S.q = S.q || {}; S.c = S.c || {}; S.l = S.l || {}; S.x = S.x || {}; S.st = S.st || { d: 0, n: 0 };  migL(S); }
 /* Leçons insérées ou réordonnées : les leçons lues suivent leur nouveau numéro (LES_MIG, par cours et par version) */
-function migL(o) { if (!o || typeof LES_MIG === "undefined") return o; o.l = o.l || {}; o.lmig = o.lmig || {}; Object.keys(LES_MIG).forEach(cid => { let cur = +o.lmig[cid] || 1; LES_MIG[cid].forEach(st => { if (st.v <= cur) return; const nl = {}; Object.keys(o.l).forEach(key => { const i = key.lastIndexOf(":"), c = key.slice(0, i), k = key.slice(i + 1); nl[c === cid && st.m[k] ? c + ":" + st.m[k] : key] = o.l[key]; }); o.l = nl; ["lp", "hl", "hn"].forEach(f => { if (!o[f]) return; const pre = f === "lp" ? "" : "l:", nx = {}; Object.keys(o[f]).forEach(key => { let nk = key; if (key.startsWith(pre + cid + ":")) { const kk = key.slice((pre + cid + ":").length); if (st.m[kk]) nk = pre + cid + ":" + st.m[kk]; } nx[nk] = o[f][key]; }); o[f] = nx; }); if (o.last && o.last.c === cid && st.m[o.last.k]) o.last.k = st.m[o.last.k]; cur = st.v; }); o.lmig[cid] = cur; }); return o; }
+function migL(o) { if (!o || typeof LES_MIG === "undefined") return o; o.l = o.l || {}; o.lmig = o.lmig || {}; Object.keys(LES_MIG).forEach(cid => { let cur = +o.lmig[cid] || 1; LES_MIG[cid].forEach(st => { if (st.v <= cur) return; const nl = {}; Object.keys(o.l).forEach(key => { const i = key.lastIndexOf(":"), c = key.slice(0, i), k = key.slice(i + 1); const nk0 = c === cid && st.m[k] ? c + ":" + st.m[k] : key; nl[nk0] = nl[nk0] || o.l[key]; }); o.l = nl; ["lp", "hl", "hn"].forEach(f => { if (!o[f]) return; const pre = f === "lp" ? "" : "l:", nx = {}; Object.keys(o[f]).forEach(key => { let nk = key; if (key.startsWith(pre + cid + ":")) { const kk = key.slice((pre + cid + ":").length); if (st.m[kk]) nk = pre + cid + ":" + st.m[kk]; } nx[nk] = nx[nk] && typeof nx[nk] === "object" && typeof o[f][key] === "object" ? Object.assign({}, o[f][key], nx[nk]) : (nx[nk] || o[f][key]); }); o[f] = nx; }); if (o.last && o.last.c === cid && st.m[o.last.k]) o.last.k = st.m[o.last.k]; cur = st.v; }); o.lmig[cid] = cur; }); return o; }
 function dayLog() { const d = dayNum(); if (!S.dy || S.dy.d !== d) S.dy = { d, l: 0, c: 0, e: 0 }; return S.dy; }
 
 function go(v, opts) {
@@ -1581,7 +1581,7 @@ function startExam() {
 }
 
 /* ---------- Cours, leçons, fiches (version 5) ---------- */
-const LES_MIG = {"p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 10, "9": 11, "10": 12, "11": 13, "12": 14}}], "p3": [{"v": 2, "m": {"3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 12}}, {"v": 3, "m": {"8": 9, "9": 10, "10": 11, "11": 12, "12": 13}}], "p4": [{"v": 2, "m": {"4": 5, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p1": [{"v": 2, "m": {"5": 6, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p6": [{"v": 2, "m": {"4": 5, "5": 6, "6": 7, "7": 9, "8": 11, "9": 12}}]};
+const LES_MIG = {"p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 10, "9": 11, "10": 12, "11": 13, "12": 14}}], "p3": [{"v": 2, "m": {"3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 12}}, {"v": 3, "m": {"8": 9, "9": 10, "10": 11, "11": 12, "12": 13}}, {"v": 4, "m": {"9": 8, "10": 9, "11": 10, "12": 11, "13": 12}}], "p4": [{"v": 2, "m": {"4": 5, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p1": [{"v": 2, "m": {"5": 6, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p6": [{"v": 2, "m": {"4": 5, "5": 6, "6": 7, "7": 9, "8": 11, "9": 12}}]};
 const COURS_ORDER = FORMATION.coursOrder || ["me", "or", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "ce1", "ce2", "ce3", "ce4", "cg", "an"];
 function CMETA(id) { if (COURS_META[id]) return COURS_META[id]; const c = CAT[id]; return c ? Object.assign({ cat: c.id, short: c.name }, c) : null; }
 const COURSES_BY_CAT = { ce: ["ce1", "ce2", "ce3", "ce4", "ce"], me: ["me", "or"] };
@@ -1883,14 +1883,14 @@ const CHID = Object.fromEntries(CHAP.map(c => [c.id, c]));
    officielle (P1 à P4 surtout en 1re année, P5 et P6 surtout en 2e) et la pratique des académies (CEJM thèmes 1 à 3 puis 4 à 6,
    thème de culture générale en 2e année). "1" = 1re année, "2" = 2e année, "12" = les deux. */
 const YR_LES = { // par cours : valeur par défaut, puis exceptions par numéro de leçon
-  p1: ["1"], p2: ["1", { 1: "12", 5: "2", 8: "2", 9: "2", 11: "2", 12: "2", 13: "2", 14: "2" }], p3: ["1", { 8: "2", 9: "2", 10: "2", 11: "2" }],
+  p1: ["1"], p2: ["1", { 1: "12", 5: "2", 8: "2", 9: "2", 11: "2", 12: "2", 13: "2", 14: "2" }], p3: ["1", { 8: "2", 9: "2", 10: "2" }],
   p4: ["1", { 10: "2", 11: "2" }], p5: ["2", { 1: "1", 2: "1", 5: "1" }], p6: ["2"], p7: ["1", { 5: "2", 6: "2", 7: "2", 9: "2" }],
   ma: ["1", { 4: "2", 5: "2", 6: "2", 7: "12" }], ce: ["12"], ce1: ["1"], ce2: ["1"], ce3: ["1"], ce4: ["2"], cg: ["2"], an: ["12"], me: ["12"], or: ["2"]
 };
 const YR_CH = { // fiches-chapitres
   p5c6: "2", p5c7: "2", p5c8: "2", p5c9: "2", p5c10: "2", p6c6: "2", p6c7: "2", p6c8: "2", p6c9: "2", p6c10: "2", p7c7: "2", p7c8: "2",
   p4c9: "2", p4c10: "2",
-  p2c7: "2", p2c8: "2", p2c9: "2", p3c9: "2", p3c10: "2", p3c12: "2",
+  p2c7: "2", p2c8: "2", p2c9: "2", p3c9: "2", p3c10: "2",
   p2c5: "2", p2c6: "2", p3c5: "2", p5c4: "2", p5c5: "2", p7c4: "2", p7c5: "2",
   m6: "2", m7: "2", m8: "2", m9: "2", m10: "2", v1: "2", v2: "2", v3: "2", v4: "2", "or-e3": "2", "or-e5": "2"
 };
@@ -1899,7 +1899,7 @@ const YR_CAT = { p1: "1", p2: "1", p3: "1", p4: "1", p5: "1", p6: "2", p7: "1", 
 const LES_CH_RAW = {
   p1: [["p1c1"], ["p1c2"], ["p1c4", "p1c2"], ["p1c3"], ["p1c4"], ["p1c7"], ["p1c5"], ["p1c6"], ["p1c8"], ["p1c9"], ["p1c10"], []],
   p2: [["p2c5"], ["p2c5"], ["p2c1"], ["p2c2"], ["p2c7"], ["p2c3"], ["p2c3"], ["p2c3"], ["p2c8"], ["p2c4"], ["p2c6"], ["p2c5"], ["p2c9"], []],
-  p3: [["p3c1"], ["p3c1"], ["p3c6"], ["p3c7"], ["p3c8"], ["p3c2", "p3c3"], ["p3c4"], ["p3c12"], ["p3c9"], ["p3c5"], ["p3c10"], ["p3c11"], []],
+  p3: [["p3c1"], ["p3c1"], ["p3c6"], ["p3c7"], ["p3c8"], ["p3c2", "p3c3"], ["p3c4"], ["p3c9"], ["p3c5"], ["p3c10"], ["p3c11"], []],
   p4: [["p4c5"], ["p4c1"], ["p4c2"], ["p4c6"], ["p4c3"], ["p4c7"], ["p4c4"], ["p4c5"], ["p4c8"], ["p4c9"], ["p4c10"], []],
   p5: [["p5c1"], ["p5c1"], ["p5c6"], ["p5c7"], ["p5c3"], ["p5c4"], ["p5c5"], ["p5c8"], ["p5c5"], ["p5c9"], ["p5c5", "p5c2"], ["p5c10"]],
   p6: [["p6c1"], ["p6c1"], ["p6c2"], ["p6c6"], ["p6c3"], ["p6c4"], ["p6c5"], ["p6c7"], ["p6c8"], ["p6c9"], ["p6c10"], []],
