@@ -1581,7 +1581,7 @@ function startExam() {
 }
 
 /* ---------- Cours, leçons, fiches (version 5) ---------- */
-const LES_MIG = {"p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 10, "9": 11, "10": 12, "11": 13, "12": 14}}], "p3": [{"v": 2, "m": {"3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 12}}, {"v": 3, "m": {"8": 9, "9": 10, "10": 11, "11": 12, "12": 13}}, {"v": 4, "m": {"9": 8, "10": 9, "11": 10, "12": 11, "13": 12}}], "p4": [{"v": 2, "m": {"4": 5, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p1": [{"v": 2, "m": {"5": 6, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p6": [{"v": 2, "m": {"4": 5, "5": 6, "6": 7, "7": 9, "8": 11, "9": 12}}]};
+const LES_MIG = {"p7": [{"v": 2, "m": {"8": 9, "9": 10}}], "p2": [{"v": 2, "m": {"2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 10, "9": 11, "10": 12, "11": 13, "12": 14}}], "p3": [{"v": 2, "m": {"3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 12}}, {"v": 3, "m": {"8": 9, "9": 10, "10": 11, "11": 12, "12": 13}}, {"v": 4, "m": {"9": 8, "10": 9, "11": 10, "12": 11, "13": 12}}], "p4": [{"v": 2, "m": {"4": 5, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p1": [{"v": 2, "m": {"5": 6, "6": 8, "7": 9, "8": 10, "9": 11, "10": 12}}], "p6": [{"v": 2, "m": {"4": 5, "5": 6, "6": 7, "7": 9, "8": 11, "9": 12}}]};
 const COURS_ORDER = FORMATION.coursOrder || ["me", "or", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "ma", "ce", "ce1", "ce2", "ce3", "ce4", "cg", "an"];
 function CMETA(id) { if (COURS_META[id]) return COURS_META[id]; const c = CAT[id]; return c ? Object.assign({ cat: c.id, short: c.name }, c) : null; }
 const COURSES_BY_CAT = { ce: ["ce1", "ce2", "ce3", "ce4", "ce"], me: ["me", "or"] };
@@ -1884,11 +1884,11 @@ const CHID = Object.fromEntries(CHAP.map(c => [c.id, c]));
    thème de culture générale en 2e année). "1" = 1re année, "2" = 2e année, "12" = les deux. */
 const YR_LES = { // par cours : valeur par défaut, puis exceptions par numéro de leçon
   p1: ["1"], p2: ["1", { 1: "12", 5: "2", 8: "2", 9: "2", 11: "2", 12: "2", 13: "2", 14: "2" }], p3: ["1", { 8: "2", 9: "2", 10: "2" }],
-  p4: ["1", { 10: "2", 11: "2" }], p5: ["2", { 1: "1", 2: "1", 5: "1" }], p6: ["2"], p7: ["1", { 5: "2", 6: "2", 7: "2", 9: "2" }],
+  p4: ["1", { 10: "2", 11: "2" }], p5: ["2", { 1: "1", 2: "1", 5: "1" }], p6: ["2"], p7: ["1", { 5: "2", 6: "2", 8: "2", 10: "2" }],
   ma: ["1", { 4: "2", 5: "2", 6: "2", 7: "12" }], ce: ["12"], ce1: ["1"], ce2: ["1"], ce3: ["1"], ce4: ["2"], cg: ["2"], an: ["12"], me: ["12"], or: ["2"]
 };
 const YR_CH = { // fiches-chapitres
-  p5c6: "2", p5c7: "2", p5c8: "2", p5c9: "2", p5c10: "2", p6c6: "2", p6c7: "2", p6c8: "2", p6c9: "2", p6c10: "2", p7c7: "2", p7c8: "2",
+  p5c6: "2", p5c7: "2", p5c8: "2", p5c9: "2", p5c10: "2", p6c6: "2", p6c7: "2", p6c8: "2", p6c9: "2", p6c10: "2", p7c7: "1", p7c9: "2", p7c8: "2",
   p4c9: "2", p4c10: "2",
   p2c7: "2", p2c8: "2", p2c9: "2", p3c9: "2", p3c10: "2",
   p2c5: "2", p2c6: "2", p3c5: "2", p5c4: "2", p5c5: "2", p7c4: "2", p7c5: "2",
@@ -1903,7 +1903,7 @@ const LES_CH_RAW = {
   p4: [["p4c5"], ["p4c1"], ["p4c2"], ["p4c6"], ["p4c3"], ["p4c7"], ["p4c4"], ["p4c5"], ["p4c8"], ["p4c9"], ["p4c10"], []],
   p5: [["p5c1"], ["p5c1"], ["p5c6"], ["p5c7"], ["p5c3"], ["p5c4"], ["p5c5"], ["p5c8"], ["p5c5"], ["p5c9"], ["p5c5", "p5c2"], ["p5c10"]],
   p6: [["p6c1"], ["p6c1"], ["p6c2"], ["p6c6"], ["p6c3"], ["p6c4"], ["p6c5"], ["p6c7"], ["p6c8"], ["p6c9"], ["p6c10"], []],
-  p7: [["p7c1"], ["p7c6", "p7c2"], ["p7c2"], ["p7c3"], ["p7c4"], ["p7c4"], ["p7c7", "p7c5"], ["p7c2"], ["p7c8"]],
+  p7: [["p7c1"], ["p7c6", "p7c2"], ["p7c2"], ["p7c3"], ["p7c4"], ["p7c4"], ["p7c7"], ["p7c9", "p7c5"], ["p7c2"], ["p7c8"]],
   ma: [["m1", "m2"], ["m3"], ["m4", "m5"], ["m7", "m8"], ["m9", "m10"], ["m6"], []],
   cg: [["v1", "g1"], ["v1"], ["v2"], ["v3"], ["v2", "v4"], ["v3", "v4"], ["g3"], ["g3"]],
   an: [["a6"], ["a2"], ["a5"], ["a3"], ["a6"]],
@@ -2578,6 +2578,10 @@ INSERT INTO LIGNE_FACTURE VALUES (1001,2,5,120),(1001,5,4,35),(1002,1,4,450),(10
     ["s7", "Valeur vide", "Affiche le nom des clients qui n'ont pas d'adresse e-mail renseignée.", "SELECT NomClient FROM CLIENT WHERE Email IS NULL;", "Jamais = NULL : toujours IS NULL."],
     ["s8", "Une liste et un tri", "Affiche le nom et la ville des clients situés à Paris, Lyon ou Marseille, triés par nom (ordre alphabétique).", "SELECT NomClient, Ville FROM CLIENT WHERE Ville IN ('Paris', 'Lyon', 'Marseille') ORDER BY NomClient ASC;", "IN (liste) pour l'appartenance ; ORDER BY se place toujours à la fin."],
     ["s9", "Tri décroissant", "Affiche le numéro et le montant HT de toutes les factures, de la plus élevée à la plus faible.", "SELECT NumFacture, MontantHT FROM FACTURE ORDER BY MontantHT DESC;", "DESC pour l'ordre décroissant."],
+    ["s10", "En dehors d'un intervalle", "Affiche le libellé et le prix unitaire HT des produits dont le prix n'est pas compris entre 100 et 400 €.", "SELECT LibelleProduit, PrixUnitaireHT FROM PRODUIT WHERE PrixUnitaireHT NOT BETWEEN 100 AND 400;", "NOT BETWEEN x AND y garde ce qui est en dehors de l'intervalle."],
+    ["s11", "Un seul caractère", "Affiche le nom et la ville des clients dont la ville commence par L et compte exactement 4 lettres.", "SELECT NomClient, Ville FROM CLIENT WHERE Ville LIKE 'L___';", "_ remplace exactement un caractère : L suivi de trois _."],
+    ["s12", "ET, OU et parenthèses", "Affiche le numéro, le client et le montant HT des factures de plus de 2 000 €, ou des factures du client n°1 de plus de 900 €.", "SELECT NumFacture, NumClient, MontantHT FROM FACTURE WHERE MontantHT > 2000 OR (NumClient = 1 AND MontantHT > 900);", "Mets des parenthèses autour du AND pour ne pas mélanger les conditions."],
+    ["s13", "Valeur renseignée", "Affiche le nom et l'e-mail des clients dont l'adresse e-mail est renseignée.", "SELECT NomClient, Email FROM CLIENT WHERE Email IS NOT NULL;", "IS NOT NULL, jamais <> NULL."],
     ["j1", "Une jointure", "Affiche, pour chaque facture, son numéro, sa date et le nom du client.", "SELECT F.NumFacture, F.DateFacture, C.NomClient FROM FACTURE F INNER JOIN CLIENT C ON F.NumClient = C.NumClient;", "INNER JOIN … ON clé étrangère = clé primaire ; alias F et C pour raccourcir."],
     ["j2", "Les orphelins", "Affiche le nom des clients qui n'ont aucune facture.", "SELECT C.NomClient FROM CLIENT C LEFT JOIN FACTURE F ON C.NumClient = F.NumClient WHERE F.NumFacture IS NULL;", "LEFT JOIN garde tous les clients ; sans facture, les colonnes de FACTURE valent NULL."],
     ["j3", "Trois jointures", "Affiche le numéro de facture, le nom du client, le libellé du produit et la quantité de chaque ligne de facture.", "SELECT F.NumFacture, C.NomClient, P.LibelleProduit, LF.Quantite FROM LIGNE_FACTURE LF INNER JOIN FACTURE F ON LF.NumFacture = F.NumFacture INNER JOIN CLIENT C ON F.NumClient = C.NumClient INNER JOIN PRODUIT P ON LF.NumProduit = P.NumProduit;", "Pars de LIGNE_FACTURE et ajoute une jointure par table."],
@@ -2585,6 +2589,10 @@ INSERT INTO LIGNE_FACTURE VALUES (1001,2,5,120),(1001,5,4,35),(1002,1,4,450),(10
     ["a2", "Une moyenne", "Affiche le montant HT moyen des factures.", "SELECT AVG(MontantHT) FROM FACTURE;", "AVG(colonne) calcule une moyenne."],
     ["a3", "Grouper", "Affiche le chiffre d'affaires HT total par ville (la ville et la somme des montants HT de ses factures).", "SELECT C.Ville, SUM(F.MontantHT) AS CA_Ville FROM FACTURE F INNER JOIN CLIENT C ON F.NumClient = C.NumClient GROUP BY C.Ville;", "Une jointure pour avoir la ville, puis GROUP BY C.Ville."],
     ["a4", "Filtrer les groupes", "Affiche le numéro des clients qui ont au moins 2 factures, avec leur nombre de factures.", "SELECT NumClient, COUNT(*) AS NbFactures FROM FACTURE GROUP BY NumClient HAVING COUNT(*) >= 2;", "HAVING filtre les groupes après le GROUP BY (WHERE filtre les lignes avant)."],
+    ["a5", "Compter sans doublon", "Affiche le nombre de villes différentes dans lesquelles l'entreprise a des clients.", "SELECT COUNT(DISTINCT Ville) FROM CLIENT;", "COUNT(DISTINCT colonne) compte les valeurs différentes."],
+    ["a6", "Minimum et maximum", "Affiche, sur une seule ligne, le plus petit et le plus grand montant HT de facture, dans deux colonnes nommées Minimum et Maximum.", "SELECT MIN(MontantHT) AS Minimum, MAX(MontantHT) AS Maximum FROM FACTURE;", "MIN et MAX dans le même SELECT ; AS pour nommer chaque colonne."],
+    ["a7", "Filtrer, grouper, filtrer", "Pour les factures de plus de 1 000 € HT seulement, affiche par client le total HT, en ne gardant que les clients dont ce total dépasse 3 000 €.", "SELECT NumClient, SUM(MontantHT) AS Total FROM FACTURE WHERE MontantHT > 1000 GROUP BY NumClient HAVING SUM(MontantHT) > 3000;", "WHERE filtre les factures avant le regroupement, HAVING filtre les totaux après."],
+    ["a8", "Une requête imbriquée", "Affiche le numéro et le montant HT de la facture la plus élevée, en utilisant une requête imbriquée.", "SELECT NumFacture, MontantHT FROM FACTURE WHERE MontantHT = (SELECT MAX(MontantHT) FROM FACTURE);", "La sous-requête (SELECT MAX…) est évaluée d'abord."],
     ["m1", "Ajouter une ligne", "Ajoute le client n°42, « SCI Les Oliviers », situé à Marseille (sans e-mail).", "INSERT INTO CLIENT (NumClient, NomClient, Ville) VALUES (42, 'SCI Les Oliviers', 'Marseille');", "INSERT INTO table (colonnes) VALUES (valeurs) ; même ordre des deux côtés.", "SELECT * FROM CLIENT ORDER BY NumClient;"],
     ["m2", "Modifier une valeur", "Le client n°3 a déménagé : sa ville est désormais Roubaix.", "UPDATE CLIENT SET Ville = 'Roubaix' WHERE NumClient = 3;", "UPDATE … SET … WHERE : sans WHERE, toutes les lignes seraient modifiées.", "SELECT NumClient, Ville FROM CLIENT ORDER BY NumClient;"],
     ["m3", "Augmenter les prix", "Augmente de 5 % le prix unitaire HT de tous les produits.", "UPDATE PRODUIT SET PrixUnitaireHT = PrixUnitaireHT * 1.05;", "Ici, pas de WHERE : on veut bien modifier toutes les lignes.", "SELECT NumProduit, PrixUnitaireHT FROM PRODUIT ORDER BY NumProduit;"],
